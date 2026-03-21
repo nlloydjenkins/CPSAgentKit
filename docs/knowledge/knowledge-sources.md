@@ -9,6 +9,7 @@
 ## Chunking
 
 You have zero control. Dataverse applies undocumented default chunking on upload. Cannot control:
+
 - Chunk size
 - Chunk overlap
 - Chunking strategy (by paragraph, by section, fixed-size, etc.)
@@ -18,6 +19,7 @@ This is the #1 limitation for production RAG quality. For critical use cases, co
 ## Knowledge Source Descriptions
 
 Descriptions become critical at scale. Write them like tool descriptions:
+
 - What domain/topic the source covers
 - What type of content it contains
 - Who/what it's relevant for
@@ -34,6 +36,10 @@ Bad: "Benefits."
 - Without M365 Copilot license: keep SharePoint files under 7 MB
 - Avoid mixing unrelated content in one document — the chunker doesn't know where topics change
 - Use clear headings and structure — helps both chunking and retrieval
+
+## Dual-Placement for Critical Frameworks
+
+If the agent must follow a strict framework, scoring methodology, or procedural checklist, put the full version in knowledge files and also summarise the key rules in agent instructions. CPS retrieval is not deterministic enough to rely on knowledge alone for mission-critical behavior. The instruction summary ensures the framework is always in context; the knowledge source provides the detailed reference when retrieved.
 
 ## When to Use Each Source Type
 

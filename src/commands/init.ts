@@ -3,7 +3,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { readConfig, writeConfig, CpsConfig } from "../services/config.js";
 import { detectProjectState } from "../services/projectState.js";
-import { syncKnowledge } from "../services/knowledgeSync.js";
+import { syncKnowledge, syncTemplates } from "../services/knowledgeSync.js";
 import { generateInstructions } from "../services/instructionsGenerator.js";
 
 /**
@@ -95,9 +95,16 @@ export async function initCommand(extensionPath: string): Promise<void> {
         progress.report({ message: msg });
       });
 
-      if (syncResult.errors.length > 0) {
+      // Sync templates from GitHub
+      progress.report({ message: "Syncing templates..." });
+      const templateResult = await syncTemplates(root, config, (msg) => {
+        progress.report({ message: msg });
+      });
+
+      const allErrors = [...syncResult.errors, ...templateResult.errors];
+      if (allErrors.length > 0) {
         vscode.window.showWarningMessage(
-          `CPSAgentKit: Knowledge sync completed with errors: ${syncResult.errors.join("; ")}`,
+          `CPSAgentKit: Sync completed with errors: ${allErrors.join("; ")}`,
         );
       }
 
@@ -111,9 +118,10 @@ export async function initCommand(extensionPath: string): Promise<void> {
       await generateInstructions(root, templateDir, freshState);
 
       // Report success
-      const fileCount = syncResult.filesWritten.length;
+      const knowledgeCount = syncResult.filesWritten.length;
+      const templateCount = templateResult.filesWritten.length;
       vscode.window.showInformationMessage(
-        `CPSAgentKit: Project initialised. ${fileCount} knowledge files synced.`,
+        `CPSAgentKit: Project initialised. ${knowledgeCount} knowledge files, ${templateCount} template files synced.`,
       );
     },
   );

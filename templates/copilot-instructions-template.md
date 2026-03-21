@@ -86,6 +86,22 @@ When the developer pastes test output from the CPS portal test pane:
 - If a single agent is sufficient, do not over-engineer a multi-agent solution
 - Be direct. If something won't work, say so.
 
+### CPS-Specific Authoring Rules
+
+These rules apply to ALL Copilot Studio projects:
+
+1. **Preprocessing uploaded files:** If the spec mentions document review, file analysis, or uploaded documents, add a preprocessing step (prompt tool with code interpreter) to convert files to text/HTML/Markdown before passing to downstream agents. Do not assume agents can reason directly over raw binary files.
+
+2. **Portal-first for prompts:** Create prompts in Copilot Studio or AI Hub first, then use Get Changes to pull the scaffold locally and refine in VS Code. When the architecture needs structured extraction, JSON output, custom model/temperature settings, or code interpreter — recommend a prompt tool.
+
+3. **Scaffold-first for connectors:** For connectors, MCP servers, workflows, and connection references — create or attach in Copilot Studio first, then sync locally and edit the generated files. Do not hand-author these from scratch.
+
+4. **Preserve downstream outputs:** When a parent passes one child's output to another step, instruct the parent to preserve the output as a labeled block rather than paraphrasing it. This mitigates CPS generative orchestration's default summarisation behavior.
+
+5. **Suppress conversational wrap-up for final artifacts:** If the desired output is a final artifact (report, structured data, scored result), explicitly tell the agent the result is final and it must not append offers, follow-up prompts, or conversational wrap-up text.
+
+6. **Preserve exported YAML structure:** When editing exported agent YAML, preserve the existing `kind`, IDs, bindings, and generated structure. Do not invent new YAML forms — follow the shapes already used by the workspace.
+
 ## CPS Extension Integration
 
 The workspace may contain a cloned CPS agent from the Copilot Studio VS Code extension. Agent components are stored as YAML files:

@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { readConfig, writeConfig } from "../services/config.js";
 import { detectProjectState } from "../services/projectState.js";
-import { syncKnowledge } from "../services/knowledgeSync.js";
+import { syncKnowledge, syncTemplates } from "../services/knowledgeSync.js";
 import { generateInstructions } from "../services/instructionsGenerator.js";
 import { StatusBar } from "../ui/statusBar.js";
 
@@ -59,9 +59,24 @@ export async function syncKnowledgeCommand(
         return;
       }
 
-      if (result.errors.length > 0) {
+      // Sync templates
+      progress.report({ message: "Syncing templates..." });
+      const templateResult = await syncTemplates(root, config, (msg) => {
+        if (token.isCancellationRequested) {
+          return;
+        }
+        progress.report({ message: msg });
+      });
+
+      if (token.isCancellationRequested) {
+        statusBar.setSynced();
+        return;
+      }
+
+      const allErrors = [...result.errors, ...templateResult.errors];
+      if (allErrors.length > 0) {
         vscode.window.showWarningMessage(
-          `CPSAgentKit: Sync completed with errors: ${result.errors.join("; ")}`,
+          `CPSAgentKit: Sync completed with errors: ${allErrors.join("; ")}`,
         );
       }
 
@@ -76,8 +91,10 @@ export async function syncKnowledgeCommand(
 
       statusBar.setSynced();
 
+      const totalFiles =
+        result.filesWritten.length + templateResult.filesWritten.length;
       vscode.window.showInformationMessage(
-        `CPSAgentKit: ${result.filesWritten.length} knowledge files synced.`,
+        `CPSAgentKit: ${result.filesWritten.length} knowledge files, ${templateResult.filesWritten.length} template files synced.`,
       );
     },
   );

@@ -7,6 +7,7 @@ export interface CpsConfig {
   knowledgeRepoUrl: string;
   knowledgeRepoBranch: string;
   knowledgePath: string;
+  templatesPath: string;
   lastSyncTimestamp: string | null;
   version: string;
 }
@@ -24,6 +25,7 @@ function defaults(): CpsConfig {
     ),
     knowledgeRepoBranch: getSettingOrDefault("knowledgeRepoBranch", "main"),
     knowledgePath: "docs/knowledge",
+    templatesPath: "docs/templates",
     lastSyncTimestamp: null,
     version: CURRENT_VERSION,
   };

@@ -46,7 +46,7 @@ Things that catch people out, behave unexpectedly, or aren't in the docs.
 - **No temperature control at agent level.** Only available in prompt actions. The main agent uses platform defaults.
 - **Follow-up questions require general knowledge enabled.** Disable "Use general knowledge" and the agent can't ask clarifying questions — they're considered "ungrounded" and suppressed. Silent failure.
 - **Content filtering is a black box.** When triggered: no logging, no reason code, no diagnostic info. Debugging is impossible. You can try rewording instructions to indicate the behaviour is expected.
-- **Long instructions cause latency and timeouts.** No documented limit, but beyond ~2000 chars you'll see degraded routing and response quality.
+- **8,000-character instruction limit.** This is the documented hard limit. Quality and routing may degrade before hitting it with dense or complex instructions — decompose into child agents or prompt tools rather than packing one instruction block.
 
 ## Deployment & Channels
 
@@ -72,6 +72,12 @@ Things that catch people out, behave unexpectedly, or aren't in the docs.
 - **GPT-4o/4.1 were widely regarded as poor in CPS.** GPT-5 is the turning point. Switching models can change agent behaviour — prompts that worked on one model may not work on another.
 - **Suggested prompts cache aggressively.** After publishing, updates may not appear due to browser/Teams/CDN/service caching. May require clearing caches, new sessions, or removing and re-adding the Teams channel.
 
+## YAML & Extension
+
+- **YAML kind mapping:** Top-level agent definitions use `kind: GptComponentMetadata`. Child agents use `kind: AgentDialog`. Topics use `kind: AdaptiveDialog`. Preserve these when editing — the platform expects them.
+- **Model hints in agent YAML:** Exported agent YAML may contain `aISettings.model.modelNameHint`. Preserve it during edits, but don't invent new values unless the workspace already uses that pattern. The documented model/temperature configuration path is through prompt tools.
+- **Prompt-level model/temperature:** Prompt tools let makers choose the model and temperature in the prompt editor. This is the supported configuration surface — use it for any capability that needs specific model settings.
+
 ---
 
-*Last updated: March 2026. The platform changes fast — validate against your environment.*
+_Last updated: March 2026. The platform changes fast — validate against your environment._
