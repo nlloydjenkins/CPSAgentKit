@@ -1,12 +1,10 @@
 import * as vscode from 'vscode';
 import { initCommand } from './commands/init.js';
 import { syncKnowledgeCommand } from './commands/syncKnowledge.js';
-import { openSpecCommand } from './commands/openSpec.js';
 import { createSpecCommand } from './commands/createSpec.js';
 import { createArchitectureCommand } from './commands/createArchitecture.js';
 import { buildCommand } from './commands/build.js';
 import { buildAgentCommand } from './commands/buildAgent.js';
-import { refreshCommand } from './commands/refresh.js';
 import { detectProjectState } from './services/projectState.js';
 import { readConfig } from './services/config.js';
 import { syncKnowledge } from './services/knowledgeSync.js';
@@ -23,12 +21,10 @@ export function activate(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(
 		vscode.commands.registerCommand('cpsAgentKit.init', () => initCommand(extensionPath)),
 		vscode.commands.registerCommand('cpsAgentKit.syncKnowledge', () => syncKnowledgeCommand(extensionPath, statusBar)),
-		vscode.commands.registerCommand('cpsAgentKit.openSpec', () => openSpecCommand()),
 		vscode.commands.registerCommand('cpsAgentKit.createSpec', () => createSpecCommand()),
 		vscode.commands.registerCommand('cpsAgentKit.createArchitecture', () => createArchitectureCommand()),
 		vscode.commands.registerCommand('cpsAgentKit.build', () => buildCommand()),
 		vscode.commands.registerCommand('cpsAgentKit.buildAgent', () => buildAgentCommand()),
-		vscode.commands.registerCommand('cpsAgentKit.refresh', () => refreshCommand(extensionPath)),
 		statusBar,
 	);
 

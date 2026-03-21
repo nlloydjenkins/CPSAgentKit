@@ -39,11 +39,6 @@
         "category": "CPSAgentKit"
       },
       {
-        "command": "cpsAgentKit.openSpec",
-        "title": "Open Spec",
-        "category": "CPSAgentKit"
-      },
-      {
         "command": "cpsAgentKit.createSpec",
         "title": "Create Spec (Guided)",
         "category": "CPSAgentKit"
@@ -61,11 +56,6 @@
       {
         "command": "cpsAgentKit.buildAgent",
         "title": "Build Agent",
-        "category": "CPSAgentKit"
-      },
-      {
-        "command": "cpsAgentKit.refresh",
-        "title": "Refresh Instructions",
         "category": "CPSAgentKit"
       }
     ],
