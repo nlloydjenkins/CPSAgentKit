@@ -59,6 +59,11 @@
         "category": "CPSAgentKit"
       },
       {
+        "command": "cpsAgentKit.buildAgent",
+        "title": "Build Agent",
+        "category": "CPSAgentKit"
+      },
+      {
         "command": "cpsAgentKit.refresh",
         "title": "Refresh Instructions",
         "category": "CPSAgentKit"

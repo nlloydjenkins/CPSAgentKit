@@ -5,6 +5,7 @@ import { openSpecCommand } from './commands/openSpec.js';
 import { createSpecCommand } from './commands/createSpec.js';
 import { createArchitectureCommand } from './commands/createArchitecture.js';
 import { buildCommand } from './commands/build.js';
+import { buildAgentCommand } from './commands/buildAgent.js';
 import { refreshCommand } from './commands/refresh.js';
 import { detectProjectState } from './services/projectState.js';
 import { readConfig } from './services/config.js';
@@ -26,6 +27,7 @@ export function activate(context: vscode.ExtensionContext): void {
 		vscode.commands.registerCommand('cpsAgentKit.createSpec', () => createSpecCommand()),
 		vscode.commands.registerCommand('cpsAgentKit.createArchitecture', () => createArchitectureCommand()),
 		vscode.commands.registerCommand('cpsAgentKit.build', () => buildCommand()),
+		vscode.commands.registerCommand('cpsAgentKit.buildAgent', () => buildAgentCommand()),
 		vscode.commands.registerCommand('cpsAgentKit.refresh', () => refreshCommand(extensionPath)),
 		statusBar,
 	);
