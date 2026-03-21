@@ -1,0 +1,83 @@
+{
+  "name": "cpsagentkit",
+  "displayName": "CPSAgentKit",
+  "description": "Turns GitHub Copilot into a Copilot Studio expert — scaffolds CPS agent projects, syncs platform knowledge, and generates copilot-instructions.md for deep CPS awareness.",
+  "version": "0.1.0",
+  "publisher": "nicklj",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nlloydjenkins/CPSAgentKit"
+  },
+  "keywords": [
+    "copilot-studio",
+    "copilot",
+    "multi-agent",
+    "cps",
+    "power-platform"
+  ],
+  "activationEvents": [
+    "workspaceContains:.cpsagentkit"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cpsAgentKit.init",
+        "title": "Initialise CPS Project",
+        "category": "CPSAgentKit"
+      },
+      {
+        "command": "cpsAgentKit.syncKnowledge",
+        "title": "Sync Knowledge",
+        "category": "CPSAgentKit"
+      },
+      {
+        "command": "cpsAgentKit.openSpec",
+        "title": "Open Spec",
+        "category": "CPSAgentKit"
+      }
+    ],
+    "configuration": {
+      "title": "CPSAgentKit",
+      "properties": {
+        "cpsAgentKit.knowledgeRepoUrl": {
+          "type": "string",
+          "default": "https://github.com/nlloydjenkins/CPSAgentKit",
+          "description": "GitHub repo URL for the CPS knowledge base"
+        },
+        "cpsAgentKit.syncOnOpen": {
+          "type": "boolean",
+          "default": true,
+          "description": "Sync knowledge automatically when the workspace opens"
+        },
+        "cpsAgentKit.knowledgeRepoBranch": {
+          "type": "string",
+          "default": "main",
+          "description": "Branch to pull knowledge from"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0"
+  }
+}
