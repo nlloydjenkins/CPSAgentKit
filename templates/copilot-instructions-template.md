@@ -28,6 +28,21 @@ If both `spec.md` and `architecture.md` exist:
 - Track progress in the Build State section of `architecture.md`
 - Maintain cross-agent consistency: when one agent's scope changes, flag what else needs updating
 
+#### Tool-First Rule (CRITICAL)
+When an agent has tools (MCP servers, connectors, Power Automate flows):
+- Agent instructions MUST say: "Always use [exact tool name] to answer questions. Do not use general knowledge when the tool can provide the answer."
+- Reference tools by exact name using `/ToolName` syntax
+- Consider recommending "Use general knowledge" be DISABLED if the tools fully cover the agent's domain
+- If the tools don't cover a query, the agent should say "I don't have that information" rather than hallucinate from general knowledge
+- Write tool descriptions that are highly specific: what it does, when to call it, what inputs it needs, what it does NOT do
+
+#### MCP Tool Awareness
+MCP tools have specific constraints:
+- MCP tools on child agents are NOT invoked when called via parent orchestration — the child fires but MCP calls don't execute
+- MCP tool descriptions must be precise enough for the orchestrator to select them over general knowledge
+- If an MCP tool exists for a domain, ALL queries in that domain should route through the tool, not general knowledge
+- Test that the agent actually calls the tool (check Activity Map in CPS) — responding with general knowledge citations means the tool isn't being invoked
+
 ### Phase 4: Test
 When the developer pastes test output from the CPS portal test pane:
 - Evaluate the output against `spec.md`

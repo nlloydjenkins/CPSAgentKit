@@ -47,6 +47,16 @@
         "command": "cpsAgentKit.createSpec",
         "title": "Create Spec (Guided)",
         "category": "CPSAgentKit"
+      },
+      {
+        "command": "cpsAgentKit.createArchitecture",
+        "title": "Create Architecture (Guided)",
+        "category": "CPSAgentKit"
+      },
+      {
+        "command": "cpsAgentKit.build",
+        "title": "Build Checklist",
+        "category": "CPSAgentKit"
       }
     ],
     "configuration": {
