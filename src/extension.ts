@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { initCommand } from './commands/init.js';
 import { syncKnowledgeCommand } from './commands/syncKnowledge.js';
 import { openSpecCommand } from './commands/openSpec.js';
+import { createSpecCommand } from './commands/createSpec.js';
 import { detectProjectState } from './services/projectState.js';
 import { readConfig } from './services/config.js';
 import { syncKnowledge } from './services/knowledgeSync.js';
@@ -19,6 +20,7 @@ export function activate(context: vscode.ExtensionContext): void {
 		vscode.commands.registerCommand('cpsAgentKit.init', () => initCommand(extensionPath)),
 		vscode.commands.registerCommand('cpsAgentKit.syncKnowledge', () => syncKnowledgeCommand(extensionPath, statusBar)),
 		vscode.commands.registerCommand('cpsAgentKit.openSpec', () => openSpecCommand()),
+		vscode.commands.registerCommand('cpsAgentKit.createSpec', () => createSpecCommand()),
 		statusBar,
 	);
 

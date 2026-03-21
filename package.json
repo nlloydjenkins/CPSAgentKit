@@ -42,6 +42,11 @@
         "command": "cpsAgentKit.openSpec",
         "title": "Open Spec",
         "category": "CPSAgentKit"
+      },
+      {
+        "command": "cpsAgentKit.createSpec",
+        "title": "Create Spec (Guided)",
+        "category": "CPSAgentKit"
       }
     ],
     "configuration": {

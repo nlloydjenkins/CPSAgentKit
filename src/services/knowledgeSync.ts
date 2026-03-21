@@ -97,7 +97,9 @@ async function listKnowledgeFiles(
 	knowledgePath: string,
 	branch: string,
 ): Promise<GitHubContentEntry[]> {
-	const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeURIComponent(knowledgePath)}?ref=${encodeURIComponent(branch)}`;
+	// Encode each path segment individually — encoding the whole path turns / into %2F
+	const encodedPath = knowledgePath.split('/').map(encodeURIComponent).join('/');
+	const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`;
 	const raw = await httpsGet(apiUrl);
 	const entries: GitHubContentEntry[] = JSON.parse(raw);
 	// Only return markdown files
