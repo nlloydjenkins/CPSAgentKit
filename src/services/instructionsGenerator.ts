@@ -1,80 +1,93 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import { ProjectState } from './projectState.js';
+import * as fs from "fs/promises";
+import * as path from "path";
+import { ProjectState } from "./projectState.js";
 
-const GITHUB_DIR = '.github';
-const INSTRUCTIONS_FILE = 'copilot-instructions.md';
-const KNOWLEDGE_DIR = path.join('.cpsagentkit', 'knowledge');
+const GITHUB_DIR = ".github";
+const INSTRUCTIONS_FILE = "copilot-instructions.md";
+const KNOWLEDGE_DIR = path.join(".cpsagentkit", "knowledge");
 
 /**
  * Determine which workflow phase the project is in based on file existence.
  */
 function detectPhase(state: ProjectState): string {
-	if (state.hasSpec && state.hasArchitecture) {
-		return 'Build';
-	}
-	if (state.hasSpec) {
-		return 'Architect';
-	}
-	return 'Define';
+  if (state.hasSpec && state.hasArchitecture) {
+    return "Build";
+  }
+  if (state.hasSpec) {
+    return "Architect";
+  }
+  return "Define";
 }
 
 /** Build a project state awareness section for the instructions */
 function buildProjectStateSection(state: ProjectState): string {
-	const phase = detectPhase(state);
-	const lines: string[] = [
-		'## Current Project State',
-		'',
-		`- **Current phase:** ${phase}`,
-		`- **spec.md:** ${state.hasSpec ? 'exists' : 'not yet created'}`,
-		`- **architecture.md:** ${state.hasArchitecture ? 'exists' : 'not yet created'}`,
-		`- **Knowledge synced:** ${state.hasKnowledge ? 'yes' : 'no'}`,
-	];
+  const phase = detectPhase(state);
+  const lines: string[] = [
+    "## Current Project State",
+    "",
+    `- **Current phase:** ${phase}`,
+    `- **spec.md:** ${state.hasSpec ? "exists" : "not yet created"}`,
+    `- **architecture.md:** ${state.hasArchitecture ? "exists" : "not yet created"}`,
+    `- **Knowledge synced:** ${state.hasKnowledge ? "yes" : "no"}`,
+  ];
 
-	if (state.hasCpsExtensionAgent) {
-		lines.push(`- **CPS agents in workspace:** ${state.agentFolders.join(', ')}`);
-	} else {
-		lines.push('- **CPS agents in workspace:** none detected');
-	}
+  if (state.hasCpsExtensionAgent) {
+    lines.push(
+      `- **CPS agents in workspace:** ${state.agentFolders.join(", ")}`,
+    );
+  } else {
+    lines.push("- **CPS agents in workspace:** none detected");
+  }
 
-	// Phase-specific guidance
-	lines.push('');
-	switch (phase) {
-		case 'Define':
-			lines.push('**Next step:** Ask the developer what they need and create `spec.md`.');
-			break;
-		case 'Architect':
-			lines.push('**Next step:** Read `spec.md` and the knowledge files, then create `architecture.md`.');
-			break;
-		case 'Build':
-			lines.push('**Next step:** Generate or refine agent instructions, topics, tools. Track progress in `architecture.md` Build State section.');
-			break;
-	}
+  // Phase-specific guidance
+  lines.push("");
+  switch (phase) {
+    case "Define":
+      lines.push(
+        "**Next step:** Ask the developer what they need and create `spec.md`.",
+      );
+      break;
+    case "Architect":
+      lines.push(
+        "**Next step:** Read `spec.md` and the knowledge files, then create `architecture.md`.",
+      );
+      break;
+    case "Build":
+      lines.push(
+        "**Next step:** Generate or refine agent instructions, topics, tools. Track progress in `architecture.md` Build State section.",
+      );
+      break;
+  }
 
-	return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
  * Read all markdown files from the knowledge directory, sorted alphabetically.
  * Returns an array of { filename, content } pairs.
  */
-async function readKnowledgeFiles(workspaceRoot: string): Promise<Array<{ filename: string; content: string }>> {
-	const knowledgeDir = path.join(workspaceRoot, KNOWLEDGE_DIR);
-	const files: Array<{ filename: string; content: string }> = [];
+async function readKnowledgeFiles(
+  workspaceRoot: string,
+): Promise<Array<{ filename: string; content: string }>> {
+  const knowledgeDir = path.join(workspaceRoot, KNOWLEDGE_DIR);
+  const files: Array<{ filename: string; content: string }> = [];
 
-	try {
-		const entries = await fs.readdir(knowledgeDir);
-		const mdFiles = entries.filter((f) => f.endsWith('.md')).sort();
+  try {
+    const entries = await fs.readdir(knowledgeDir);
+    const mdFiles = entries.filter((f) => f.endsWith(".md")).sort();
 
-		for (const filename of mdFiles) {
-			const content = await fs.readFile(path.join(knowledgeDir, filename), 'utf-8');
-			files.push({ filename, content });
-		}
-	} catch {
-		// Knowledge directory doesn't exist or can't be read — return empty
-	}
+    for (const filename of mdFiles) {
+      const content = await fs.readFile(
+        path.join(knowledgeDir, filename),
+        "utf-8",
+      );
+      files.push({ filename, content });
+    }
+  } catch {
+    // Knowledge directory doesn't exist or can't be read — return empty
+  }
 
-	return files;
+  return files;
 }
 
 /**
@@ -84,52 +97,61 @@ async function readKnowledgeFiles(workspaceRoot: string): Promise<Array<{ filena
  * 3. Current project state awareness
  */
 export async function generateInstructions(
-	workspaceRoot: string,
-	templateDir: string,
-	state: ProjectState,
+  workspaceRoot: string,
+  templateDir: string,
+  state: ProjectState,
 ): Promise<void> {
-	// Read the template
-	const templatePath = path.join(templateDir, 'copilot-instructions-template.md');
-	let template: string;
-	try {
-		template = await fs.readFile(templatePath, 'utf-8');
-	} catch {
-		throw new Error(`Could not read copilot-instructions-template.md from ${templateDir}`);
-	}
+  // Read the template
+  const templatePath = path.join(
+    templateDir,
+    "copilot-instructions-template.md",
+  );
+  let template: string;
+  try {
+    template = await fs.readFile(templatePath, "utf-8");
+  } catch {
+    throw new Error(
+      `Could not read copilot-instructions-template.md from ${templateDir}`,
+    );
+  }
 
-	// Read knowledge files
-	const knowledgeFiles = await readKnowledgeFiles(workspaceRoot);
+  // Read knowledge files
+  const knowledgeFiles = await readKnowledgeFiles(workspaceRoot);
 
-	// Build knowledge sections
-	const knowledgeSections = knowledgeFiles.map(({ filename, content }) => {
-		const sectionName = filename.replace(/\.md$/, '').replace(/-/g, ' ');
-		return `<!-- Knowledge: ${sectionName} -->\n${content}`;
-	});
+  // Build knowledge sections
+  const knowledgeSections = knowledgeFiles.map(({ filename, content }) => {
+    const sectionName = filename.replace(/\.md$/, "").replace(/-/g, " ");
+    return `<!-- Knowledge: ${sectionName} -->\n${content}`;
+  });
 
-	// Build project state section
-	const projectStateSection = buildProjectStateSection(state);
+  // Build project state section
+  const projectStateSection = buildProjectStateSection(state);
 
-	// Assemble final document
-	const assembled = [
-		'<!-- AUTO-GENERATED by CPS Architect. Do not edit manually. Regenerated on every knowledge sync. -->',
-		'',
-		template,
-		'',
-		'---',
-		'',
-		'# CPS Platform Knowledge Reference',
-		'',
-		'The following sections contain the complete CPS platform knowledge base. Reference these when making any design or implementation decisions.',
-		'',
-		...knowledgeSections.map((s) => `\n${s}`),
-		'',
-		'---',
-		'',
-		projectStateSection,
-	].join('\n');
+  // Assemble final document
+  const assembled = [
+    "<!-- AUTO-GENERATED by CPS Architect. Do not edit manually. Regenerated on every knowledge sync. -->",
+    "",
+    template,
+    "",
+    "---",
+    "",
+    "# CPS Platform Knowledge Reference",
+    "",
+    "The following sections contain the complete CPS platform knowledge base. Reference these when making any design or implementation decisions.",
+    "",
+    ...knowledgeSections.map((s) => `\n${s}`),
+    "",
+    "---",
+    "",
+    projectStateSection,
+  ].join("\n");
 
-	// Write to .github/copilot-instructions.md
-	const outputDir = path.join(workspaceRoot, GITHUB_DIR);
-	await fs.mkdir(outputDir, { recursive: true });
-	await fs.writeFile(path.join(outputDir, INSTRUCTIONS_FILE), assembled, 'utf-8');
+  // Write to .github/copilot-instructions.md
+  const outputDir = path.join(workspaceRoot, GITHUB_DIR);
+  await fs.mkdir(outputDir, { recursive: true });
+  await fs.writeFile(
+    path.join(outputDir, INSTRUCTIONS_FILE),
+    assembled,
+    "utf-8",
+  );
 }

@@ -61,6 +61,7 @@
 ## The "It Worked Yesterday" Pattern
 
 Common causes when a working agent suddenly breaks:
+
 1. Knowledge source re-indexed with different chunking (after doc update)
 2. User permissions changed (conditional access, SharePoint sharing)
 3. Rate limits hit (accumulated conversation history pushing token limits)
