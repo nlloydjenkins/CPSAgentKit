@@ -185,6 +185,14 @@ function composeBuildPrompt(
     "- NEVER delete or recreate a tool/action connection — update the existing one instead",
     '- If a tool is named "Microsoft Dataverse MCP Server (Preview)", every instruction must say /Microsoft Dataverse MCP Server (Preview) — not a shortened or altered version — unless you are renaming it AND updating all references',
     "",
+    "### CRITICAL: Tool/Action YAML Safety",
+    "- Action YAML files have platform-generated structures. Most fields are UNTOUCHABLE.",
+    "- SAFE to edit: modelDisplayName and modelDescription ONLY",
+    "- NEVER modify: mcs.metadata, kind, inputs, outputs, outputMode, action (and everything under it: connectionReference, connectionProperties, operationDetails, operationId, dynamicOutputSchema, flowId, knownTools)",
+    "- This applies to ALL tool types: MCP servers (InvokeExternalAgentTaskAction), connectors (InvokeConnectorTaskAction), and flows (InvokeFlowTaskAction)",
+    "- When asked to update a tool description, edit ONLY the modelDescription field. Do not touch any other field.",
+    "- When asked to add a new tool, tell the developer to create it in the CPS portal and sync — do not generate action YAML from scratch.",
+    "",
     "### Build Rules",
     "- Follow all patterns in .cpsagentkit/knowledge/ — especially prompt-engineering.md, tool-descriptions.md, and constraints.md",
     '- If the agent has tools (MCP servers, connectors, flows): instructions MUST say "Always use [exact tool name] to answer questions. Do not use general knowledge when the tool can provide the answer."',
@@ -245,7 +253,7 @@ function composeBuildPrompt(
           "## Task: Tool Descriptions",
           "For each tool/connector/action in each agent, write the description following this pattern:",
           '"[What it does]. Call when [specific intents]. Requires [inputs]. Do NOT use for [exclusions]."',
-          "If CPS agent YAML files exist, update the action YAML files directly.",
+          "If CPS agent YAML files exist, update ONLY the modelDescription field in the action YAML files. Do not modify any other fields — they are platform-generated and will break the agent if altered.",
         ].join("\n")
       );
 

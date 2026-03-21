@@ -78,6 +78,88 @@ Things that catch people out, behave unexpectedly, or aren't in the docs.
 - **Model hints in agent YAML:** Exported agent YAML may contain `aISettings.model.modelNameHint`. Preserve it during edits, but don't invent new values unless the workspace already uses that pattern. The documented model/temperature configuration path is through prompt tools.
 - **Prompt-level model/temperature:** Prompt tools let makers choose the model and temperature in the prompt editor. This is the supported configuration surface — use it for any capability that needs specific model settings.
 
+### Action/Tool YAML Structure — Safe vs Untouchable Fields
+
+Tool/action YAML files have platform-generated structures. Most fields are untouchable. When editing, ONLY modify the fields listed as safe. Preserve everything else exactly.
+
+**MCP Server tools** (`kind: TaskDialog` with `ModelContextProtocolMetadata`):
+```yaml
+mcs.metadata:
+  componentName: <platform-generated>       # UNTOUCHABLE
+kind: TaskDialog                             # UNTOUCHABLE
+modelDisplayName: <display name>             # SAFE to edit
+modelDescription: >-                         # SAFE to edit
+  <tool description for orchestrator routing>
+action:
+  kind: InvokeExternalAgentTaskAction        # UNTOUCHABLE
+  connectionReference: <platform-generated>  # UNTOUCHABLE
+  connectionProperties:                      # UNTOUCHABLE
+    mode: Invoker                            # UNTOUCHABLE
+  operationDetails:                          # UNTOUCHABLE
+    kind: ModelContextProtocolMetadata       # UNTOUCHABLE
+    operationId: InvokeMCP                   # UNTOUCHABLE
+    knownTools:                              # UNTOUCHABLE
+```
+
+**Connector actions** (`kind: TaskDialog` with `InvokeConnectorTaskAction`):
+```yaml
+mcs.metadata:
+  componentName: <platform-generated>       # UNTOUCHABLE
+kind: TaskDialog                             # UNTOUCHABLE
+inputs:                                      # UNTOUCHABLE (platform-generated)
+  - kind: ManualTaskInput                    # UNTOUCHABLE
+    propertyName: <param>                    # UNTOUCHABLE
+    value: <value>                           # UNTOUCHABLE
+modelDisplayName: <display name>             # SAFE to edit
+modelDescription: >-                         # SAFE to edit
+  <tool description for orchestrator routing>
+outputs:                                     # UNTOUCHABLE (platform-generated)
+  - propertyName: <field>                    # UNTOUCHABLE
+    name: <name>                             # UNTOUCHABLE
+    description: <desc>                      # UNTOUCHABLE
+action:
+  kind: InvokeConnectorTaskAction            # UNTOUCHABLE
+  connectionReference: <platform-generated>  # UNTOUCHABLE
+  connectionProperties:                      # UNTOUCHABLE
+    mode: Invoker                            # UNTOUCHABLE
+  operationId: <platform-generated>          # UNTOUCHABLE
+  dynamicOutputSchema: ...                   # UNTOUCHABLE
+outputMode: All                              # UNTOUCHABLE
+```
+
+**Power Automate flows** (`kind: TaskDialog` with `InvokeFlowTaskAction`):
+```yaml
+mcs.metadata:
+  componentName: <platform-generated>       # UNTOUCHABLE
+kind: TaskDialog                             # UNTOUCHABLE
+modelDisplayName: <display name>             # SAFE to edit — add if missing
+modelDescription: >-                         # SAFE to edit — add if missing
+  <tool description for orchestrator routing>
+action:
+  kind: InvokeFlowTaskAction                 # UNTOUCHABLE
+  flowId: <platform-generated>               # UNTOUCHABLE
+outputMode: All                              # UNTOUCHABLE
+```
+Note: Flows may not have `modelDisplayName` or `modelDescription` by default. If absent, **add them** — the orchestrator needs a description to route correctly. The default `componentName: Untitled` is not sufficient for routing.
+
+**Rule:** When editing any tool/action YAML, only modify `modelDisplayName` and `modelDescription`. Add them if they are missing — every tool needs a descriptive name and description for the orchestrator to route correctly. Everything else — `mcs.metadata`, `kind`, `inputs`, `outputs`, `outputMode`, and the entire `action` block (including `connectionReference`, `connectionProperties`, `operationId`, `operationDetails`, `dynamicOutputSchema`, `flowId`) — is platform-generated and must not be changed.
+
+### Knowledge Source YAML Structure
+
+**Dataverse table** (`kind: KnowledgeSourceConfiguration`):
+```yaml
+mcs.metadata:
+  componentName: <table name>               # UNTOUCHABLE
+  description: >-                            # SAFE to edit — improve for routing
+    <description used by orchestrator for source selection>
+kind: KnowledgeSourceConfiguration           # UNTOUCHABLE
+source:
+  kind: DataverseStructuredSearchSource      # UNTOUCHABLE
+  skillConfiguration: <platform-generated>   # UNTOUCHABLE
+```
+
+The `description` in `mcs.metadata` is critical at scale — beyond 25 knowledge sources, the orchestrator uses an internal GPT to filter which sources to search based on descriptions. The default auto-generated description ("This knowledge source answers questions found in the following Dataverse items: Account") is functional but should be rewritten to be specific about what domain/topic the table covers and what it does NOT cover.
+
 ---
 
 _Last updated: March 2026. The platform changes fast — validate against your environment._
