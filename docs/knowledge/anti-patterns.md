@@ -1,5 +1,15 @@
 # CPS Anti-Patterns
 
+## Tool/Action Connection Anti-Patterns
+
+**Renaming a tool without updating all references.** You CAN rename a tool/action connector, but if you do, you MUST update EVERY `/ToolName` reference in instructions, topic triggers, and any other YAML that references it. A single missed reference = broken agent. Prefer keeping existing names unless the user explicitly asks to rename.
+
+**Using shortened or altered tool names in /ToolName references.** If the tool is "Microsoft Dataverse MCP Server (Preview)", referencing it as "/Dataverse MCP" or "/MCP Dataverse" won't match. The orchestrator requires exact name match.
+
+**Recreating tools instead of updating them.** When a build step generates tool config, it should update the existing tool — not delete and recreate it. Recreating loses the connection setup.
+
+**Not reading action YAML files before writing /ToolName references.** Always check the actual tool name from the workspace files. Don't assume or abbreviate.
+
 ## Architecture Anti-Patterns
 
 **Single mega-agent with 40+ tools.** Routing degrades beyond 25-30 tools. The orchestrator starts ignoring instructions and misrouting. Split into child agents.

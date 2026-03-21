@@ -28,6 +28,15 @@ If both `spec.md` and `architecture.md` exist:
 - Track progress in the Build State section of `architecture.md`
 - Maintain cross-agent consistency: when one agent's scope changes, flag what else needs updating
 
+#### Tool/Action Connection Integrity (CRITICAL)
+When generating or modifying agent components:
+- Tool names in `/ToolName` references MUST match the EXACT name in the action YAML files
+- Before writing any `/ToolName` reference, read the action YAML files to verify the current tool name
+- If you rename a tool/action connector, you MUST update EVERY reference: all `/ToolName` references in instructions, topic triggers, and any other YAML that references it. A single missed reference = broken agent
+- Prefer keeping existing tool names unless the user explicitly asks to rename
+- NEVER delete or recreate a tool/action connection — update the existing one instead
+- If a tool is named "Microsoft Dataverse MCP Server (Preview)", every reference must say `/Microsoft Dataverse MCP Server (Preview)` exactly — unless you are renaming it AND updating all references
+
 #### Tool-First Rule (CRITICAL)
 When an agent has tools (MCP servers, connectors, Power Automate flows):
 - Agent instructions MUST say: "Always use [exact tool name] to answer questions. Do not use general knowledge when the tool can provide the answer."
