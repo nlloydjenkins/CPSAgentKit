@@ -57,6 +57,11 @@
         "command": "cpsAgentKit.build",
         "title": "Build Checklist",
         "category": "CPSAgentKit"
+      },
+      {
+        "command": "cpsAgentKit.refresh",
+        "title": "Refresh Instructions",
+        "category": "CPSAgentKit"
       }
     ],
     "configuration": {
