@@ -2,6 +2,7 @@
 
 <!-- Tell GHCP what you need. It will help you fill this out. -->
 <!-- Start by describing the business problem in plain language. -->
+<!-- GHCP: Always read ALL files in requirements/docs/ before generating or updating this spec. -->
 
 ## Purpose
 
@@ -29,6 +30,15 @@
 ## Domain knowledge
 
 <!-- List the documents, data sources, or systems the agent needs access to -->
-<!-- Place reference documents in requirements/docs/ in this repo -->
+<!-- Place reference documents in requirements/docs/ — GHCP reads these when building the spec and architecture -->
 
 -
+
+## Reference documents
+
+<!-- List any documents placed in requirements/docs/ and what they contain -->
+<!-- e.g., "brand-guidelines.pdf — Tone of voice rules and editorial style guide" -->
+
+| Document | Description |
+| -------- | ----------- |
+|          |             |

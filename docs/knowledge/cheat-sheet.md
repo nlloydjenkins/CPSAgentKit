@@ -27,6 +27,8 @@ Things that catch people out, behave unexpectedly, or aren't in the docs.
 - **MCP tools fail through orchestration.** Child agent's MCP server tools are not invoked when called via parent orchestration. The child fires, the MCP calls don't. Major limitation, not clearly documented.
 - **The ghost message.** Parent with no topics/knowledge of its own + "Don't respond" after child = platform sends an unsolicited `explanation_of_tool_call` message anyway.
 - **Child agent looping.** Post-Oct 2025: child agents with tools (especially Send Email V2) fail to signal completion. Parent re-triggers. Infinite loop. Add explicit "end and return" instructions + track state with a variable.
+- **Specialist agents leak into each other's domains.** Positive scope alone is insufficient. Add explicit prohibitions: "Do NOT assess X, Y, Z — those belong to other specialists."
+- **Later pipeline stages compress earlier results.** When multiple specialists feed into a Reporter or assembly step, later sections get progressively more compressed. Use labeled output blocks + structural validation to catch this.
 
 ## Knowledge & Retrieval
 
@@ -45,8 +47,11 @@ Things that catch people out, behave unexpectedly, or aren't in the docs.
 - **Negative instructions are unreliable.** "Never mention competitors" will be violated. Use a dedicated topic with a manual response instead.
 - **No temperature control at agent level.** Only available in prompt actions. The main agent uses platform defaults.
 - **Follow-up questions require general knowledge enabled.** Disable "Use general knowledge" and the agent can't ask clarifying questions — they're considered "ungrounded" and suppressed. Silent failure.
-- **Content filtering is a black box.** When triggered: no logging, no reason code, no diagnostic info. Debugging is impossible. You can try rewording instructions to indicate the behaviour is expected.
+- **Content filtering is a black box.** When triggered: no logging, no reason code, no diagnostic info. Debugging is impossible. You can try rewording instructions to indicate the behaviour is expected. Set `contentModeration: Low` in agent settings YAML for domains (financial, medical, legal) prone to false positives.
 - **8,000-character instruction limit.** This is the documented hard limit. Quality and routing may degrade before hitting it with dense or complex instructions — decompose into child agents or prompt tools rather than packing one instruction block.
+- **Instruction accumulation causes regressions.** Adding more instructions doesn't linearly improve output. After a certain density, new instructions degrade previously-working behaviour. When quality plateaus, the fix is structural (child agents, knowledge files, output templates), not more text.
+- **Prose format descriptions are unreliable.** "Include a table with scores" gets ignored. Use literal templates with placeholders in knowledge files + one worked example + one negative example. Show, don't tell.
+- **Prompt tools are architectural tools, not just text generators.** They provide code interpreter, temperature control, and deterministic transformations that agent instructions can't. Use them for file preprocessing, format enforcement (narrative → JSON), and any single-purpose AI call that needs specific settings.
 
 ## Deployment & Channels
 

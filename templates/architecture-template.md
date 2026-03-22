@@ -1,4 +1,8 @@
-# Agent Architecture\n\n<!-- GHCP generates this from the spec. Do not edit manually unless refining. -->\n<!-- Spec and architecture live in requirements/. Additional docs go in requirements/docs/. -->", "oldString": "# Agent Architecture\n\n<!-- GHCP generates this from the spec. Do not edit manually unless refining. -->
+# Agent Architecture
+
+<!-- GHCP generates this from the spec. Do not edit manually unless refining. -->
+<!-- Spec and architecture live in requirements/. Additional docs go in requirements/docs/. -->
+<!-- GHCP: Always read ALL files in requirements/docs/ before generating or updating this architecture. -->
 
 ## Overview
 
@@ -41,6 +45,14 @@
 <!-- Things that must be created in the CPS portal, in order -->
 
 1.
+
+## Reference Documents
+
+<!-- List documents from requirements/docs/ that informed this architecture -->
+
+| Document | How It Influenced the Architecture |
+| -------- | ---------------------------------- |
+|          |                                    |
 
 ## Build State
 

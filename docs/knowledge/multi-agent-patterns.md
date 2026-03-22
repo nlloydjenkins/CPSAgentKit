@@ -54,6 +54,17 @@ Partial workarounds:
 
 When a parent agent needs to pass one child/tool/agent result to another downstream step, tell the parent to preserve the output as a labeled block rather than paraphrasing it. This is a mitigation for CPS generative orchestration, which normally summarises returned information into the final response. It reduces information loss but doesn't change the platform's underlying summarisation behavior.
 
+**How to implement labeled output blocks:**
+
+1. Each specialist child returns output with a distinct label prefix (e.g., `RELEVANCE_RESULT`, `CLARITY_RESULT`, `COMPLIANCE_RESULT`).
+2. The orchestrator instruction explicitly states: "Preserve each specialist's returned output exactly as received. Do not summarise, compress, or rewrite any labeled result block."
+3. When passing labeled blocks to the next stage (e.g., an Evaluator or Reporter), pass them as separately labeled sections, not merged into one blob.
+4. The downstream consumer should be instructed to reproduce the labeled block content before adding any summary of its own.
+
+**Structural validation:** Add a validation step where a QC/Evaluator agent checks that all expected labeled blocks are present and have the expected structural shape. For example: "Relevance must show 5 numbered criteria. Clarity must show 10. If counts are wrong, flag: DETAIL INCOMPLETE." This catches compression before it reaches the final output.
+
+This pattern is especially important when multiple specialists feed into a Reporter or final-assembly step. Without it, later-stage sections are progressively more compressed as earlier sections consume more of the token budget.
+
 ### Child Agent Looping
 
 Post-Oct 2025: child agents with tools (especially Send Email V2) fail to signal completion. Parent re-triggers in infinite loop.
@@ -104,3 +115,42 @@ Promote a child agent to a connected agent when:
 - It needs separate publishing/versioning
 - Different teams need to own and maintain it
 - It needs different auth or governance rules
+
+## Specialist Agent Patterns
+
+These patterns apply to multi-agent architectures where specialists work as a pipeline (e.g., review systems, assessment workflows, content processing).
+
+### Evaluator / QC Agent
+
+For complex multi-agent outputs, add a dedicated Evaluator (quality control) agent as the last specialist step before final assembly. The Evaluator does not perform domain analysis — it validates the outputs of the other specialists.
+
+Responsibilities:
+
+- **Arithmetic consistency** — scores sum correctly, percentages match thresholds, colour ratings align with numeric scores
+- **Cross-agent conflict detection** — Brand recommendation conflicts with Compliance requirement, or Clarity suggestion removes a necessary disclaimer
+- **Structural completeness** — all expected sections present, all required criteria assessed, no sections silently dropped
+- **Scope boundary compliance** — no agent has leaked into another's domain
+
+The Evaluator's output must appear in the final report even if no issues are found (e.g., "Arithmetic verified. No conflicts. All outputs align."). An empty QC section undermines trust in the review.
+
+Advanced pattern: add a **Structural Completeness Gate** with explicit PASS/FAIL checks and machine-readable output (e.g., `FAILED_CHECK: Clarity shows 4 criteria, expected 10`). This makes regression detection systematic.
+
+### Reporter / Format Normaliser Agent
+
+The Reporter Agent is distinct from the orchestrator. The orchestrator coordinates; the Reporter takes validated outputs from all specialists and produces a single, consistent artifact.
+
+- **Fixed report structure** — the Reporter owns the section order, headings, and table formats. Define these as a literal template in its knowledge files.
+- **Terminology normalisation** — standardise language across agents so the final report reads as one coherent document
+- **Deduplication** — remove overlapping findings that multiple specialists flagged
+- **Detail reproduction, not summarisation** — instruct the Reporter to reproduce specialist detail verbatim before adding any summary. The most persistent failure is the Reporter compressing specialist output into narrative.
+- **Final artifact suppression** — "The report is the final output. Do not append follow-up questions, offers, or conversational prompts."
+
+### Versioning and Regression Detection
+
+Stamp every agent with a version number in its instructions and require it in output (e.g., "ReviewBot V2.1" at the top of every report). This enables:
+
+- **Regression detection** — when output quality drops, you know which version produced it
+- **Feature adoption tracking** — after each iteration, produce a Feature Adoption Check: which changes were expected in the output, which appeared, which regressed
+- **Structured test-evaluate-fix cycle** — define a scoring rubric for output quality before the first live test. After each test, produce a structured review comparing output against the rubric. Track a version history with scores to see trajectory and catch regressions early.
+
+Without version stamps and structured reviews, iteration is ad-hoc and regressions go unnoticed until users report them.

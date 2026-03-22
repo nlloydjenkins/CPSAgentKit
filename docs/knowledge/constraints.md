@@ -68,11 +68,22 @@
 ## File Processing
 
 - If a workflow depends on analyzing uploaded files (PDF, DOCX, etc.), add an explicit preprocessing step before delegation. Use a prompt tool with code interpreter enabled to convert the file to text/HTML/Markdown first, then pass normalized content onward.
+- The preprocessed output is the **canonical input** for all downstream agents. Reinforce this in both orchestrator and specialist instructions — agents must use the converted content, not reference the original binary.
+- Handle multiple input paths: users may provide a SharePoint URL (fetch then convert) or upload directly (convert inline). Use a branching topic to handle both.
+- Include a failure path: if conversion fails, stop and ask the user for a replacement or text-based source document. Do not silently proceed with degraded input.
+- Tell specialist agents that the content "was converted from the uploaded document" so they don't reference the original format or assume they can access the raw file.
 
 ## Code Interpreter
 
 - The documented configuration path for code interpreter is through prompts (prompt tools with code interpreter enabled in settings).
 - If exported agent YAML contains `gptCapabilities.codeInterpreter`, preserve it — but recommend prompts as the primary path when building new capabilities.
+
+## Content Moderation
+
+- `contentModeration` can be set to `Low`, `Medium`, or `High` in agent settings YAML.
+- For agents that process financial, medical, legal, or other specialist domain content, `Low` may be necessary to avoid false positive content filtering that blocks legitimate review output.
+- This is the only available control over content filtering — there is no per-topic or per-utterance override.
+- Content filtering remains a black box even at `Low` — no logging, no reason code, no diagnostic info when triggered.
 
 ## MCP in Multi-Agent Flows
 

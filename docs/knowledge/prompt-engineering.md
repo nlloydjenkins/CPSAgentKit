@@ -28,6 +28,26 @@ There is no single "system prompt" in CPS. Behaviour is shaped by multiple layer
 - Vague terms ("show in the typing box")
 - Instructing professional tone (it's already the default)
 
+## The Instruction Accumulation Trap
+
+Field observation from production multi-agent deployments: adding more instructions does not linearly improve output. After a certain density, new instructions can cause regressions in previously-working behaviour. This is distinct from hitting the 8,000-char limit — it's a quality plateau that occurs well before the hard cap.
+
+Symptoms:
+
+- Output quality plateaus or regresses after adding instructions
+- Agent produces false compliance language (e.g., metadata claiming "all detail preserved" when output is visibly compressed)
+- Later sections of output degrade as earlier sections consume more of the token budget
+- Previously-working features break when new instructions are added alongside them
+
+The fix is structural, not textual:
+
+- Decompose into child agents or prompt tools rather than adding more text
+- Move assessment methodology (scoring, output templates, worked examples) to knowledge files — keep domain rules in instructions
+- Simplification and removal can improve output more than additions
+- Prefer structural enforcement (labeled blocks, validation agents, literal templates) over more prose instructions
+
+Design principle: "Do not respond to every gap by adding more prose instructions." When output quality stops improving, the problem is architecture, not wording.
+
 ## Instructions Are Treated Like Code
 
 Microsoft's own guidance: if complex instructions produce unexpected results, remove ALL instructions and add back one at a time, testing between each. Instructions interact in unexpected ways.
@@ -88,13 +108,27 @@ Do not answer domain-specific questions directly.
 
 ### Child Agent
 
-Tight scope with explicit boundaries:
+Tight scope with explicit boundaries — both positive scope (what it handles) AND negative scope (explicit prohibitions):
 
 ```
 Handle billing questions and payment issues only.
 If asked about technical problems or account changes, respond:
 "That's outside my area. Let me redirect you."
 ```
+
+### Agent Boundary Enforcement
+
+In multi-agent architectures, specialist agents will leak into each other's domains unless explicitly prohibited. The model defaults to commenting on anything it notices in the content, regardless of scope instructions.
+
+Positive scope alone is insufficient. Add explicit prohibitions:
+
+```
+You review brand compliance only.
+Do NOT assess: reading age, accessibility formats, support routes,
+regulatory compliance, or FCA rules. These belong to other specialists.
+```
+
+When one agent leaks into another's domain, the fix is an explicit prohibition instruction, not a restatement of the positive scope. The more specialist agents you have, the more important this becomes.
 
 ### Cross-Agent Consistency
 
@@ -120,6 +154,48 @@ Preserve all tags in the format [^x_y^] exactly as they appear.
 Don't alter, add, or remove any tags.
 ```
 
+## Output Format Enforcement
+
+Prose descriptions of output format ("include a table with scores") are unreliable — the model defaults to trained summary behaviour rather than following multi-step formatting instructions embedded in system prompts. This is one of the most persistent failure modes in production multi-agent deployments.
+
+### Literal Templates with Placeholders
+
+Instead of describing what the output should look like, show the exact structure:
+
+```
+### [Pillar Name] (Score: X.X – [Colour])
+
+**Criteria Assessment:**
+- **[Criterion 1 text]:** Met / Partially met / Not met — [evidence]
+- **[Criterion 2 text]:** Met / Partially met / Not met — [evidence]
+
+**Strengths:** [specific examples quoted]
+**Issues:** [specific problems with suggested improvements]
+```
+
+Put these templates in knowledge files rather than instructions — they're longer but only needed during execution, and this preserves instruction space for domain rules.
+
+### Worked Examples (Few-Shot)
+
+Add one worked example per output section showing the template filled in with realistic content. Keep examples short but precise — long examples consume token budget. The example should demonstrate the exact depth and format expected.
+
+### Negative Examples
+
+For persistent bad patterns, show what NOT to produce:
+
+```
+Do NOT compress criteria into a narrative paragraph like this:
+"All mandatory criteria met: strong hierarchy, clear tone, logical grouping."
+
+DO produce numbered criteria with individual assessments like this:
+1. **Paragraphs max 4 lines:** Met — longest paragraph is 3 lines.
+2. **Strong visual hierarchy:** Met — clear H1/H2/body distinction.
+```
+
+### The Show-Don't-Tell Principle
+
+When procedural instructions fail to produce the desired output format, switch to showing examples. The combination of literal template + one worked example + one negative example is the most reliable format enforcement pattern observed in production. This shift — from "telling the model what to do" to "showing the model what correct output looks like" — consistently produces the largest output quality improvements.
+
 ## Final-Artifact Suppression
 
 Field observation: CPS generative orchestration is optimised for conversational helpfulness, which is the wrong behavior for fixed-format outputs. If the desired output is a final artifact (report, scored result, structured data) rather than a conversational exchange, explicitly tell the agent:
@@ -137,6 +213,34 @@ Triggers are vulnerable to injection attacks. Instructions should include:
 - Limit which tools the agent can invoke from triggers
 - Limit parameters (e.g., "only email to @contoso.com addresses")
 - "Only email information after checking a knowledge source for context"
+
+## Prompt Tools as Architectural Building Blocks
+
+Prompt tools (prompt actions) are not just for simple text generation — they are a key architectural component for multi-agent solutions. Use prompt tools instead of child agents when you need:
+
+- **Code interpreter access** — only available through prompt tools, not at the agent level
+- **Temperature control** — only configurable in prompt tools, not agent instructions
+- **Deterministic format transformation** — e.g., converting narrative specialist output into structured JSON for the next pipeline stage
+- **File processing** — converting uploaded PDF/DOCX to HTML/Markdown before delegation
+- **Single-purpose AI calls** without orchestration overhead — no separate tool limits, no summarisation layer, lower latency than child agents
+
+### When to Use Prompt Tools vs Child Agents
+
+| Use a **prompt tool** when:                            | Use a **child agent** when:                          |
+| ------------------------------------------------------ | ---------------------------------------------------- |
+| Task is a single focused AI call                       | Task requires its own tools or knowledge             |
+| You need code interpreter or specific temperature      | Task needs separate governance or auth               |
+| Input → output transformation (e.g., narrative → JSON) | Task is complex enough to need its own orchestration |
+| Preprocessing or postprocessing step                   | Task will be reused across multiple parents          |
+| You want to avoid orchestration overhead               | Task benefits from its own instruction space         |
+
+### Pattern: Prompt Tool as Format Enforcer
+
+A powerful pattern from production: specialist agent produces narrative output → prompt tool reformats it into structured data for the next stage. This adds a deterministic extraction step that enforces output structure more reliably than instructions alone. The prompt tool can use a lower temperature for consistency.
+
+### Authoring
+
+Prompt tools are portal-first — create in Copilot Studio or AI Hub, then sync locally and refine. This is the supported workflow. They appear as `TaskDialog` with `InvokeAIBuilderModelTaskAction` in the YAML.
 
 ## Disambiguation
 

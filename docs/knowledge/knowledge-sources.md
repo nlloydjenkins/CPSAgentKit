@@ -41,6 +41,29 @@ Bad: "Benefits."
 
 If the agent must follow a strict framework, scoring methodology, or procedural checklist, put the full version in knowledge files and also summarise the key rules in agent instructions. CPS retrieval is not deterministic enough to rely on knowledge alone for mission-critical behavior. The instruction summary ensures the framework is always in context; the knowledge source provides the detailed reference when retrieved.
 
+### Content-Type Separation
+
+Production experience reveals a more nuanced pattern than simple duplication. Separate content by type:
+
+- **Domain rules** that the agent must apply (criteria, style rules, regulatory references, scoring thresholds) → **agent instructions**. These must always be in context and are typically sourced from authoritative systems (design systems, regulatory frameworks, brand guidelines).
+- **Assessment methodology** that tells the agent how to apply those rules (output templates, worked examples, scoring procedures, arithmetic verification steps) → **knowledge files**. These are longer, only needed during execution, and reduce instruction length.
+
+This separation keeps instructions focused on what to assess while knowledge files handle how to format and calculate. It also creates a clean update path: rules change when standards change; methodology changes when output quality needs improvement.
+
+## MCP Servers as Live Knowledge Sources
+
+MCP servers can be used as live knowledge pipelines — the orchestrator fetches current guidelines, rules, or reference data at the start of each execution and passes the results to child agents as context.
+
+### Pattern: Live Fetch + Static Fallback
+
+1. The orchestrator owns the MCP tool (MCP is more reliable on the parent than inside child-agent orchestration).
+2. At the start of each workflow, the orchestrator calls the MCP server to fetch the latest authoritative content (e.g., brand guidelines from a design system, regulatory rules from a compliance API).
+3. The fetched content is passed to each specialist child as context, prefaced with: "The following are the latest [X] guidelines fetched from [source]. Use these as the authoritative source for your review."
+4. Agent instructions contain static fallback copies of the same content for resilience. If the MCP server is unavailable, the agent proceeds with the static version.
+5. The final output metadata reports fetch status: "Guidelines fetched successfully at [time]" or "Static fallback used — live guidelines unavailable."
+
+This pattern ensures agents always have the latest authoritative content when available, with graceful degradation when the external source is down.
+
 ## When to Use Each Source Type
 
 **SharePoint (with Tenant Graph Grounding):** best retrieval quality. Requires M365 Copilot license + "Authenticate with Microsoft." Supports files up to 200 MB. Use for primary knowledge.

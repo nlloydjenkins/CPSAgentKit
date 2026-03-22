@@ -28,6 +28,10 @@
 
 **Long, complex instruction sets.** Beyond ~2000 characters, you get latency, timeouts, and degraded routing. If instructions are getting long, the logic belongs in topics.
 
+**Instruction accumulation as the default fix.** When output quality drops or a section is missing, the instinct is to add more instructions. Production evidence shows this plateaus and can regress previously-working behaviour. If you've added instructions twice and the problem persists, the fix is structural — child agents, prompt tools, knowledge files, or output templates — not more text.
+
+**Prose descriptions of output format.** "Include a summary table with pillar scores" is unreliable. The model defaults to trained summary behaviour. Use literal templates with placeholders in knowledge files instead. See Output Format Enforcement in prompt-engineering.md.
+
 **Vague tool/topic descriptions.** "Helper tool" or "Support topic" gives the orchestrator nothing to route on. Descriptions need specific intents AND explicit exclusions.
 
 **Duplicate/overlapping descriptions.** Two tools described as "handles account queries" = coin flip routing. One must be differentiated or restricted to explicit invocation.
@@ -35,6 +39,16 @@
 **Instructing default behaviour.** Don't instruct "be professional and polite" — it already is. Only add tone instructions for specific deviations.
 
 **Trying to control retrieval via instructions.** "Always search document X first" is unreliable. The AI chooses based on query relevance.
+
+## Multi-Agent Anti-Patterns
+
+**Missing agent boundary prohibitions.** Positive scope alone ("Handle brand compliance") is insufficient. Specialist agents leak into each other's domains — Brand assesses reading age, CU flags regulatory issues. Add explicit prohibitions: "Do NOT assess reading age, accessibility, or FCA compliance."
+
+**Letting the orchestrator or reporter rewrite specialist output.** Generative orchestration summarises by default. If specialists produce detailed assessments and the next stage rewrites them into narrative summaries, you lose the detail. Use labeled output blocks and instruct downstream agents to reproduce raw content before adding any summary.
+
+**No version stamps on agents.** Without version stamps, you can't tell which version produced a given output, and regression detection becomes guesswork. Stamp every agent with a version in its instructions and require it in output.
+
+**No structured test-evaluate-fix cycle.** Building without a scoring rubric and structured review process leads to "it looks OK" testing. Define your rubric before the first live test. After each test, produce a structured review: what adopted, what regressed, what's still missing. Track version history with scores to see trajectory.
 
 ## Knowledge Anti-Patterns
 
