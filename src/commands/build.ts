@@ -52,14 +52,14 @@ export async function buildCommand(): Promise<void> {
     return;
   }
   const root = workspaceFolder.uri.fsPath;
-  const archPath = path.join(root, "architecture.md");
+  const archPath = path.join(root, "requirements", "architecture.md");
 
   // Require architecture.md
   try {
     await fs.access(archPath);
   } catch {
     const action = await vscode.window.showWarningMessage(
-      "CPSAgentKit: architecture.md not found. Create architecture first?",
+      "CPSAgentKit: requirements/architecture.md not found. Create architecture first?",
       "Create Architecture",
       "Cancel",
     );

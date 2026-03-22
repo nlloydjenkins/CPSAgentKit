@@ -29,6 +29,6 @@
 ## Domain knowledge
 
 <!-- List the documents, data sources, or systems the agent needs access to -->
-<!-- Place reference documents in a /knowledge folder in this repo -->
+<!-- Place reference documents in requirements/docs/ in this repo -->
 
 -

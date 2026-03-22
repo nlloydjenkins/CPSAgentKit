@@ -89,13 +89,14 @@ export async function createSpecCommand(): Promise<void> {
     return;
   }
   const root = workspaceFolder.uri.fsPath;
-  const specPath = path.join(root, "spec.md");
+  const requirementsDir = path.join(root, "requirements");
+  const specPath = path.join(requirementsDir, "spec.md");
 
   // Warn if spec already exists
   try {
     await fs.access(specPath);
     const overwrite = await vscode.window.showWarningMessage(
-      "spec.md already exists. Overwrite it?",
+      "requirements/spec.md already exists. Overwrite it?",
       "Overwrite",
       "Cancel",
     );
@@ -228,6 +229,7 @@ export async function createSpecCommand(): Promise<void> {
     knowledgeSources,
     interactionModel,
   );
+  await fs.mkdir(requirementsDir, { recursive: true });
   await fs.writeFile(specPath, content, "utf-8");
 
   // Open the generated spec

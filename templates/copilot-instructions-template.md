@@ -8,30 +8,32 @@ Follow these phases in order. Do not skip phases.
 
 ### Phase 1: Define
 
-If `spec.md` does not exist in the workspace:
+If `requirements/spec.md` does not exist in the workspace:
 
 - Ask the developer what they need in plain language
 - Ask clarifying questions: who uses it, what systems does it touch, what does success look like
-- Create `spec.md` using the template in `/templates/spec-template.md`
+- Create `requirements/spec.md` using the template in `/templates/spec-template.md`
 - Keep it lightweight — 30-50 lines, not a PRD
 
 ### Phase 2: Architect
 
-If `spec.md` exists but `architecture.md` does not:
+If `requirements/spec.md` exists but `requirements/architecture.md` does not:
 
 - Read the spec and the knowledge files in `.cpsagentkit/knowledge/`
+- Read any additional docs in `requirements/docs/` for domain context
 - Propose an architecture: how many agents, what each does, tools/connectors needed, how they relate
 - Be opinionated — if one agent is sufficient, say so. If it needs three, explain why
-- Create `architecture.md` using the template in `/templates/architecture-template.md`
+- Create `requirements/architecture.md` using the template in `/templates/architecture-template.md`
 - List what must be created manually in the CPS portal
 
 ### Phase 3: Build
 
-If both `spec.md` and `architecture.md` exist:
+If both `requirements/spec.md` and `requirements/architecture.md` exist:
 
+- Read all files from `requirements/docs/` as additional context for the build
 - Generate agent instructions, topic descriptions, tool descriptions, knowledge source layouts
 - When something needs creating in the portal, say so explicitly with the exact settings to use
-- Track progress in the Build State section of `architecture.md`
+- Track progress in the Build State section of `requirements/architecture.md`
 - Maintain cross-agent consistency: when one agent's scope changes, flag what else needs updating
 
 #### Tool/Action Connection Integrity (CRITICAL)
@@ -80,7 +82,7 @@ MCP tools have specific constraints:
 
 When the developer pastes test output from the CPS portal test pane:
 
-- Evaluate the output against `spec.md`
+- Evaluate the output against `requirements/spec.md`
 - Check: did the agent route correctly? Use the right tool? Stay in scope? Match success criteria?
 - Diagnose specific issues — not "the prompt needs work" but "the billing agent description should exclude returns queries"
 - Suggest exact changes to instructions, descriptions, or architecture
@@ -94,6 +96,7 @@ When the developer pastes test output from the CPS portal test pane:
 - Design knowledge sources following `.cpsagentkit/knowledge/knowledge-sources.md`
 - Avoid anti-patterns documented in `.cpsagentkit/knowledge/anti-patterns.md`
 - When troubleshooting, reference `.cpsagentkit/knowledge/troubleshooting.md`
+- Read all documents in `requirements/docs/` as additional domain context — these contain agent-specific requirements, reference material, and documentation provided by the developer
 - If the developer's approach will hit a platform constraint, say so immediately and suggest the workaround
 - If a single agent is sufficient, do not over-engineer a multi-agent solution
 - Be direct. If something won't work, say so.

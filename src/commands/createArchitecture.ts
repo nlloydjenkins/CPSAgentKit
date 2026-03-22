@@ -225,11 +225,12 @@ export async function createArchitectureCommand(): Promise<void> {
     return;
   }
   const root = workspaceFolder.uri.fsPath;
-  const archPath = path.join(root, "architecture.md");
+  const requirementsDir = path.join(root, "requirements");
+  const archPath = path.join(requirementsDir, "architecture.md");
 
   // Check for spec.md
   try {
-    await fs.access(path.join(root, "spec.md"));
+    await fs.access(path.join(requirementsDir, "spec.md"));
   } catch {
     const action = await vscode.window.showWarningMessage(
       "CPSAgentKit: spec.md not found. Create a spec first?",
@@ -368,6 +369,7 @@ export async function createArchitectureCommand(): Promise<void> {
     tools,
     manualSteps,
   );
+  await fs.mkdir(requirementsDir, { recursive: true });
   await fs.writeFile(archPath, content, "utf-8");
 
   const doc = await vscode.workspace.openTextDocument(archPath);

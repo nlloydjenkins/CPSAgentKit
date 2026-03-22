@@ -1,6 +1,4 @@
-# Agent Architecture
-
-<!-- GHCP generates this from the spec. Do not edit manually unless refining. -->
+# Agent Architecture\n\n<!-- GHCP generates this from the spec. Do not edit manually unless refining. -->\n<!-- Spec and architecture live in requirements/. Additional docs go in requirements/docs/. -->", "oldString": "# Agent Architecture\n\n<!-- GHCP generates this from the spec. Do not edit manually unless refining. -->
 
 ## Overview
 

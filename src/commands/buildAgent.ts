@@ -17,13 +17,13 @@ export async function buildAgentCommand(): Promise<void> {
   const root = workspaceFolder.uri.fsPath;
 
   // Require spec.md
-  const specPath = path.join(root, "spec.md");
+  const specPath = path.join(root, "requirements", "spec.md");
   let spec: string;
   try {
     spec = await fs.readFile(specPath, "utf-8");
   } catch {
     const action = await vscode.window.showWarningMessage(
-      "CPSAgentKit: spec.md not found. Create a spec first?",
+      "CPSAgentKit: requirements/spec.md not found. Create a spec first?",
       "Create Spec",
       "Cancel",
     );
@@ -34,13 +34,13 @@ export async function buildAgentCommand(): Promise<void> {
   }
 
   // Require architecture.md
-  const archPath = path.join(root, "architecture.md");
+  const archPath = path.join(root, "requirements", "architecture.md");
   let architecture: string;
   try {
     architecture = await fs.readFile(archPath, "utf-8");
   } catch {
     const action = await vscode.window.showWarningMessage(
-      "CPSAgentKit: architecture.md not found. Create architecture first?",
+      "CPSAgentKit: requirements/architecture.md not found. Create architecture first?",
       "Create Architecture",
       "Cancel",
     );
@@ -49,6 +49,9 @@ export async function buildAgentCommand(): Promise<void> {
     }
     return;
   }
+
+  // Read additional requirements docs
+  const requirementsDocs = await readRequirementsDocs(root);
 
   // Detect existing CPS agent YAML files
   const agentYaml = await findAgentYaml(root);
@@ -113,6 +116,7 @@ export async function buildAgentCommand(): Promise<void> {
     architecture,
     agentYaml,
     testOutput,
+    requirementsDocs,
   );
 
   // Copy to clipboard and notify
@@ -126,6 +130,25 @@ export async function buildAgentCommand(): Promise<void> {
   if (action === "Open Copilot Chat") {
     await vscode.commands.executeCommand("workbench.action.chat.open");
   }
+}
+
+/** Read all markdown files from requirements/docs/ */
+async function readRequirementsDocs(
+  root: string,
+): Promise<Array<{ filename: string; content: string }>> {
+  const docsDir = path.join(root, "requirements", "docs");
+  const docs: Array<{ filename: string; content: string }> = [];
+  try {
+    const entries = await fs.readdir(docsDir);
+    const mdFiles = entries.filter((f) => f.endsWith(".md")).sort();
+    for (const filename of mdFiles) {
+      const content = await fs.readFile(path.join(docsDir, filename), "utf-8");
+      docs.push({ filename, content });
+    }
+  } catch {
+    // docs/ doesn't exist or is empty
+  }
+  return docs;
 }
 
 /** Find CPS extension YAML files in the workspace */
@@ -159,10 +182,26 @@ function composeBuildPrompt(
   architecture: string,
   agentFolders: string[],
   testOutput: string,
+  requirementsDocs: Array<{ filename: string; content: string }>,
 ): string {
   const agentContext =
     agentFolders.length > 0
       ? `\n\nExisting CPS agent folders in workspace: ${agentFolders.join(", ")}. Read the YAML files in these folders to understand the current agent configuration before making changes.`
+      : "";
+
+  const docsContext =
+    requirementsDocs.length > 0
+      ? [
+          "",
+          "## Requirements Docs",
+          "",
+          "The following additional requirement documents are in `requirements/docs/`. Use them as context for building the agent:",
+          "",
+          ...requirementsDocs.map(
+            (d) =>
+              `### ${d.filename.replace(/\.md$/, "").replace(/-/g, " ")}\n\n${d.content}`,
+          ),
+        ].join("\n")
       : "";
 
   const base = [
@@ -174,6 +213,7 @@ function composeBuildPrompt(
     "## Architecture",
     architecture,
     agentContext,
+    docsContext,
     "",
     "## Rules",
     "",

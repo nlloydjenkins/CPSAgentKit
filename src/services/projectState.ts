@@ -7,12 +7,14 @@ export interface ProjectState {
   hasSpec: boolean;
   hasArchitecture: boolean;
   hasKnowledge: boolean;
+  hasRequirementsDocs: boolean;
   hasCpsExtensionAgent: boolean;
   agentFolders: string[];
 }
 
 const CPS_ARCHITECT_DIR = ".cpsagentkit";
 const KNOWLEDGE_DIR = "knowledge";
+const REQUIREMENTS_DIR = "requirements";
 
 /** Check if a path exists */
 async function exists(p: string): Promise<boolean> {
@@ -55,21 +57,31 @@ export async function detectProjectState(
 ): Promise<ProjectState> {
   const architectDir = path.join(workspaceRoot, CPS_ARCHITECT_DIR);
   const knowledgeDir = path.join(architectDir, KNOWLEDGE_DIR);
+  const requirementsDir = path.join(workspaceRoot, REQUIREMENTS_DIR);
+  const requirementsDocsDir = path.join(requirementsDir, "docs");
 
-  const [isInitialised, hasSpec, hasArchitecture, hasKnowledge, agentFolders] =
-    await Promise.all([
-      exists(architectDir),
-      exists(path.join(workspaceRoot, "spec.md")),
-      exists(path.join(workspaceRoot, "architecture.md")),
-      exists(knowledgeDir),
-      findCpsAgentFolders(workspaceRoot),
-    ]);
+  const [
+    isInitialised,
+    hasSpec,
+    hasArchitecture,
+    hasKnowledge,
+    hasRequirementsDocs,
+    agentFolders,
+  ] = await Promise.all([
+    exists(architectDir),
+    exists(path.join(requirementsDir, "spec.md")),
+    exists(path.join(requirementsDir, "architecture.md")),
+    exists(knowledgeDir),
+    exists(requirementsDocsDir),
+    findCpsAgentFolders(workspaceRoot),
+  ]);
 
   return {
     isInitialised,
     hasSpec,
     hasArchitecture,
     hasKnowledge,
+    hasRequirementsDocs,
     hasCpsExtensionAgent: agentFolders.length > 0,
     agentFolders,
   };
