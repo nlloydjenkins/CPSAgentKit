@@ -11,6 +11,7 @@
 <!-- List each agent, its role, and its scope -->
 
 ### [Agent Name]
+
 - **Role:**
 - **Type:** parent / child / connected
 - **Tools:**
@@ -26,15 +27,15 @@
 <!-- List all tools/connectors, which agent owns each, and what they do -->
 
 | Tool | Owner Agent | Purpose | Manual Portal Step Required |
-|------|-------------|---------|---------------------------|
-|      |             |         |                           |
+| ---- | ----------- | ------- | --------------------------- |
+|      |             |         |                             |
 
 ## Knowledge Sources
 
 <!-- How knowledge is distributed across agents -->
 
 | Source | Agent | Description | Type |
-|--------|-------|-------------|------|
+| ------ | ----- | ----------- | ---- |
 |        |       |             |      |
 
 ## Manual Portal Steps

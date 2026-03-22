@@ -82,6 +82,8 @@ Things that catch people out, behave unexpectedly, or aren't in the docs.
 
 Tool/action YAML files have platform-generated structures. Most fields are untouchable. When editing, ONLY modify the fields listed as safe. Preserve everything else exactly.
 
+**CRITICAL: Do NOT use `>-` or `|` block scalar syntax for `modelDescription`.** Block scalars break tools in CPS. Always use plain inline strings (quoted if the description contains special YAML characters like `:`).
+
 **MCP Server tools** (`kind: TaskDialog` with `ModelContextProtocolMetadata`):
 
 ```yaml
@@ -89,8 +91,7 @@ mcs.metadata:
   componentName: <platform-generated> # UNTOUCHABLE
 kind: TaskDialog # UNTOUCHABLE
 modelDisplayName: <display name> # SAFE to edit
-modelDescription: >- # SAFE to edit
-  <tool description for orchestrator routing>
+modelDescription: "<tool description for orchestrator routing>" # SAFE to edit — plain string, NOT >- block scalar
 action:
   kind: InvokeExternalAgentTaskAction # UNTOUCHABLE
   connectionReference: <platform-generated> # UNTOUCHABLE
@@ -113,8 +114,7 @@ inputs: # UNTOUCHABLE (platform-generated)
     propertyName: <param> # UNTOUCHABLE
     value: <value> # UNTOUCHABLE
 modelDisplayName: <display name> # SAFE to edit
-modelDescription: >- # SAFE to edit
-  <tool description for orchestrator routing>
+modelDescription: "<tool description for orchestrator routing>" # SAFE to edit — plain string, NOT >- block scalar
 outputs: # UNTOUCHABLE (platform-generated)
   - propertyName: <field> # UNTOUCHABLE
     name: <name> # UNTOUCHABLE
@@ -136,8 +136,7 @@ mcs.metadata:
   componentName: <platform-generated> # UNTOUCHABLE
 kind: TaskDialog # UNTOUCHABLE
 modelDisplayName: <display name> # SAFE to edit — add if missing
-modelDescription: >- # SAFE to edit — add if missing
-  <tool description for orchestrator routing>
+modelDescription: "<tool description for orchestrator routing>" # SAFE to edit — add if missing, plain string, NOT >- block scalar
 action:
   kind: InvokeFlowTaskAction # UNTOUCHABLE
   flowId: <platform-generated> # UNTOUCHABLE

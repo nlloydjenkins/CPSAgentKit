@@ -188,6 +188,7 @@ function composeBuildPrompt(
     "### CRITICAL: Tool/Action YAML Safety",
     "- Action YAML files have platform-generated structures. Most fields are UNTOUCHABLE.",
     "- SAFE to edit: modelDisplayName and modelDescription ONLY",
+    "- NEVER use >- or | block scalar syntax for modelDescription — block scalars break tools in CPS. Always use plain inline strings.",
     "- NEVER modify: mcs.metadata, kind, inputs, outputs, outputMode, action (and everything under it: connectionReference, connectionProperties, operationDetails, operationId, dynamicOutputSchema, flowId, knownTools)",
     "- This applies to ALL tool types: MCP servers (InvokeExternalAgentTaskAction), connectors (InvokeConnectorTaskAction), and flows (InvokeFlowTaskAction)",
     "- When asked to update a tool description, edit ONLY the modelDescription field. Do not touch any other field.",
