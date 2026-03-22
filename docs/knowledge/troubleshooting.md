@@ -79,3 +79,34 @@
 3. Check if different users have different access permissions.
 4. Check conversation context — previous turns influence routing and response.
 5. Check if the agent is near rate limits.
+
+## Dataverse MCP Server 403 — "Not Authorized to Access MCP"
+
+When adding the Dataverse MCP Server tool to an agent, the connection fails with:
+
+> The application '7ab7862c-4c57-491e-8a45-d52a7e023983' is not authorized to access MCP.
+
+The Copilot Studio MCP client record doesn't exist in your environment's allowed clients list, even though the docs state it's "enabled by default."
+
+**Prerequisites:**
+
+- Power Platform administrator role
+- The environment must be a Managed Environment
+- The "Allow MCP clients to interact with Dataverse MCP server" toggle must be on
+
+**Fix:**
+
+1. Power Platform admin center → your environment → Settings → Product → Features
+2. Confirm **Allow MCP clients to interact with Dataverse MCP server** is turned on
+3. Click **Advanced Settings** — opens the classic Dataverse interface showing "Active Allowed MCP Clients"
+4. If the list is empty (no client records were auto-provisioned), click **+ New**
+5. Fill in:
+   - **Name:** `Microsoft Copilot Studio`
+   - **Unique Name:** `<yourprefix>_microsoftcopilotstudio` (e.g. `cr86a_microsoftcopilotstudio`)
+   - **Application Id:** `7ab7862c-4c57-491e-8a45-d52a7e023983`
+   - **Is Enabled:** Yes
+6. Click **Save & Close**
+
+**Finding your publisher prefix:** The Unique Name must start with your environment's publisher prefix or the save will fail with "Export key attribute uniquename for component allowedmcpclient must start with a valid customization prefix." Find it in Power Apps → Settings (gear) → Publishers → check the prefix on your default publisher (e.g. `cr86a_`, `new_`).
+
+**After saving:** Return to Copilot Studio and re-add the Dataverse MCP Server tool. The 403 should be resolved.
