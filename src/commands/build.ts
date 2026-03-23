@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
+import { requireWorkspaceRoot } from "../ui/uiUtils.js";
 
 /** Parse build state checkboxes from architecture.md */
 async function parseBuildState(
@@ -44,14 +45,10 @@ async function updateBuildState(
 
 /** Build checklist command — shows current state and lets user drive the build */
 export async function buildCommand(): Promise<void> {
-  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  if (!workspaceFolder) {
-    vscode.window.showErrorMessage(
-      "CPSAgentKit: Open a workspace folder first.",
-    );
+  const root = requireWorkspaceRoot();
+  if (!root) {
     return;
   }
-  const root = workspaceFolder.uri.fsPath;
   const archPath = path.join(root, "requirements", "architecture.md");
 
   // Require architecture.md

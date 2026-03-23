@@ -1,6 +1,7 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import { ProjectState } from "./projectState.js";
+import { readMarkdownFiles } from "./fileUtils.js";
 
 const GITHUB_DIR = ".github";
 const INSTRUCTIONS_FILE = "copilot-instructions.md";
@@ -66,58 +67,6 @@ function buildProjectStateSection(state: ProjectState): string {
 }
 
 /**
- * Read all markdown files from the knowledge directory, sorted alphabetically.
- * Returns an array of { filename, content } pairs.
- */
-async function readKnowledgeFiles(
-  workspaceRoot: string,
-): Promise<Array<{ filename: string; content: string }>> {
-  const knowledgeDir = path.join(workspaceRoot, KNOWLEDGE_DIR);
-  const files: Array<{ filename: string; content: string }> = [];
-
-  try {
-    const entries = await fs.readdir(knowledgeDir);
-    const mdFiles = entries.filter((f) => f.endsWith(".md")).sort();
-
-    for (const filename of mdFiles) {
-      const content = await fs.readFile(
-        path.join(knowledgeDir, filename),
-        "utf-8",
-      );
-      files.push({ filename, content });
-    }
-  } catch {
-    // Knowledge directory doesn't exist or can't be read — return empty
-  }
-
-  return files;
-}
-
-/**
- * Read all markdown files from the best practices directory, sorted alphabetically.
- */
-async function readBestPracticesFiles(
-  workspaceRoot: string,
-): Promise<Array<{ filename: string; content: string }>> {
-  const bpDir = path.join(workspaceRoot, BEST_PRACTICES_DIR);
-  const files: Array<{ filename: string; content: string }> = [];
-
-  try {
-    const entries = await fs.readdir(bpDir);
-    const mdFiles = entries.filter((f) => f.endsWith(".md")).sort();
-
-    for (const filename of mdFiles) {
-      const content = await fs.readFile(path.join(bpDir, filename), "utf-8");
-      files.push({ filename, content });
-    }
-  } catch {
-    // Best practices directory doesn't exist or can't be read — return empty
-  }
-
-  return files;
-}
-
-/**
  * Generate the .github/copilot-instructions.md file by combining:
  * 1. The copilot-instructions-template.md (static workflow + role)
  * 2. All knowledge files as inline sections
@@ -144,7 +93,8 @@ export async function generateInstructions(
   }
 
   // Read knowledge files
-  const knowledgeFiles = await readKnowledgeFiles(workspaceRoot);
+  const knowledgeDir = path.join(workspaceRoot, KNOWLEDGE_DIR);
+  const knowledgeFiles = await readMarkdownFiles(knowledgeDir);
 
   // Build knowledge sections
   const knowledgeSections = knowledgeFiles.map(({ filename, content }) => {
@@ -153,7 +103,8 @@ export async function generateInstructions(
   });
 
   // Read best practices files
-  const bestPracticesFiles = await readBestPracticesFiles(workspaceRoot);
+  const bpDir = path.join(workspaceRoot, BEST_PRACTICES_DIR);
+  const bestPracticesFiles = await readMarkdownFiles(bpDir);
 
   // Build best practices sections
   const bestPracticesSections = bestPracticesFiles.map(

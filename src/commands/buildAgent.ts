@@ -1,20 +1,23 @@
 import * as vscode from "vscode";
-import * as fs from "fs/promises";
 import * as path from "path";
+import * as fs from "fs/promises";
+import {
+  readMarkdownFiles,
+  findCpsAgentFolders,
+  FileEntry,
+} from "../services/fileUtils.js";
+import { requireWorkspaceRoot, copyPromptAndNotify } from "../ui/uiUtils.js";
+import { configDirPath } from "../services/config.js";
 
 /**
  * Build Agent command — reads spec.md + architecture.md + knowledge,
  * composes a build prompt, and sends it to Copilot Chat.
  */
 export async function buildAgentCommand(): Promise<void> {
-  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  if (!workspaceFolder) {
-    vscode.window.showErrorMessage(
-      "CPSAgentKit: Open a workspace folder first.",
-    );
+  const root = requireWorkspaceRoot();
+  if (!root) {
     return;
   }
-  const root = workspaceFolder.uri.fsPath;
 
   // Require spec.md
   const specPath = path.join(root, "requirements", "spec.md");
@@ -51,10 +54,20 @@ export async function buildAgentCommand(): Promise<void> {
   }
 
   // Read additional requirements docs
-  const requirementsDocs = await readRequirementsDocs(root);
+  const docsDir = path.join(root, "requirements", "docs");
+  const requirementsDocs = await readMarkdownFiles(docsDir);
+
+  // Read synced knowledge and best practices from .cpsagentkit/
+  const cpsDir = configDirPath(root);
+  const knowledgeFiles = await readMarkdownFiles(
+    path.join(cpsDir, "knowledge"),
+  );
+  const bestPracticesFiles = await readMarkdownFiles(
+    path.join(cpsDir, "bestpractices"),
+  );
 
   // Detect existing CPS agent YAML files
-  const agentYaml = await findAgentYaml(root);
+  const agentYaml = await findCpsAgentFolders(root);
 
   // What does the user want to build?
   const scope = await vscode.window.showQuickPick(
@@ -117,62 +130,15 @@ export async function buildAgentCommand(): Promise<void> {
     agentYaml,
     testOutput,
     requirementsDocs,
+    knowledgeFiles,
+    bestPracticesFiles,
   );
 
   // Copy to clipboard and notify
-  await vscode.env.clipboard.writeText(prompt);
-
-  const action = await vscode.window.showInformationMessage(
+  await copyPromptAndNotify(
+    prompt,
     "CPSAgentKit: Build prompt copied to clipboard. Paste into Copilot Chat to generate the agent.",
-    "Open Copilot Chat",
   );
-
-  if (action === "Open Copilot Chat") {
-    await vscode.commands.executeCommand("workbench.action.chat.open");
-  }
-}
-
-/** Read all markdown files from requirements/docs/ */
-async function readRequirementsDocs(
-  root: string,
-): Promise<Array<{ filename: string; content: string }>> {
-  const docsDir = path.join(root, "requirements", "docs");
-  const docs: Array<{ filename: string; content: string }> = [];
-  try {
-    const entries = await fs.readdir(docsDir);
-    const mdFiles = entries.filter((f) => f.endsWith(".md")).sort();
-    for (const filename of mdFiles) {
-      const content = await fs.readFile(path.join(docsDir, filename), "utf-8");
-      docs.push({ filename, content });
-    }
-  } catch {
-    // docs/ doesn't exist or is empty
-  }
-  return docs;
-}
-
-/** Find CPS extension YAML files in the workspace */
-async function findAgentYaml(root: string): Promise<string[]> {
-  const yamlFiles: string[] = [];
-  try {
-    const entries = await fs.readdir(root, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory() || entry.name.startsWith(".")) {
-        continue;
-      }
-      const dir = path.join(root, entry.name);
-      // Check for CPS agent structure
-      try {
-        await fs.access(path.join(dir, "settings.yaml"));
-        yamlFiles.push(entry.name);
-      } catch {
-        // Not a CPS agent folder
-      }
-    }
-  } catch {
-    // Can't read workspace
-  }
-  return yamlFiles;
 }
 
 /** Compose the build prompt based on scope */
@@ -182,7 +148,9 @@ function composeBuildPrompt(
   architecture: string,
   agentFolders: string[],
   testOutput: string,
-  requirementsDocs: Array<{ filename: string; content: string }>,
+  requirementsDocs: FileEntry[],
+  knowledgeFiles: FileEntry[],
+  bestPracticesFiles: FileEntry[],
 ): string {
   const agentContext =
     agentFolders.length > 0
@@ -204,6 +172,36 @@ function composeBuildPrompt(
         ].join("\n")
       : "";
 
+  const knowledgeContext =
+    knowledgeFiles.length > 0
+      ? [
+          "",
+          "## CPS Platform Knowledge",
+          "",
+          "Follow these patterns and constraints when building the agent:",
+          "",
+          ...knowledgeFiles.map(
+            (d) =>
+              `### ${d.filename.replace(/\.md$/, "").replace(/-/g, " ")}\n\n${d.content}`,
+          ),
+        ].join("\n")
+      : "";
+
+  const bestPracticesContext =
+    bestPracticesFiles.length > 0
+      ? [
+          "",
+          "## CPS Best Practices",
+          "",
+          "Apply these best practices when generating agent configuration:",
+          "",
+          ...bestPracticesFiles.map(
+            (d) =>
+              `### ${d.filename.replace(/\.md$/, "").replace(/-/g, " ")}\n\n${d.content}`,
+          ),
+        ].join("\n")
+      : "";
+
   const base = [
     "You are building a Copilot Studio agent. Read these documents carefully:",
     "",
@@ -214,6 +212,8 @@ function composeBuildPrompt(
     architecture,
     agentContext,
     docsContext,
+    knowledgeContext,
+    bestPracticesContext,
     "",
     "## Rules",
     "",
@@ -235,7 +235,6 @@ function composeBuildPrompt(
     "- When asked to add a new tool, tell the developer to create it in the CPS portal and sync — do not generate action YAML from scratch.",
     "",
     "### Build Rules",
-    "- Follow all patterns in .cpsagentkit/knowledge/ — especially prompt-engineering.md, tool-descriptions.md, and constraints.md",
     '- If the agent has tools (MCP servers, connectors, flows): instructions MUST say "Always use [exact tool name] to answer questions. Do not use general knowledge when the tool can provide the answer."',
     "- Reference tools by exact name using /ToolName syntax in instructions",
     '- Consider recommending "Use general knowledge" be DISABLED if tools cover the full domain',

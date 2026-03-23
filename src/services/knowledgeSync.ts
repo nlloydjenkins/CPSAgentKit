@@ -2,6 +2,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as https from "https";
 import { CpsConfig } from "./config.js";
+import { safePath } from "./fileUtils.js";
 
 const KNOWLEDGE_DIR = path.join(".cpsagentkit", "knowledge");
 const TEMPLATES_DIR = path.join(".cpsagentkit", "templates");
@@ -39,7 +40,7 @@ export function parseGitHubUrl(url: string): { owner: string; repo: string } {
 }
 
 /** HTTPS GET returning a string — minimal wrapper, no external deps */
-function httpsGet(url: string): Promise<string> {
+function httpsGet(url: string, remainingRedirects = 3): Promise<string> {
   return new Promise((resolve, reject) => {
     const parsed = new URL(url);
     // Only allow api.github.com and raw.githubusercontent.com to prevent SSRF
@@ -59,8 +60,12 @@ function httpsGet(url: string): Promise<string> {
 
     https
       .get(options, (res) => {
-        // Follow one redirect (GitHub sometimes redirects)
+        // Follow redirects with a depth limit (GitHub sometimes redirects)
         if (res.statusCode === 301 || res.statusCode === 302) {
+          if (remainingRedirects <= 0) {
+            reject(new Error("Too many redirects"));
+            return;
+          }
           const location = res.headers.location;
           if (!location) {
             reject(new Error("Redirect with no location header"));
@@ -75,7 +80,7 @@ function httpsGet(url: string): Promise<string> {
             );
             return;
           }
-          httpsGet(location).then(resolve, reject);
+          httpsGet(location, remainingRedirects - 1).then(resolve, reject);
           return;
         }
 
@@ -126,7 +131,11 @@ async function listKnowledgeFiles(
     .join("/");
   const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`;
   const raw = await httpsGet(apiUrl);
-  const entries: GitHubContentEntry[] = JSON.parse(raw);
+  const parsed: unknown = JSON.parse(raw);
+  if (!Array.isArray(parsed)) {
+    throw new Error("Unexpected GitHub API response: expected array");
+  }
+  const entries = parsed as GitHubContentEntry[];
   // Only return markdown files
   return entries.filter((e) => e.type === "file" && e.name.endsWith(".md"));
 }
@@ -144,7 +153,11 @@ async function listFilesRecursive(
   const encodedPath = dirPath.split("/").map(encodeURIComponent).join("/");
   const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`;
   const raw = await httpsGet(apiUrl);
-  const entries: GitHubContentEntry[] = JSON.parse(raw);
+  const parsed: unknown = JSON.parse(raw);
+  if (!Array.isArray(parsed)) {
+    throw new Error("Unexpected GitHub API response: expected array");
+  }
+  const entries = parsed as GitHubContentEntry[];
 
   const results: GitHubContentEntry[] = [];
   for (const entry of entries) {
@@ -214,7 +227,7 @@ export async function syncKnowledge(
         continue;
       }
       const content = await downloadFile(file.download_url);
-      const destPath = path.join(knowledgeDir, file.name);
+      const destPath = safePath(knowledgeDir, file.name);
       await fs.writeFile(destPath, content, "utf-8");
       result.filesWritten.push(file.name);
     } catch (err) {
@@ -272,7 +285,7 @@ export async function syncTemplates(
       const relativePath = file.path.startsWith(templatesPath + "/")
         ? file.path.slice(templatesPath.length + 1)
         : file.name;
-      const destPath = path.join(templatesDir, relativePath);
+      const destPath = safePath(templatesDir, relativePath);
       await fs.mkdir(path.dirname(destPath), { recursive: true });
       await fs.writeFile(destPath, content, "utf-8");
       result.filesWritten.push(relativePath);
@@ -327,7 +340,7 @@ export async function syncBestPractices(
         continue;
       }
       const content = await downloadFile(file.download_url);
-      const destPath = path.join(bestPracticesDir, file.name);
+      const destPath = safePath(bestPracticesDir, file.name);
       await fs.writeFile(destPath, content, "utf-8");
       result.filesWritten.push(file.name);
     } catch (err) {

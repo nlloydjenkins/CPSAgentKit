@@ -1,19 +1,15 @@
 import * as vscode from "vscode";
 import * as path from "path";
+import { requireWorkspaceRoot } from "../ui/uiUtils.js";
 
 /** Open Spec command handler — opens spec.md or offers to initialise */
 export async function openSpecCommand(): Promise<void> {
-  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  if (!workspaceFolder) {
-    vscode.window.showErrorMessage(
-      "CPSAgentKit: Open a workspace folder first.",
-    );
+  const root = requireWorkspaceRoot();
+  if (!root) {
     return;
   }
 
-  const specUri = vscode.Uri.file(
-    path.join(workspaceFolder.uri.fsPath, "requirements", "spec.md"),
-  );
+  const specUri = vscode.Uri.file(path.join(root, "requirements", "spec.md"));
 
   try {
     await vscode.workspace.fs.stat(specUri);

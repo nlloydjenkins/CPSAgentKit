@@ -9,20 +9,17 @@ import {
 } from "../services/knowledgeSync.js";
 import { generateInstructions } from "../services/instructionsGenerator.js";
 import { StatusBar } from "../ui/statusBar.js";
+import { requireWorkspaceRoot } from "../ui/uiUtils.js";
 
 /** Sync Knowledge command handler */
 export async function syncKnowledgeCommand(
   extensionPath: string,
   statusBar: StatusBar,
 ): Promise<void> {
-  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  if (!workspaceFolder) {
-    vscode.window.showErrorMessage(
-      "CPSAgentKit: Open a workspace folder first.",
-    );
+  const root = requireWorkspaceRoot();
+  if (!root) {
     return;
   }
-  const root = workspaceFolder.uri.fsPath;
   const templateDir = path.join(extensionPath, "templates");
 
   // Require initialised project

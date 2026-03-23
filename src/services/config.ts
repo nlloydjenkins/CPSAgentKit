@@ -15,7 +15,7 @@ export interface CpsConfig {
 
 const CONFIG_DIR = ".cpsagentkit";
 const CONFIG_FILE = "config.json";
-const CURRENT_VERSION = "0.2.4";
+const CURRENT_VERSION = "0.2.7";
 
 /** Default config values for a fresh project */
 function defaults(): CpsConfig {
@@ -53,9 +53,33 @@ export function configDirPath(workspaceRoot: string): string {
 export async function readConfig(workspaceRoot: string): Promise<CpsConfig> {
   try {
     const raw = await fs.readFile(configPath(workspaceRoot), "utf-8");
-    const parsed = JSON.parse(raw) as Partial<CpsConfig>;
-    // Merge with defaults so any missing keys get filled
-    return { ...defaults(), ...parsed };
+    const parsed: unknown = JSON.parse(raw);
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
+      return defaults();
+    }
+    // Only pick known config keys to prevent prototype pollution
+    const obj = parsed as Record<string, unknown>;
+    const base = defaults();
+    const knownKeys: (keyof CpsConfig)[] = [
+      "knowledgeRepoUrl",
+      "knowledgeRepoBranch",
+      "knowledgePath",
+      "templatesPath",
+      "bestPracticesPath",
+      "lastSyncTimestamp",
+      "version",
+    ];
+    for (const key of knownKeys) {
+      if (key in obj && obj[key] !== undefined) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (base as any)[key] = obj[key];
+      }
+    }
+    return base;
   } catch {
     return defaults();
   }

@@ -1,5 +1,10 @@
 import * as fs from "fs/promises";
 import * as path from "path";
+import {
+  readYamlFiles,
+  readMarkdownFiles,
+  findCpsAgentFolders,
+} from "./fileUtils.js";
 
 /** A single CPS agent's files, grouped for review */
 export interface AgentSnapshot {
@@ -10,81 +15,6 @@ export interface AgentSnapshot {
   topics: Array<{ filename: string; content: string }>;
   actions: Array<{ filename: string; content: string }>;
   knowledge: Array<{ filename: string; content: string }>;
-}
-
-/** Read all YAML files from a directory, returns name+content pairs */
-async function readYamlFiles(
-  dir: string,
-): Promise<Array<{ filename: string; content: string }>> {
-  const files: Array<{ filename: string; content: string }> = [];
-  try {
-    const entries = await fs.readdir(dir);
-    const yamls = entries
-      .filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"))
-      .sort();
-    for (const filename of yamls) {
-      const content = await fs.readFile(path.join(dir, filename), "utf-8");
-      files.push({ filename, content });
-    }
-  } catch {
-    // Directory doesn't exist or can't be read
-  }
-  return files;
-}
-
-/** Read all markdown files from a directory */
-async function readMarkdownFiles(
-  dir: string,
-): Promise<Array<{ filename: string; content: string }>> {
-  const files: Array<{ filename: string; content: string }> = [];
-  try {
-    const entries = await fs.readdir(dir);
-    const mds = entries.filter((f) => f.endsWith(".md")).sort();
-    for (const filename of mds) {
-      const content = await fs.readFile(path.join(dir, filename), "utf-8");
-      files.push({ filename, content });
-    }
-  } catch {
-    // Directory doesn't exist
-  }
-  return files;
-}
-
-/**
- * Detect CPS agent folders in the workspace — directories containing
- * both settings.yaml (or settings.mcs.yml) and a topics/ subdirectory.
- */
-async function findAgentFolders(workspaceRoot: string): Promise<string[]> {
-  const agents: string[] = [];
-  try {
-    const entries = await fs.readdir(workspaceRoot, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory() || entry.name.startsWith(".")) {
-        continue;
-      }
-      const dir = path.join(workspaceRoot, entry.name);
-      // Check for CPS agent markers
-      const hasSettings =
-        (await fileExists(path.join(dir, "settings.yaml"))) ||
-        (await fileExists(path.join(dir, "settings.mcs.yml")));
-      const hasTopics = await fileExists(path.join(dir, "topics"));
-      if (hasSettings && hasTopics) {
-        agents.push(entry.name);
-      }
-    }
-  } catch {
-    // Workspace listing failed
-  }
-  return agents;
-}
-
-async function fileExists(p: string): Promise<boolean> {
-  try {
-    await fs.access(p);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /** Read all files for a single CPS agent folder */
@@ -201,7 +131,7 @@ export async function gatherSolutionSnapshot(
   };
   bestPractices: Array<{ filename: string; content: string }>;
 }> {
-  const agentNames = await findAgentFolders(workspaceRoot);
+  const agentNames = await findCpsAgentFolders(workspaceRoot);
   const agents: AgentSnapshot[] = [];
   for (const name of agentNames) {
     agents.push(await readAgentSnapshot(workspaceRoot, name));

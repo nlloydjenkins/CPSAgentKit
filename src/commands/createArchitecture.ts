@@ -1,6 +1,12 @@
 import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
+import { readMarkdownFiles } from "../services/fileUtils.js";
+import {
+  requireWorkspaceRoot,
+  collectList,
+  copyPromptAndNotify,
+} from "../ui/uiUtils.js";
 
 /** Describes a single agent in the architecture */
 interface AgentEntry {
@@ -18,28 +24,6 @@ interface ToolEntry {
   ownerAgent: string;
   purpose: string;
   manualStep: boolean;
-}
-
-/** Collect a list of items one at a time */
-async function collectList(
-  prompt: string,
-  placeholder: string,
-): Promise<string[]> {
-  const items: string[] = [];
-  let i = 1;
-  while (true) {
-    const item = await vscode.window.showInputBox({
-      prompt: `${prompt} (item ${i}, Escape when done)`,
-      placeHolder: placeholder,
-      ignoreFocusOut: true,
-    });
-    if (!item?.trim()) {
-      break;
-    }
-    items.push(item.trim());
-    i++;
-  }
-  return items;
 }
 
 /** Collect details for one agent */
@@ -217,14 +201,41 @@ function buildArchitecture(
 
 /** Guided architecture creation wizard */
 export async function createArchitectureCommand(): Promise<void> {
-  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  if (!workspaceFolder) {
-    vscode.window.showErrorMessage(
-      "CPSAgentKit: Open a workspace folder first.",
-    );
+  const root = requireWorkspaceRoot();
+  if (!root) {
     return;
   }
-  const root = workspaceFolder.uri.fsPath;
+
+  // Choose creation mode
+  const mode = await vscode.window.showQuickPick(
+    [
+      {
+        label: "Guided wizard",
+        description: "Answer prompts step by step to build architecture.md",
+        detail: "wizard",
+      },
+      {
+        label: "Generate from requirements docs",
+        description:
+          "Read spec.md and documents in requirements/docs/ and generate architecture via Copilot Chat",
+        detail: "from-docs",
+      },
+    ],
+    {
+      title: "CPSAgentKit: Create Architecture",
+      placeHolder: "How do you want to create the architecture?",
+      ignoreFocusOut: true,
+    },
+  );
+  if (!mode) {
+    return;
+  }
+
+  if (mode.detail === "from-docs") {
+    await createArchitectureFromDocs(root);
+    return;
+  }
+
   const requirementsDir = path.join(root, "requirements");
   const archPath = path.join(requirementsDir, "architecture.md");
 
@@ -377,5 +388,102 @@ export async function createArchitectureCommand(): Promise<void> {
 
   vscode.window.showInformationMessage(
     "CPSAgentKit: architecture.md created. Review and refine with Copilot.",
+  );
+}
+
+/** Generate architecture from spec + requirements docs via Copilot Chat prompt */
+async function createArchitectureFromDocs(root: string): Promise<void> {
+  const requirementsDir = path.join(root, "requirements");
+
+  // Read spec.md
+  let spec = "";
+  try {
+    spec = await fs.readFile(path.join(requirementsDir, "spec.md"), "utf-8");
+  } catch {
+    const action = await vscode.window.showWarningMessage(
+      "CPSAgentKit: spec.md not found. Create a spec first?",
+      "Create Spec",
+      "Continue anyway",
+    );
+    if (action === "Create Spec") {
+      await vscode.commands.executeCommand("cpsAgentKit.createSpec");
+      return;
+    }
+    if (!action) {
+      return;
+    }
+  }
+
+  // Read requirements docs
+  const docsDir = path.join(requirementsDir, "docs");
+  const docs = await readMarkdownFiles(docsDir);
+
+  if (!spec && docs.length === 0) {
+    vscode.window.showWarningMessage(
+      "CPSAgentKit: No spec.md or documents found in requirements/docs/. Add your requirements documents there first.",
+    );
+    return;
+  }
+
+  // Read the architecture template
+  const templatePath = path.join(
+    path.dirname(path.dirname(__dirname)),
+    "templates",
+    "architecture-template.md",
+  );
+  let template = "";
+  try {
+    template = await fs.readFile(templatePath, "utf-8");
+  } catch {
+    // Template not available — proceed without it
+  }
+
+  const sections: string[] = [
+    "You are creating a Copilot Studio agent architecture. Read the documents below and generate a complete architecture.md.",
+  ];
+
+  if (spec) {
+    sections.push("", "## Spec", "", spec);
+  }
+
+  if (docs.length > 0) {
+    sections.push(
+      "",
+      "## Requirements Documents",
+      "",
+      ...docs.map(
+        (d) =>
+          `### ${d.filename.replace(/\.md$/, "").replace(/-/g, " ")}\n\n${d.content}`,
+      ),
+    );
+  }
+
+  if (template) {
+    sections.push(
+      "",
+      "## Template",
+      "",
+      "Use this structure for the output:",
+      "",
+      template,
+    );
+  }
+
+  sections.push(
+    "",
+    "## Instructions",
+    "",
+    "- Decide how many agents are needed based on the spec and requirements",
+    "- For each agent, specify its role, type (standalone/parent/child/connected), tools, and knowledge sources",
+    "- Define routing logic if there are multiple agents",
+    "- List all tools and connectors with their owner agent and purpose",
+    "- Identify any manual portal steps required",
+    "- If something is not clear from the documents, note it as TBD with a brief explanation of what is missing",
+    "- Write the architecture to requirements/architecture.md",
+  );
+
+  await copyPromptAndNotify(
+    sections.join("\n"),
+    "CPSAgentKit: Architecture prompt copied to clipboard. Paste into Copilot Chat to generate architecture.md from your requirements docs.",
   );
 }

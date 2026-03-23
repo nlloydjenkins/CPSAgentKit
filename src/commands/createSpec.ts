@@ -1,41 +1,12 @@
 import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
-
-/** Multi-line input via a temporary document */
-async function getMultiLineInput(
-  prompt: string,
-  placeholder: string,
-): Promise<string | undefined> {
-  const result = await vscode.window.showInputBox({
-    prompt,
-    placeHolder: placeholder,
-    ignoreFocusOut: true,
-  });
-  return result?.trim() || undefined;
-}
-
-/** Collect a list of items one at a time, until the user presses Escape or enters empty */
-async function collectList(
-  prompt: string,
-  placeholder: string,
-): Promise<string[]> {
-  const items: string[] = [];
-  let i = 1;
-  while (true) {
-    const item = await vscode.window.showInputBox({
-      prompt: `${prompt} (item ${i}, press Escape when done)`,
-      placeHolder: placeholder,
-      ignoreFocusOut: true,
-    });
-    if (!item?.trim()) {
-      break;
-    }
-    items.push(item.trim());
-    i++;
-  }
-  return items;
-}
+import { readMarkdownFiles } from "../services/fileUtils.js";
+import {
+  requireWorkspaceRoot,
+  collectList,
+  copyPromptAndNotify,
+} from "../ui/uiUtils.js";
 
 /** Build spec.md content from collected answers */
 function buildSpec(
@@ -81,14 +52,41 @@ function buildSpec(
 
 /** Guided spec creation wizard — walks user through each section via VS Code UI */
 export async function createSpecCommand(): Promise<void> {
-  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  if (!workspaceFolder) {
-    vscode.window.showErrorMessage(
-      "CPSAgentKit: Open a workspace folder first.",
-    );
+  const root = requireWorkspaceRoot();
+  if (!root) {
     return;
   }
-  const root = workspaceFolder.uri.fsPath;
+
+  // Choose creation mode
+  const mode = await vscode.window.showQuickPick(
+    [
+      {
+        label: "Guided wizard",
+        description: "Answer prompts step by step to build spec.md",
+        detail: "wizard",
+      },
+      {
+        label: "Generate from requirements docs",
+        description:
+          "Read documents in requirements/docs/ and generate spec via Copilot Chat",
+        detail: "from-docs",
+      },
+    ],
+    {
+      title: "CPSAgentKit: Create Spec",
+      placeHolder: "How do you want to create the spec?",
+      ignoreFocusOut: true,
+    },
+  );
+  if (!mode) {
+    return;
+  }
+
+  if (mode.detail === "from-docs") {
+    await createSpecFromDocs(root);
+    return;
+  }
+
   const requirementsDir = path.join(root, "requirements");
   const specPath = path.join(requirementsDir, "spec.md");
 
@@ -238,5 +236,63 @@ export async function createSpecCommand(): Promise<void> {
 
   vscode.window.showInformationMessage(
     `CPSAgentKit: spec.md created for "${agentName}". Review and refine with Copilot.`,
+  );
+}
+
+/** Generate spec from requirements docs via Copilot Chat prompt */
+async function createSpecFromDocs(root: string): Promise<void> {
+  const docsDir = path.join(root, "requirements", "docs");
+  const docs = await readMarkdownFiles(docsDir);
+
+  if (docs.length === 0) {
+    vscode.window.showWarningMessage(
+      "CPSAgentKit: No documents found in requirements/docs/. Add your requirements documents there first.",
+    );
+    return;
+  }
+
+  // Read the spec template
+  const templatePath = path.join(
+    path.dirname(path.dirname(__dirname)),
+    "templates",
+    "spec-template.md",
+  );
+  let template = "";
+  try {
+    template = await fs.readFile(templatePath, "utf-8");
+  } catch {
+    // Template not available — proceed without it
+  }
+
+  const prompt = [
+    "You are creating a Copilot Studio agent spec. Read the requirements documents below and generate a complete spec.md.",
+    "",
+    "## Requirements Documents",
+    "",
+    ...docs.map(
+      (d) =>
+        `### ${d.filename.replace(/\.md$/, "").replace(/-/g, " ")}\n\n${d.content}`,
+    ),
+    "",
+    template
+      ? [
+          "## Template",
+          "",
+          "Use this structure for the output:",
+          "",
+          template,
+        ].join("\n")
+      : "",
+    "",
+    "## Instructions",
+    "",
+    "- Fill in every section of the spec based on what you can infer from the requirements documents",
+    "- If something is not clear from the documents, note it as TBD with a brief explanation of what is missing",
+    "- Write the spec to requirements/spec.md",
+  ].join("\n");
+
+  await copyPromptAndNotify(
+    prompt,
+    "CPSAgentKit: Spec prompt copied to clipboard. Paste into Copilot Chat to generate spec.md from your requirements docs.",
   );
 }

@@ -9,6 +9,7 @@ import {
   syncBestPractices,
 } from "../services/knowledgeSync.js";
 import { generateInstructions } from "../services/instructionsGenerator.js";
+import { requireWorkspaceRoot } from "../ui/uiUtils.js";
 
 /**
  * Copy a template file into the workspace root, only if it doesn't already exist.
@@ -35,14 +36,10 @@ async function scaffoldTemplate(
 /** Initialise CPS Project command handler */
 export async function initCommand(extensionPath: string): Promise<void> {
   // Require an open workspace
-  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  if (!workspaceFolder) {
-    vscode.window.showErrorMessage(
-      "CPSAgentKit: Open a workspace folder first.",
-    );
+  const root = requireWorkspaceRoot();
+  if (!root) {
     return;
   }
-  const root = workspaceFolder.uri.fsPath;
   const templateDir = path.join(extensionPath, "templates");
 
   // Check if already initialised

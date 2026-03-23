@@ -3,6 +3,7 @@ import {
   gatherSolutionSnapshot,
   composeReviewPrompt,
 } from "../services/solutionReviewer.js";
+import { requireWorkspaceRoot, copyPromptAndNotify } from "../ui/uiUtils.js";
 
 /**
  * Run Agent Assessment command — reads all CPS agent YAML in the workspace,
@@ -12,14 +13,10 @@ import {
 export async function reviewSolutionCommand(
   extensionPath: string,
 ): Promise<void> {
-  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  if (!workspaceFolder) {
-    vscode.window.showErrorMessage(
-      "CPSAgentKit: Open a workspace folder first.",
-    );
+  const root = requireWorkspaceRoot();
+  if (!root) {
     return;
   }
-  const root = workspaceFolder.uri.fsPath;
 
   // Gather solution data
   const snapshot = await gatherSolutionSnapshot(root, extensionPath);
@@ -91,17 +88,11 @@ export async function reviewSolutionCommand(
   );
 
   // Copy to clipboard and notify
-  await vscode.env.clipboard.writeText(prompt);
-
-  const action = await vscode.window.showInformationMessage(
+  await copyPromptAndNotify(
+    prompt,
     `CPSAgentKit: Assessment prompt copied to clipboard. ` +
       `Found ${snapshot.agents.length} agent(s) (${agentNames}), ` +
       `${totalTopics} topic(s), ${totalActions} action(s). ` +
       `Paste into Copilot Chat to generate the review report.`,
-    "Open Copilot Chat",
   );
-
-  if (action === "Open Copilot Chat") {
-    await vscode.commands.executeCommand("workbench.action.chat.open");
-  }
 }

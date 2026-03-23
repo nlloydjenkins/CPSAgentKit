@@ -1,5 +1,5 @@
-import * as fs from "fs/promises";
 import * as path from "path";
+import { fileExists, findCpsAgentFolders } from "./fileUtils.js";
 
 /** Snapshot of what exists in the workspace */
 export interface ProjectState {
@@ -16,41 +16,6 @@ export interface ProjectState {
 const CPS_ARCHITECT_DIR = ".cpsagentkit";
 const KNOWLEDGE_DIR = "knowledge";
 const REQUIREMENTS_DIR = "requirements";
-
-/** Check if a path exists */
-async function exists(p: string): Promise<boolean> {
-  try {
-    await fs.access(p);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Detect CPS extension agent folders — any directory containing
- * both settings.yaml and a topics/ subdirectory.
- */
-async function findCpsAgentFolders(workspaceRoot: string): Promise<string[]> {
-  const agents: string[] = [];
-  try {
-    const entries = await fs.readdir(workspaceRoot, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory() || entry.name.startsWith(".")) {
-        continue;
-      }
-      const dir = path.join(workspaceRoot, entry.name);
-      const hasSettings = await exists(path.join(dir, "settings.yaml"));
-      const hasTopics = await exists(path.join(dir, "topics"));
-      if (hasSettings && hasTopics) {
-        agents.push(entry.name);
-      }
-    }
-  } catch {
-    // Workspace listing failed — return empty
-  }
-  return agents;
-}
 
 /** Scan the workspace and return the current project state */
 export async function detectProjectState(
@@ -75,12 +40,12 @@ export async function detectProjectState(
     hasBestPractices,
     agentFolders,
   ] = await Promise.all([
-    exists(architectDir),
-    exists(path.join(requirementsDir, "spec.md")),
-    exists(path.join(requirementsDir, "architecture.md")),
-    exists(knowledgeDir),
-    exists(requirementsDocsDir),
-    exists(bestPracticesDir),
+    fileExists(architectDir),
+    fileExists(path.join(requirementsDir, "spec.md")),
+    fileExists(path.join(requirementsDir, "architecture.md")),
+    fileExists(knowledgeDir),
+    fileExists(requirementsDocsDir),
+    fileExists(bestPracticesDir),
     findCpsAgentFolders(workspaceRoot),
   ]);
 
