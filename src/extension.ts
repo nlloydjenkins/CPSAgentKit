@@ -5,9 +5,10 @@ import { createSpecCommand } from "./commands/createSpec.js";
 import { createArchitectureCommand } from "./commands/createArchitecture.js";
 import { buildCommand } from "./commands/build.js";
 import { buildAgentCommand } from "./commands/buildAgent.js";
+import { reviewSolutionCommand } from "./commands/reviewSolution.js";
 import { detectProjectState } from "./services/projectState.js";
 import { readConfig } from "./services/config.js";
-import { syncKnowledge } from "./services/knowledgeSync.js";
+import { syncKnowledge, syncBestPractices } from "./services/knowledgeSync.js";
 import { generateInstructions } from "./services/instructionsGenerator.js";
 import { StatusBar } from "./ui/statusBar.js";
 
@@ -34,6 +35,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("cpsAgentKit.build", () => buildCommand()),
     vscode.commands.registerCommand("cpsAgentKit.buildAgent", () =>
       buildAgentCommand(),
+    ),
+    vscode.commands.registerCommand("cpsAgentKit.reviewSolution", () =>
+      reviewSolutionCommand(extensionPath),
     ),
     statusBar,
   );
@@ -75,6 +79,7 @@ async function autoSyncOnOpen(extensionPath: string): Promise<void> {
   try {
     const config = await readConfig(root);
     await syncKnowledge(root, config);
+    await syncBestPractices(root, config);
 
     // Regenerate instructions with fresh state
     const freshState = await detectProjectState(root);

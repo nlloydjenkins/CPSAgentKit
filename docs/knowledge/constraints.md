@@ -37,7 +37,7 @@
 - No multi-level chaining (parent→child→child's child blocked). Flatten hierarchy.
 - Connected agent responses are always summarised by the parent orchestrator — by design, for security.
 - Citations/links stripped in parent-child handoffs.
-- MCP tools on child agents may not execute reliably when called via parent orchestration (field observation — not documented by Microsoft, but observed consistently).
+- MCP tools on child agents are NOT invoked when called via parent orchestration. The child agent fires, but MCP calls don't execute. Workaround: parent owns the MCP tool and passes results to children as context.
 - Child agents have separate tool limits from the parent (benefit of using them).
 
 ## Flows and Connectors
@@ -80,12 +80,36 @@
 
 ## Content Moderation
 
-- `contentModeration` can be set to `Low`, `Medium`, or `High` in agent settings YAML.
+- `contentModeration` can be set to `Low`, `Medium`, or `High` in agent settings YAML. This is the **only** available control surface for content filtering — there is no per-topic, per-utterance, or per-tool override.
 - For agents that process financial, medical, legal, or other specialist domain content, `Low` may be necessary to avoid false positive content filtering that blocks legitimate review output.
-- This is the only available control over content filtering — there is no per-topic or per-utterance override.
-- Content filtering remains a black box even at `Low` — no logging, no reason code, no diagnostic info when triggered.
+- Content filtering remains a black box at every level — no logging, no reason code, no diagnostic info when triggered. Debugging content filter blocks is currently impossible without a support ticket.
+- Setting the level does not provide any additional transparency or diagnostics — it only adjusts the threshold.
 
 ## MCP in Multi-Agent Flows
 
 - MCP is fully supported as an agent tool (Streamable transport, added from the Tools page, generative orchestration required).
 - Field observation: MCP is more reliable when the parent/orchestrator owns the MCP tool and passes results to children as context, rather than relying on MCP execution inside child-agent orchestration.
+
+## Licensing and Billing
+
+- **Copilot Credits** are the unit of billing (replaced messages, September 2025). Credits are consumed based on task complexity, not per-message. Credits do NOT roll over month-to-month.
+- **M365 Copilot licensed users:** Interactive usage of agents published to Copilot Chat, Teams, or SharePoint is included at no additional credit cost. Autonomous/scheduled runs always consume credits regardless of licensing.
+- **Testing credits:** Messages in the embedded test chat do NOT consume credits. However, prompts and models in agent flows DO consume credits even during testing. Prompt builder testing is free.
+- **Proactive greetings are billed.** A proactive greeting counts as a billed credit even if the user never responds.
+- If you exceed purchased capacity, technical enforcement (service denial) applies.
+
+## Governance and DLP
+
+- DLP enforcement is mandatory for all tenants (early 2025) — no agent-level exemptions.
+- DLP can block: authentication methods ("No auth" connector), knowledge source types (SharePoint, public websites), connectors as tools, HTTP requests, skills, publishing channels, and event triggers.
+- Use endpoint filtering for granular control (allow/deny specific SharePoint URLs or public website domains).
+- Connectors in different DLP data groups (Business, Non-Business, Blocked) cannot be used together in the same agent.
+- Purview DLP (M365 Copilot layer): can block responses when prompts contain sensitive information types (SITs) or when grounded content has blocked sensitivity labels.
+- Agents published to M365 Copilot inherit Purview DLP controls — error messaging may not clearly explain why a response was blocked.
+
+## Settings
+
+- **Orchestration mode:** Toggle between generative and classic orchestration in Settings > Generative AI. Changing takes time to apply — publish after changing to confirm.
+- **Deep reasoning:** Optional capability for complex reasoning at higher credit cost. Evaluate before enabling.
+- **Channel description:** Separate from the main instructions field — governs how the agent behaves in Teams/M365 Copilot. Important for multi-domain agents (HR + IT) to ensure accurate intent routing.
+- **Multi-language:** Generative orchestration is English-only for the orchestration layer — planning happens in English even if the agent responds in another language.

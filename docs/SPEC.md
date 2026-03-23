@@ -19,6 +19,7 @@ Developers and power users who are building CPS agents for business users. They'
 - **Initialise CPS Project** (`cpsAgentKit.init`) — scaffolds the project folder structure into the current workspace. Creates the spec template, architecture template, knowledge folder, and writes the `copilot-instructions.md`. If a CPS agent project already exists in the workspace (from the CPS extension), it initialises around it non-destructively.
 - **Sync Knowledge** (`cpsAgentKit.syncKnowledge`) — pulls the latest CPS platform knowledge from the central knowledge repo (a GitHub repo). Overwrites the local knowledge folder and regenerates the `copilot-instructions.md` to reflect any updates. Can be triggered manually or runs on workspace open if the project is already initialised.
 - **Open Spec** (`cpsAgentKit.openSpec`) — opens the `requirements/spec.md` file for editing. Convenience command.
+- **Run Agent Assessment** (`cpsAgentKit.reviewSolution`) — scans all CPS agent folders in the workspace, reads their YAML configuration (settings, topics, actions, knowledge), and composes a best-practice assessment prompt. The prompt includes the full solution snapshot and all knowledge rules. Paste it into Copilot Chat to get a prioritised assessment report with findings, what the solution does well, and specific suggested fixes. Supports scoped reviews: full, prompts & instructions, descriptions & routing, or architecture.
 
 ### Project structure created by initialisation
 

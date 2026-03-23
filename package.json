@@ -57,6 +57,11 @@
         "command": "cpsAgentKit.buildAgent",
         "title": "Build Agent",
         "category": "CPSAgentKit"
+      },
+      {
+        "command": "cpsAgentKit.reviewSolution",
+        "title": "Run Agent Assessment",
+        "category": "CPSAgentKit"
       }
     ],
     "configuration": {

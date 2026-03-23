@@ -30,6 +30,7 @@ function buildProjectStateSection(state: ProjectState): string {
     `- **architecture.md:** ${state.hasArchitecture ? "exists (requirements/architecture.md)" : "not yet created"}`,
     `- **Knowledge synced:** ${state.hasKnowledge ? "yes" : "no"}`,
     `- **Requirements docs:** ${state.hasRequirementsDocs ? "requirements/docs/ exists" : "no additional docs"}`,
+    `- **Best practices:** ${state.hasBestPractices ? "docs/bestpractices/ exists" : "no custom best practices"}`,
   ];
 
   if (state.hasCpsExtensionAgent) {

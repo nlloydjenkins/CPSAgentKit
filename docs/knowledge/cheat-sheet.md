@@ -1,81 +1,78 @@
 # Copilot Studio Cheat Sheet — Gotchas & Idiosyncrasies
 
-Things that catch people out, behave unexpectedly, or aren't in the docs.
+Things that catch people out, behave unexpectedly, or aren't in the docs. For detailed guidance, see the referenced files.
 
 ---
 
 ## Orchestration
 
-- **Descriptions route, not triggers.** In generative mode, the orchestrator picks tools/topics based on their description, not trigger phrases. Bad descriptions = wrong routing. This is the #1 cause of "it calls the wrong thing."
-- **10-turn memory.** The orchestrator only sees the last 10 conversation turns. Turn 15? It's forgotten turn 1. Critical state must live in variables, not conversation history.
-- **Switching to generative mode silently breaks things.** The Conversational Boosting system topic is bypassed. Custom data sources, Bing Custom Search, and any modifications you made to it — all ignored.
-- **The Multiple Topics Matched topic doesn't fire** in generative mode. The planner handles disambiguation itself. You lose "did you mean X or Y?" prompts.
-- **Auto-generated topic descriptions** (from trigger phrases when switching modes) are often adequate, never optimal. Always review them.
-- **Generative orchestration is English-only.**
+- Descriptions route, not triggers — bad descriptions = wrong routing. _(See prompt-engineering.md → Descriptions)_
+- 10-turn memory — earlier context dropped; use variables for critical state. _(See constraints.md → Orchestration)_
+- Switching to generative mode bypasses Conversational Boosting — custom data sources, Bing Custom Search all ignored.
+- Multiple Topics Matched topic doesn't fire in generative mode.
+- Auto-generated topic descriptions are adequate, never optimal — always review.
+- Generative orchestration is English-only.
 
 ## Tools & Routing
 
-- **128 tool hard limit, 25-30 practical limit.** Beyond 30 tools, the orchestrator starts ignoring instructions, misrouting, and making unnecessary calls.
-- **Tool names must be exact in instructions.** If your instruction says "Create Order" but the tool is named "Create Purchase Order," it won't match reliably. Use the `/` syntax.
-- **Overlapping tool/agent names cause chaos.** "Check account balance" tool + "Get account balance" agent = coin flip routing. Restrict one to explicit invocation only (clear "Allow agent to decide dynamically").
+- 128 tool hard limit, 25-30 practical limit — beyond 30, routing degrades. _(See constraints.md → Orchestration)_
+- Tool names must be exact in instructions — use `/` syntax. _(See tool-descriptions.md)_
+- Overlapping tool/agent names cause coin-flip routing — differentiate descriptions or restrict one to explicit invocation.
 
 ## Multi-Agent
 
-- **No circular dependencies.** Agent A → Agent B → Agent A is blocked at the platform level.
-- **No multi-level chaining.** Parent → child is fine. Parent → child → child's child is not. Flatten or use child agents within connected agents.
-- **Citations get stripped in handoffs.** Parent receives a summarised version of the child's response. SharePoint links, reference citations — gone. By design, for security. No workaround.
-- **MCP tools fail through orchestration.** Child agent's MCP server tools are not invoked when called via parent orchestration. The child fires, the MCP calls don't. Major limitation, not clearly documented.
-- **The ghost message.** Parent with no topics/knowledge of its own + "Don't respond" after child = platform sends an unsolicited `explanation_of_tool_call` message anyway.
-- **Child agent looping.** Post-Oct 2025: child agents with tools (especially Send Email V2) fail to signal completion. Parent re-triggers. Infinite loop. Add explicit "end and return" instructions + track state with a variable.
-- **Specialist agents leak into each other's domains.** Positive scope alone is insufficient. Add explicit prohibitions: "Do NOT assess X, Y, Z — those belong to other specialists."
-- **Later pipeline stages compress earlier results.** When multiple specialists feed into a Reporter or assembly step, later sections get progressively more compressed. Use labeled output blocks + structural validation to catch this.
+- No circular dependencies, no multi-level chaining. _(See constraints.md → Multi-Agent)_
+- Citations stripped in handoffs — by design, for security. No workaround.
+- MCP tools on child agents are NOT invoked via parent orchestration. _(See multi-agent-patterns.md → MCP Tools Through Orchestration)_
+- Ghost message: parent with no topics + "Don't respond" after child = unsolicited `explanation_of_tool_call` message.
+- Child agent looping (post-Oct 2025): add explicit "end and return" instructions + track state variable. _(See multi-agent-patterns.md → Child Agent Looping)_
+- Specialist agents leak into each other's domains — add explicit prohibitions. _(See multi-agent-patterns.md → Agent Boundary Enforcement)_
+- Later pipeline stages compress earlier results — use labeled output blocks. _(See multi-agent-patterns.md → Output Preservation Pattern)_
 
 ## Knowledge & Retrieval
 
-- **Zero control over chunking.** Documents uploaded to CPS are chunked by Dataverse with undocumented defaults. No control over chunk size, overlap, or strategy.
-- **No control over query type.** Can't choose keyword vs vector vs hybrid search. Can't add filters. Can't rerank.
-- **7 MB silent limit.** Without an M365 Copilot license in the tenant, SharePoint files over 7 MB are silently ignored. No error, just no answers.
-- **Indexing delay.** 5-30 minutes after enabling unstructured data. During this window, retrieval is unreliable or non-functional.
-- **25 knowledge source routing threshold.** Beyond 25 sources, the orchestrator uses an internal GPT to filter which to search — based on their descriptions. Bad descriptions = sources never get searched.
-- **You can't force a specific knowledge article.** Instructions like "always use document X" are unreliable. The AI chooses based on query relevance.
-- **Classic ASPX SharePoint pages don't work.** Only modern pages. Also: accordion nav menus, custom CSS, and "&" in filenames all break things.
-- **SharePoint lists with >12 lookup columns** in the default view aren't supported as knowledge sources.
+- Zero control over chunking or query type. _(See knowledge-sources.md → Chunking)_
+- 7 MB silent limit without M365 Copilot license — no error, just no answers.
+- Indexing delay: 5-30 minutes after enabling unstructured data.
+- 25 knowledge source routing threshold — bad descriptions = sources never searched. _(See knowledge-sources.md → Knowledge Source Descriptions)_
+- Can't force a specific knowledge article — AI chooses by query relevance.
+- Classic ASPX pages, accordion nav, custom CSS, "&" in filenames all break retrieval. _(See constraints.md → SharePoint Specifics)_
 
 ## Instructions & Prompting
 
-- **Instructions are treated like code.** Wrong instructions break your agent. Debug by removing all, adding back one at a time, testing between each.
-- **Negative instructions are unreliable.** "Never mention competitors" will be violated. Use a dedicated topic with a manual response instead.
-- **No temperature control at agent level.** Only available in prompt actions. The main agent uses platform defaults.
-- **Follow-up questions require general knowledge enabled.** Disable "Use general knowledge" and the agent can't ask clarifying questions — they're considered "ungrounded" and suppressed. Silent failure.
-- **Content filtering is a black box.** When triggered: no logging, no reason code, no diagnostic info. Debugging is impossible. You can try rewording instructions to indicate the behaviour is expected. Set `contentModeration: Low` in agent settings YAML for domains (financial, medical, legal) prone to false positives.
-- **8,000-character instruction limit.** This is the documented hard limit. Quality and routing may degrade before hitting it with dense or complex instructions — decompose into child agents or prompt tools rather than packing one instruction block.
-- **Instruction accumulation causes regressions.** Adding more instructions doesn't linearly improve output. After a certain density, new instructions degrade previously-working behaviour. When quality plateaus, the fix is structural (child agents, knowledge files, output templates), not more text.
-- **Prose format descriptions are unreliable.** "Include a table with scores" gets ignored. Use literal templates with placeholders in knowledge files + one worked example + one negative example. Show, don't tell.
-- **Prompt tools are architectural tools, not just text generators.** They provide code interpreter, temperature control, and deterministic transformations that agent instructions can't. Use them for file preprocessing, format enforcement (narrative → JSON), and any single-purpose AI call that needs specific settings.
+- Instructions are treated like code — debug by removing all, adding back one at a time. _(See prompt-engineering.md)_
+- Negative instructions are unreliable — use dedicated topics instead. _(See anti-patterns.md → Prompt Anti-Patterns)_
+- No temperature control at agent level — only in prompt actions.
+- Follow-up questions require "Use general knowledge" enabled — silent failure otherwise.
+- Content filtering is a black box — no logging, no diagnostics. Set `contentModeration: Low` for specialist domains. _(See constraints.md → Content Moderation)_
+- 8,000-character instruction limit — quality may degrade before limit with dense instructions. _(See constraints.md → Agent Instructions)_
+- Instruction accumulation causes regressions — fix is structural, not textual. _(See prompt-engineering.md → The Instruction Accumulation Trap)_
+- Prose format descriptions are unreliable — use literal templates + examples. _(See prompt-engineering.md → Output Format Enforcement)_
+- Prompt tools provide code interpreter, temperature control, deterministic transforms. _(See prompt-engineering.md → Prompt Tools)_
 
 ## Deployment & Channels
 
-- **Works in test pane ≠ works in Teams.** Different pipelines, different auth contexts, different requirements. Test pane uses maker credentials; production uses end-user credentials.
-- **Teams publishing doesn't auto-update for users.** Different users run different agent versions simultaneously.
-- **Declarative agents fail silently without M365 Copilot license.** Agent provisions fine, but SharePoint grounding fails at runtime with a generic "Sorry, I wasn't able to respond."
-- **Connector permissions behave differently in Teams.** Some users see "manage connection" prompts, others don't. Non-admins can sometimes access connection management they shouldn't.
-- **The "typing indicator then nothing" pattern.** Usually cold-start throttling or PDF knowledge source latency at scale. Migrate PDFs to SharePoint for stability.
+- Works in test pane ≠ works in Teams — different pipelines, auth contexts.
+- Teams publishing doesn't auto-update for users.
+- Declarative agents fail silently without M365 Copilot license. _(See declarative-agents.md)_
+- Connector permissions behave differently in Teams.
+- "Typing indicator then nothing" = cold-start throttling or PDF knowledge latency.
 
 ## ALM & Lifecycle
 
-- **Deleting knowledge sources is UI-only.** Check via API — the ghost reference is still there.
-- **No version diffing or rollback.** You cannot compare agent versions or revert to a previous state.
-- **Managed solutions + knowledge sources = vague SQL errors.**
-- **Power Automate flows as declarative agent actions** may not run reliably and may not appear in the UI even when the counter says they exist.
-- **Cloud flow 100-second timeout.** If your flow takes longer, the agent treats it as a failure. Put post-response logic after the "Return value(s) to Copilot Studio" step.
+- Deleting knowledge sources is UI-only — ghost reference persists in API. _(See anti-patterns.md → Deployment Anti-Patterns)_
+- No version diffing or rollback.
+- Managed solutions + knowledge sources = vague SQL errors.
+- Power Automate flows as declarative agent actions may not run reliably.
+- Cloud flow 100-second timeout. _(See constraints.md → Flows and Connectors)_
 
 ## Miscellaneous
 
-- **Direct Line message size: 262,144 bytes.** Includes all context variables, not just the visible message.
-- **Omnichannel ACS limit: 28 KB.** When transferring to Omnichannel, if all variables exceed 28 KB, the transfer succeeds but variables are silently dropped.
-- **Connector payload: 5 MB public cloud, 450 KB GCC.** Generic error when exceeded.
-- **GPT-4o/4.1 were widely regarded as poor in CPS.** GPT-5 is the turning point. Switching models can change agent behaviour — prompts that worked on one model may not work on another.
-- **Suggested prompts cache aggressively.** After publishing, updates may not appear due to browser/Teams/CDN/service caching. May require clearing caches, new sessions, or removing and re-adding the Teams channel.
+- Direct Line message size: 262,144 bytes (includes all context variables).
+- Omnichannel ACS limit: 28 KB — variables silently dropped if exceeded.
+- Connector payload: 5 MB public cloud, 450 KB GCC.
+- Switching models can change agent behaviour — prompts that worked on one model may not work on another.
+- Suggested prompts cache aggressively — may need cache clearing, new sessions, or channel re-add after publishing.
 
 ## YAML & Extension
 

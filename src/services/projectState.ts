@@ -8,6 +8,7 @@ export interface ProjectState {
   hasArchitecture: boolean;
   hasKnowledge: boolean;
   hasRequirementsDocs: boolean;
+  hasBestPractices: boolean;
   hasCpsExtensionAgent: boolean;
   agentFolders: string[];
 }
@@ -59,6 +60,7 @@ export async function detectProjectState(
   const knowledgeDir = path.join(architectDir, KNOWLEDGE_DIR);
   const requirementsDir = path.join(workspaceRoot, REQUIREMENTS_DIR);
   const requirementsDocsDir = path.join(requirementsDir, "docs");
+  const bestPracticesDir = path.join(workspaceRoot, "docs", "bestpractices");
 
   const [
     isInitialised,
@@ -66,6 +68,7 @@ export async function detectProjectState(
     hasArchitecture,
     hasKnowledge,
     hasRequirementsDocs,
+    hasBestPractices,
     agentFolders,
   ] = await Promise.all([
     exists(architectDir),
@@ -73,6 +76,7 @@ export async function detectProjectState(
     exists(path.join(requirementsDir, "architecture.md")),
     exists(knowledgeDir),
     exists(requirementsDocsDir),
+    exists(bestPracticesDir),
     findCpsAgentFolders(workspaceRoot),
   ]);
 
@@ -82,6 +86,7 @@ export async function detectProjectState(
     hasArchitecture,
     hasKnowledge,
     hasRequirementsDocs,
+    hasBestPractices,
     hasCpsExtensionAgent: agentFolders.length > 0,
     agentFolders,
   };

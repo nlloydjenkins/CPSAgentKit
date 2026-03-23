@@ -3,7 +3,11 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { readConfig, writeConfig, CpsConfig } from "../services/config.js";
 import { detectProjectState } from "../services/projectState.js";
-import { syncKnowledge, syncTemplates } from "../services/knowledgeSync.js";
+import {
+  syncKnowledge,
+  syncTemplates,
+  syncBestPractices,
+} from "../services/knowledgeSync.js";
 import { generateInstructions } from "../services/instructionsGenerator.js";
 
 /**
@@ -72,10 +76,12 @@ export async function initCommand(extensionPath: string): Promise<void> {
       const githubDir = path.join(root, ".github");
       const requirementsDir = path.join(root, "requirements");
       const requirementsDocsDir = path.join(root, "requirements", "docs");
+      const bestPracticesDir = path.join(root, "docs", "bestpractices");
       await fs.mkdir(knowledgeDir, { recursive: true });
       await fs.mkdir(githubDir, { recursive: true });
       await fs.mkdir(requirementsDir, { recursive: true });
       await fs.mkdir(requirementsDocsDir, { recursive: true });
+      await fs.mkdir(bestPracticesDir, { recursive: true });
 
       // Scaffold templates (non-destructive) into requirements/
       progress.report({ message: "Scaffolding templates..." });
@@ -110,7 +116,21 @@ export async function initCommand(extensionPath: string): Promise<void> {
         progress.report({ message: msg });
       });
 
-      const allErrors = [...syncResult.errors, ...templateResult.errors];
+      // Sync best practices from GitHub
+      progress.report({ message: "Syncing best practices..." });
+      const bestPracticesResult = await syncBestPractices(
+        root,
+        config,
+        (msg) => {
+          progress.report({ message: msg });
+        },
+      );
+
+      const allErrors = [
+        ...syncResult.errors,
+        ...templateResult.errors,
+        ...bestPracticesResult.errors,
+      ];
       if (allErrors.length > 0) {
         vscode.window.showWarningMessage(
           `CPSAgentKit: Sync completed with errors: ${allErrors.join("; ")}`,
@@ -129,8 +149,9 @@ export async function initCommand(extensionPath: string): Promise<void> {
       // Report success
       const knowledgeCount = syncResult.filesWritten.length;
       const templateCount = templateResult.filesWritten.length;
+      const bpCount = bestPracticesResult.filesWritten.length;
       vscode.window.showInformationMessage(
-        `CPSAgentKit: Project initialised. ${knowledgeCount} knowledge files, ${templateCount} template files synced.`,
+        `CPSAgentKit: Project initialised. ${knowledgeCount} knowledge files, ${templateCount} template files, ${bpCount} best practice files synced.`,
       );
     },
   );

@@ -154,3 +154,52 @@ Stamp every agent with a version number in its instructions and require it in ou
 - **Structured test-evaluate-fix cycle** — define a scoring rubric for output quality before the first live test. After each test, produce a structured review comparing output against the rubric. Track a version history with scores to see trajectory and catch regressions early.
 
 Without version stamps and structured reviews, iteration is ad-hoc and regressions go unnoticed until users report them.
+
+## Agent Boundary Enforcement
+
+In multi-agent architectures, specialist agents will leak into each other's domains unless explicitly prohibited. The model defaults to commenting on anything it notices in the content, regardless of scope instructions.
+
+Positive scope alone is insufficient. Add explicit prohibitions:
+
+```
+You review brand compliance only.
+Do NOT assess: reading age, accessibility formats, support routes,
+regulatory compliance, or FCA rules. These belong to other specialists.
+```
+
+When one agent leaks into another's domain, the fix is an explicit prohibition instruction, not a restatement of the positive scope. The more specialist agents you have, the more important this becomes.
+
+### Cross-Agent Consistency
+
+When a child's scope changes, update:
+
+1. Child's description
+2. Parent's routing instructions
+3. Sibling descriptions that previously claimed that domain
+
+## Autonomous Agents and Event Triggers
+
+Agents can be triggered by external events without user interaction via scheduled triggers (time-based) or event-based triggers (e.g., Dataverse record update, email received).
+
+### Key Constraints
+
+- **Event-triggered agents use only the maker's credentials.** Tools called in response to a trigger must also use maker's credentials. The agent operates with the permissions of whoever built it, not the end user.
+- **Autonomous runs always consume Copilot Credits** regardless of user licensing. Even if all users have M365 Copilot licences, scheduled/background agent runs are billed.
+- **Event triggers can be blocked by DLP policy.** Admins can prevent makers from adding event triggers to agents.
+
+### Design Guidance
+
+- Define expected sequences of actions for multi-step workflows.
+- Model each step with explicit preconditions, post-conditions, and numerical thresholds.
+- Design for idempotency with robust retry logic and dead-letter handling.
+- Incorporate approval gates through familiar channels (Teams, Outlook) for human-in-the-loop review.
+- Enforce least-privilege: scope connector permissions, use managed identities, apply MCP tool access policies.
+- Combine process instructions with specific prompts in the agent's instructions.
+
+### Security
+
+Triggers are vulnerable to injection attacks. Instructions should include:
+
+- Limit which tools the agent can invoke from triggers
+- Limit parameters (e.g., "only email to @contoso.com addresses")
+- "Only email information after checking a knowledge source for context"

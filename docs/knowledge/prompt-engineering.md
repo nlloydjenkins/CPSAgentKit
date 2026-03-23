@@ -118,25 +118,11 @@ If asked about technical problems or account changes, respond:
 
 ### Agent Boundary Enforcement
 
-In multi-agent architectures, specialist agents will leak into each other's domains unless explicitly prohibited. The model defaults to commenting on anything it notices in the content, regardless of scope instructions.
-
-Positive scope alone is insufficient. Add explicit prohibitions:
-
-```
-You review brand compliance only.
-Do NOT assess: reading age, accessibility formats, support routes,
-regulatory compliance, or FCA rules. These belong to other specialists.
-```
-
-When one agent leaks into another's domain, the fix is an explicit prohibition instruction, not a restatement of the positive scope. The more specialist agents you have, the more important this becomes.
+Specialist agents leak into each other's domains unless explicitly prohibited. Positive scope alone is insufficient — add explicit prohibitions stating what each agent must NOT assess. See multi-agent-patterns.md → Agent Boundary Enforcement for the full pattern with examples.
 
 ### Cross-Agent Consistency
 
-When a child's scope changes, update:
-
-1. Child's description
-2. Parent's routing instructions
-3. Sibling descriptions that previously claimed that domain
+When a child's scope changes, update the child's description, parent's routing instructions, and sibling descriptions that previously claimed that domain.
 
 ## Follow-Up Questions
 
@@ -213,6 +199,30 @@ Triggers are vulnerable to injection attacks. Instructions should include:
 - Limit which tools the agent can invoke from triggers
 - Limit parameters (e.g., "only email to @contoso.com addresses")
 - "Only email information after checking a knowledge source for context"
+
+## Custom Triggers in Generative Orchestration
+
+Three trigger types hook into the agent's lifecycle:
+
+### On Knowledge Requested
+
+- Fires right before the agent queries knowledge sources.
+- Provides read-only access to the search phrase the agent intends to use.
+- Lets you route queries to a proprietary index or inject additional data into results.
+- **Advanced/hidden trigger** — not visible in UI by default, must be enabled via YAML edit (name a topic exactly `OnKnowledgeRequested`).
+
+### AI Response Generated
+
+- Fires after the AI composes a draft answer but before it's sent to the user.
+- Lets you programmatically modify the response or citations (fix formatting, replace URLs, redact content).
+- Can yield a custom message and use a `ContinueResponse` flag to control whether the original response still sends.
+- Use for last-second adjustments; heavy use suggests logic that should be in main instructions instead.
+
+### On Plan Complete
+
+- Fires after the entire plan executes and the response is sent.
+- Use for end-of-conversation processes (redirect to survey, cleanup actions).
+- Add conditional logic — you probably don't want this firing after every single user message in a multi-turn conversation.
 
 ## Prompt Tools as Architectural Building Blocks
 

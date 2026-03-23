@@ -2,7 +2,11 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { readConfig, writeConfig } from "../services/config.js";
 import { detectProjectState } from "../services/projectState.js";
-import { syncKnowledge, syncTemplates } from "../services/knowledgeSync.js";
+import {
+  syncKnowledge,
+  syncTemplates,
+  syncBestPractices,
+} from "../services/knowledgeSync.js";
 import { generateInstructions } from "../services/instructionsGenerator.js";
 import { StatusBar } from "../ui/statusBar.js";
 
@@ -73,7 +77,29 @@ export async function syncKnowledgeCommand(
         return;
       }
 
-      const allErrors = [...result.errors, ...templateResult.errors];
+      // Sync best practices
+      progress.report({ message: "Syncing best practices..." });
+      const bestPracticesResult = await syncBestPractices(
+        root,
+        config,
+        (msg) => {
+          if (token.isCancellationRequested) {
+            return;
+          }
+          progress.report({ message: msg });
+        },
+      );
+
+      if (token.isCancellationRequested) {
+        statusBar.setSynced();
+        return;
+      }
+
+      const allErrors = [
+        ...result.errors,
+        ...templateResult.errors,
+        ...bestPracticesResult.errors,
+      ];
       if (allErrors.length > 0) {
         vscode.window.showWarningMessage(
           `CPSAgentKit: Sync completed with errors: ${allErrors.join("; ")}`,
@@ -92,9 +118,11 @@ export async function syncKnowledgeCommand(
       statusBar.setSynced();
 
       const totalFiles =
-        result.filesWritten.length + templateResult.filesWritten.length;
+        result.filesWritten.length +
+        templateResult.filesWritten.length +
+        bestPracticesResult.filesWritten.length;
       vscode.window.showInformationMessage(
-        `CPSAgentKit: ${result.filesWritten.length} knowledge files, ${templateResult.filesWritten.length} template files synced.`,
+        `CPSAgentKit: ${result.filesWritten.length} knowledge files, ${templateResult.filesWritten.length} template files, ${bestPracticesResult.filesWritten.length} best practice files synced.`,
       );
     },
   );

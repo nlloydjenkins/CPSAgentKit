@@ -26,7 +26,7 @@
 
 **Negative constraints as primary control.** "Never discuss competitors" WILL be violated. Create a dedicated topic with a manual response instead.
 
-**Long, complex instruction sets.** Beyond ~2000 characters, you get latency, timeouts, and degraded routing. If instructions are getting long, the logic belongs in topics.
+**Long, complex instruction sets.** The 8,000-character hard limit feels generous, but quality and routing may degrade before hitting it with dense or complex instructions. If instructions are getting long, decompose into child agents or prompt tools rather than packing one instruction block.
 
 **Instruction accumulation as the default fix.** When output quality drops or a section is missing, the instinct is to add more instructions. Production evidence shows this plateaus and can regress previously-working behaviour. If you've added instructions twice and the problem persists, the fix is structural — child agents, prompt tools, knowledge files, or output templates — not more text.
 
@@ -42,7 +42,7 @@
 
 ## Multi-Agent Anti-Patterns
 
-**Missing agent boundary prohibitions.** Positive scope alone ("Handle brand compliance") is insufficient. Specialist agents leak into each other's domains — Brand assesses reading age, CU flags regulatory issues. Add explicit prohibitions: "Do NOT assess reading age, accessibility, or FCA compliance."
+**Missing agent boundary prohibitions.** Positive scope alone is insufficient — specialist agents leak into each other's domains. Add explicit prohibitions stating what each agent must NOT assess. See multi-agent-patterns.md → Agent Boundary Enforcement for the full pattern.
 
 **Letting the orchestrator or reporter rewrite specialist output.** Generative orchestration summarises by default. If specialists produce detailed assessments and the next stage rewrites them into narrative summaries, you lose the detail. Use labeled output blocks and instruct downstream agents to reproduce raw content before adding any summary.
 

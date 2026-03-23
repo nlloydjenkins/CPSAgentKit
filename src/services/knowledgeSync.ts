@@ -5,6 +5,7 @@ import { CpsConfig } from "./config.js";
 
 const KNOWLEDGE_DIR = path.join(".cpsagentkit", "knowledge");
 const TEMPLATES_DIR = path.join(".cpsagentkit", "templates");
+const BEST_PRACTICES_DIR = path.join("docs", "bestpractices");
 
 /** Result of a knowledge sync operation */
 export interface SyncResult {
@@ -275,6 +276,60 @@ export async function syncTemplates(
       await fs.mkdir(path.dirname(destPath), { recursive: true });
       await fs.writeFile(destPath, content, "utf-8");
       result.filesWritten.push(relativePath);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      result.errors.push(`Failed to download ${file.name}: ${message}`);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Sync best practice files from the configured GitHub repo into docs/bestpractices/.
+ * These are user-facing best practice documents used by the Run Agent Assessment feature.
+ */
+export async function syncBestPractices(
+  workspaceRoot: string,
+  config: CpsConfig,
+  onProgress?: (message: string) => void,
+): Promise<SyncResult> {
+  const result: SyncResult = { filesWritten: [], errors: [] };
+  const bestPracticesDir = path.join(workspaceRoot, BEST_PRACTICES_DIR);
+
+  await fs.mkdir(bestPracticesDir, { recursive: true });
+
+  const { owner, repo } = parseGitHubUrl(config.knowledgeRepoUrl);
+  const branch = config.knowledgeRepoBranch || "main";
+  const bestPracticesPath = config.bestPracticesPath || "docs/bestpractices";
+
+  onProgress?.("Fetching best practices file list from GitHub...");
+
+  let files: GitHubContentEntry[];
+  try {
+    files = await listKnowledgeFiles(owner, repo, bestPracticesPath, branch);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    result.errors.push(`Failed to list best practice files: ${message}`);
+    return result;
+  }
+
+  if (files.length === 0) {
+    // Not an error — best practices folder may not exist in the repo yet
+    return result;
+  }
+
+  for (const file of files) {
+    try {
+      onProgress?.(`Downloading ${file.name}...`);
+      if (!file.download_url) {
+        result.errors.push(`No download URL for ${file.name}`);
+        continue;
+      }
+      const content = await downloadFile(file.download_url);
+      const destPath = path.join(bestPracticesDir, file.name);
+      await fs.writeFile(destPath, content, "utf-8");
+      result.filesWritten.push(file.name);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       result.errors.push(`Failed to download ${file.name}: ${message}`);
