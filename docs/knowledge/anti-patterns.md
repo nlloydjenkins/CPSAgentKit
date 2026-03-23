@@ -72,6 +72,16 @@
 
 **Using maker connections in flows called by agents.** Blocked by DLP. Share flows with run-only permissions.
 
+## Dataverse Connector Query Anti-Patterns
+
+**Fetching all rows without `$filter` or `$top`.** Direct `InvokeConnectorAction` calls against Dataverse return up to 5,000 rows per page by default. As tables grow, unfiltered queries degrade performance and may silently miss rows beyond the first page.
+
+**Not checking `@odata.nextLink` in connector results.** If the result set exceeds one page, the topic operates on incomplete data with no error or warning. Either add `$top` to guarantee the full result fits one page, or follow `@odata.nextLink` to fetch remaining pages.
+
+**Loading the same table in multiple topics independently.** If `ConversationStart` and a recommendation topic both fetch all rows from the same table, the agent makes two full-table round trips per conversation. Share data via variables or filter at query time.
+
+**Unfiltered startup queries.** Fetching an entire table on `OnConversationStart` means every new conversation pays the full query cost — even if the user never needs that data. Defer data loading to the topic that actually uses it, or filter to the minimum required (e.g. distinct break names instead of all rows).
+
 ## The "It Worked Yesterday" Pattern
 
 Common causes when a working agent suddenly breaks:

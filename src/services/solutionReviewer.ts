@@ -5,6 +5,8 @@ import * as path from "path";
 export interface AgentSnapshot {
   name: string;
   settings: string;
+  agentConfig: string;
+  connectionReferences: string;
   topics: Array<{ filename: string; content: string }>;
   actions: Array<{ filename: string; content: string }>;
   knowledge: Array<{ filename: string; content: string }>;
@@ -103,6 +105,28 @@ async function readAgentSnapshot(
     }
   }
 
+  // Read agent config (agent.mcs.yml) — separate from settings
+  let agentConfig = "";
+  try {
+    agentConfig = await fs.readFile(
+      path.join(agentDir, "agent.mcs.yml"),
+      "utf-8",
+    );
+  } catch {
+    // No agent config file
+  }
+
+  // Read connection references
+  let connectionReferences = "";
+  try {
+    connectionReferences = await fs.readFile(
+      path.join(agentDir, "connectionreferences.mcs.yml"),
+      "utf-8",
+    );
+  } catch {
+    // No connection references file
+  }
+
   const topics = await readYamlFiles(path.join(agentDir, "topics"));
   const actions = await readYamlFiles(path.join(agentDir, "actions"));
   const knowledge = [
@@ -110,7 +134,15 @@ async function readAgentSnapshot(
     ...(await readMarkdownFiles(path.join(agentDir, "knowledge"))),
   ];
 
-  return { name: agentName, settings, topics, actions, knowledge };
+  return {
+    name: agentName,
+    settings,
+    agentConfig,
+    connectionReferences,
+    topics,
+    actions,
+    knowledge,
+  };
 }
 
 /** Read all knowledge files from .cpsagentkit/knowledge/ */
@@ -147,11 +179,11 @@ async function readRequirementsDocs(workspaceRoot: string): Promise<{
   return { spec, architecture, docs };
 }
 
-/** Read user-provided best practice documents from docs/bestpractices/ */
+/** Read best practice documents from .cpsagentkit/bestpractices/ */
 async function readBestPracticesDocs(
   workspaceRoot: string,
 ): Promise<Array<{ filename: string; content: string }>> {
-  const bpDir = path.join(workspaceRoot, "docs", "bestpractices");
+  const bpDir = path.join(workspaceRoot, ".cpsagentkit", "bestpractices");
   return readMarkdownFiles(bpDir);
 }
 
@@ -226,6 +258,26 @@ export function composeReviewPrompt(
 
     sections.push("#### settings", "```yaml", agent.settings, "```", "");
 
+    if (agent.agentConfig) {
+      sections.push(
+        "#### agent config",
+        "```yaml",
+        agent.agentConfig,
+        "```",
+        "",
+      );
+    }
+
+    if (agent.connectionReferences) {
+      sections.push(
+        "#### connection references",
+        "```yaml",
+        agent.connectionReferences,
+        "```",
+        "",
+      );
+    }
+
     if (agent.topics.length > 0) {
       sections.push("#### topics", "");
       for (const t of agent.topics) {
@@ -265,7 +317,7 @@ export function composeReviewPrompt(
   if (bestPractices.length > 0) {
     sections.push("## Additional Best Practices (User-Provided)", "");
     sections.push(
-      "The following additional best practice documents were provided by the developer in the `docs/bestpractices/` folder. These are domain-specific or organisation-specific rules that supplement the core CPS best practices above. Review the solution against these as well.",
+      "The following additional best practice documents supplement the core CPS best practices above. Review the solution against these as well.",
       "",
     );
     for (const bp of bestPractices) {
@@ -281,12 +333,18 @@ export function composeReviewPrompt(
       "",
       "Perform a comprehensive review of the entire solution. Check every agent, topic, action, and knowledge configuration against the best practice rules above.",
       "",
+      "Also check for configuration coherence across files: verify that settings flags (isSemanticSearchEnabled, useModelKnowledge, webBrowsing, optInUseLatestModels, modelNameHint) are consistent with each other and with the agent's actual knowledge sources, tools, and capabilities. Flag any enabled feature that has no corresponding implementation, and any contradictory flag combinations.",
+      "",
+      "Check Dataverse connector usage: unfiltered full-table loads, missing $top/$filter, unchecked @odata.nextLink pagination, and duplicate queries across topics.",
+      "",
     );
   } else if (reviewScope === "prompts") {
     sections.push(
       "## Review Instructions",
       "",
       "Focus your review on agent instructions and topic-level prompts. Check instruction quality, length, structure, accumulation issues, and prompt engineering patterns.",
+      "",
+      "Also check for configuration coherence: verify that settings flags (isSemanticSearchEnabled, useModelKnowledge, webBrowsing, optInUseLatestModels, modelNameHint) are consistent with each other and with the agent's actual knowledge sources, tools, and capabilities.",
       "",
     );
   } else if (reviewScope === "descriptions") {
@@ -295,12 +353,20 @@ export function composeReviewPrompt(
       "",
       "Focus your review on descriptions: topic trigger descriptions, tool/action descriptions, child agent descriptions, and knowledge source descriptions. Check routing quality and orchestrator guidance.",
       "",
+      "Also check for configuration coherence: verify that settings flags (isSemanticSearchEnabled, useModelKnowledge, webBrowsing, optInUseLatestModels, modelNameHint) are consistent with each other and with the agent's actual knowledge sources, tools, and capabilities.",
+      "",
+      "Check Dataverse connector usage: unfiltered full-table loads, missing $top/$filter, unchecked @odata.nextLink pagination, and duplicate queries across topics.",
+      "",
     );
   } else if (reviewScope === "architecture") {
     sections.push(
       "## Review Instructions",
       "",
       "Focus your review on the multi-agent architecture: agent decomposition, routing patterns, output preservation, specialist design, and whether the agent split is appropriate.",
+      "",
+      "Also check for configuration coherence: verify that settings flags (isSemanticSearchEnabled, useModelKnowledge, webBrowsing, optInUseLatestModels, modelNameHint) are consistent with each other and with the agent's actual knowledge sources, tools, and capabilities.",
+      "",
+      "Check Dataverse connector usage: unfiltered full-table loads, missing $top/$filter, unchecked @odata.nextLink pagination, and duplicate queries across topics.",
       "",
     );
   }

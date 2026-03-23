@@ -15,7 +15,7 @@ export interface CpsConfig {
 
 const CONFIG_DIR = ".cpsagentkit";
 const CONFIG_FILE = "config.json";
-const CURRENT_VERSION = "0.2.0";
+const CURRENT_VERSION = "0.2.4";
 
 /** Default config values for a fresh project */
 function defaults(): CpsConfig {

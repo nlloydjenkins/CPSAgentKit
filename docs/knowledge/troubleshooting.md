@@ -80,6 +80,22 @@
 4. Check conversation context — previous turns influence routing and response.
 5. Check if the agent is near rate limits.
 
+## OnError Topic Best Practices
+
+The `OnError` system topic fires when the agent encounters an unhandled runtime error. A well-built OnError topic should:
+
+1. **Capture a timestamp.** Store `Text(Now(), DateTimeFormat.UTC)` in a variable — critical for correlating with platform logs.
+2. **Differentiate test vs production.** Use `System.Conversation.InTestMode` to show full error details (message + code) only to makers in the test pane. Production users should see a user-friendly message with just the error code and conversation ID (enough for a support ticket, not confusing).
+3. **Log a custom telemetry event.** Use `LogCustomTelemetryEvent` with the error message, error code, timestamp, and conversation ID. Without this, errors in production are invisible — the platform doesn't log OnError details by default.
+4. **End cleanly.** Include `CancelAllDialogs` at the end to reset the conversation state and prevent the agent from getting stuck in a broken dialog stack.
+
+### Anti-Patterns
+
+- **Empty or default OnError topic.** The out-of-box OnError just shows a generic "Something went wrong" message with no logging and no diagnostic info. This makes production debugging impossible.
+- **Showing `System.Error.Message` to production users.** Error messages can contain internal details (connector names, table names, environment IDs) that shouldn't be exposed. Only show in test mode.
+- **Missing telemetry.** Without `LogCustomTelemetryEvent`, errors that happen in production leave no trace. You'll only know something is wrong when users complain.
+- **No CancelAllDialogs.** Without resetting the dialog stack, the agent may continue in a broken state for subsequent turns in the same conversation.
+
 ## Dataverse MCP Server 403 — "Not Authorized to Access MCP"
 
 When adding the Dataverse MCP Server tool to an agent, the connection fails with:

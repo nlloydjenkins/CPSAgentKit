@@ -5,7 +5,7 @@ import { CpsConfig } from "./config.js";
 
 const KNOWLEDGE_DIR = path.join(".cpsagentkit", "knowledge");
 const TEMPLATES_DIR = path.join(".cpsagentkit", "templates");
-const BEST_PRACTICES_DIR = path.join("docs", "bestpractices");
+const BEST_PRACTICES_DIR = path.join(".cpsagentkit", "bestpractices");
 
 /** Result of a knowledge sync operation */
 export interface SyncResult {

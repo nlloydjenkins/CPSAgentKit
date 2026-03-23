@@ -7,6 +7,8 @@
 - Tool limit: 128 hard max, 25-30 recommended. Beyond 30, routing quality degrades — agent ignores instructions, misroutes, makes unnecessary calls.
 - When switching from classic to generative: Conversational Boosting system topic is bypassed. Custom data sources, Bing Custom Search in that topic — all ignored.
 - Multiple Topics Matched system topic does not fire in generative mode.
+- Fallback (`OnUnknownIntent`) system topic is also bypassed in generative mode — the planner handles unknown intents directly. Any escalation logic in the Fallback topic will never trigger.
+- Start Over, Goodbye, Thank You retain classic `OnRecognizedIntent` triggers but these only fire if the recognizer happens to match on them. Under generative orchestration, routing is description-driven — topics with only `triggerQueries` and no useful `description` may route unreliably or not at all.
 - Auto-generated topic descriptions (from trigger phrases) are adequate but should always be reviewed.
 
 ## Knowledge Sources
@@ -113,3 +115,13 @@
 - **Deep reasoning:** Optional capability for complex reasoning at higher credit cost. Evaluate before enabling.
 - **Channel description:** Separate from the main instructions field — governs how the agent behaves in Teams/M365 Copilot. Important for multi-domain agents (HR + IT) to ensure accurate intent routing.
 - **Multi-language:** Generative orchestration is English-only for the orchestration layer — planning happens in English even if the agent responds in another language.
+
+## Settings Coherence
+
+Settings flags in `settings.mcs.yml` and capabilities in `agent.mcs.yml` must be consistent with each other and with what the agent actually has configured:
+
+- `isSemanticSearchEnabled: true` without any knowledge sources configured is a misconfiguration — either add knowledge sources or disable it. Semantic search with nothing to search wastes compute and can cause unexpected behaviour if knowledge is added accidentally later.
+- `useModelKnowledge: false` combined with `gptCapabilities.webBrowsing: true` is contradictory — web browsing IS model knowledge from the web. If the agent should only use its own tools and data, disable both.
+- `useModelKnowledge: false` also suppresses the agent's follow-up clarifying questions. If the agent should ask clarifying questions before acting, `useModelKnowledge` must be `true` — or the agent must implement clarifying logic explicitly in topic prompts.
+- `optInUseLatestModels` and `aISettings.model.modelNameHint` can conflict — `modelNameHint` requests a specific model while `optInUseLatestModels` tells the platform to override with whatever is newest. Clarify which should take priority and document the intended model strategy.
+- When reviewing an agent, check that every enabled capability (`webBrowsing`, `codeInterpreter`, `isFileAnalysisEnabled`, `isSemanticSearchEnabled`) has a corresponding implementation. An enabled feature with no backing configuration is dead config at best, a grounding leak at worst.

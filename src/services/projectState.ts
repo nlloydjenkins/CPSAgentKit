@@ -60,7 +60,11 @@ export async function detectProjectState(
   const knowledgeDir = path.join(architectDir, KNOWLEDGE_DIR);
   const requirementsDir = path.join(workspaceRoot, REQUIREMENTS_DIR);
   const requirementsDocsDir = path.join(requirementsDir, "docs");
-  const bestPracticesDir = path.join(workspaceRoot, "docs", "bestpractices");
+  const bestPracticesDir = path.join(
+    workspaceRoot,
+    ".cpsagentkit",
+    "bestpractices",
+  );
 
   const [
     isInitialised,
