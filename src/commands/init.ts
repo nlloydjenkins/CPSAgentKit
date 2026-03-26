@@ -103,13 +103,13 @@ export async function initCommand(extensionPath: string): Promise<void> {
       progress.report({ message: "Syncing knowledge..." });
       const syncResult = await syncKnowledge(root, config, (msg) => {
         progress.report({ message: msg });
-      });
+      }, extensionPath);
 
       // Sync templates from GitHub
       progress.report({ message: "Syncing templates..." });
       const templateResult = await syncTemplates(root, config, (msg) => {
         progress.report({ message: msg });
-      });
+      }, extensionPath);
 
       // Sync best practices from GitHub
       progress.report({ message: "Syncing best practices..." });
@@ -119,6 +119,7 @@ export async function initCommand(extensionPath: string): Promise<void> {
         (msg) => {
           progress.report({ message: msg });
         },
+        extensionPath,
       );
 
       const allErrors = [

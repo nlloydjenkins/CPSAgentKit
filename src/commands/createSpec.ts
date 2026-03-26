@@ -5,7 +5,7 @@ import { readMarkdownFiles, findImageFiles } from "../services/fileUtils.js";
 import {
   requireWorkspaceRoot,
   collectList,
-  copyPromptAndNotify,
+  writePromptAndOpenChat,
 } from "../ui/uiUtils.js";
 
 /** Build spec.md content from collected answers */
@@ -297,9 +297,12 @@ async function createSpecFromDocs(root: string): Promise<void> {
     "- Write the spec to Requirements/spec.md",
   ].join("\n");
 
-  await copyPromptAndNotify(
+  await writePromptAndOpenChat(
+    root,
+    "spec",
     prompt,
-    "CPSAgentKit: Spec prompt copied to clipboard. Paste into Copilot Chat to generate spec.md from your requirements docs.",
+    "Requirements/spec.md",
+    "Spec generation from requirements docs.",
     imageFiles,
   );
 }

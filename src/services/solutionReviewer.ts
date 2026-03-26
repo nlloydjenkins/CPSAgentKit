@@ -215,8 +215,18 @@ export function composeReviewPrompt(
     "",
     `**CPSAgentKit version**: ${CURRENT_VERSION}`,
     `**Generated**: ${timestamp}`,
+    `**Review scope**: ${reviewScope}`,
     "",
     "You are an expert Copilot Studio solution reviewer. Your task is to review the CPS agent solution below against the best practice rules provided, then produce a structured review report.",
+    "",
+    "The report you generate MUST begin with this **Assessment Metadata** block as the very first thing in the output, before any other content:",
+    "",
+    "```",
+    `CPSAgentKit version: ${CURRENT_VERSION}`,
+    `Generated: ${timestamp}`,
+    `Review scope: ${reviewScope}`,
+    "Model: [replace with your actual model name and version, e.g. GPT-4o 2025-03-26 or Claude Sonnet 4]",
+    "```",
     "",
   );
 
@@ -417,8 +427,19 @@ export function composeReviewPrompt(
     "",
     "Write the review as a structured markdown report with these sections:",
     "",
+    "### Inference Discipline",
+    "",
+    "When describing what the solution does, use language that matches your actual confidence level:",
+    "",
+    "- **Confirmed**: You can point to a specific YAML file, XML element, environment variable, or topic configuration that directly shows this. Use definitive language: 'The solution uses...', 'Topic X implements...', 'The environment variable is set to...'",
+    "- **Inferred from structure**: The artifact structure suggests this but you cannot point to a single definitive element. Use qualified language: 'The topic structure suggests...', 'Based on the flow pattern, this likely...', 'The presence of X indicates that Y is probably...'",
+    "- **Expected from context**: Customer documents or architecture diagrams describe this but the solution artifacts do not confirm it. Use attribution language: 'The architecture document states...', 'According to the customer's diagram...', 'The escalation notice references...'",
+    "- **Not verifiable**: You cannot confirm this from any available source. Do not state it as fact. Either omit it or explicitly flag it: 'This could not be verified in the available artifacts.'",
+    "",
+    "Do NOT describe controls, integrations, or patterns as implemented unless you can cite the specific artifact. When a customer-supplied diagram shows a component (e.g., APIM, WAF, managed identity) but the solution YAML does not reference it, say 'shown in the architecture diagram' not 'the solution uses'.",
+    "",
     "### Evidence Note",
-    "> This assessment combines three kinds of evidence: published Copilot Studio platform guidance, repeated real-world platform behaviour observed in practice, and direct observations from this solution's YAML. Not every finding is equally documented by Microsoft, but each is included because it is relevant to production behaviour or maintainability. The **Evidence** field on each finding indicates which type applies.",
+    "> This assessment combines four kinds of evidence: published Copilot Studio platform guidance, repeated real-world platform behaviour observed in practice, direct observations from this solution's YAML, and context stated in the customer's own documents. Not every finding is equally documented by Microsoft, but each is included because it is relevant to production behaviour or maintainability. The **Evidence** field on each finding indicates which type applies.",
     "",
     "### 1. Executive Summary",
     "If the pre-analysis identified an active platform constraint, deadline, or escalation, the Executive Summary must open with that context: state the constraint, the deadline, and the business impact before anything else. Include a direct pointer to the Remediation Plan (Section 2). Then give a 2-3 sentence overview of overall solution quality and the most important finding.",
@@ -432,16 +453,18 @@ export function composeReviewPrompt(
     "When included:",
     "- State the constraint clearly at the top",
     "- Map critical and high-priority findings to concrete remediation actions",
-    "- Organise actions into numbered phases in priority order (highest-impact actions first)",
+    "- Sequence actions by real-world dependency, not just priority. If Action B depends on Action A being in place, Action A must come first regardless of its individual priority ranking.",
     "- Do NOT include timeframes, durations, week numbers, day ranges, or time estimates in phase titles or descriptions. The phases represent priority order only, not a schedule.",
     "- For each phase include:",
     "  - Phase number",
     "  - Action: specific change to make",
     "  - Addresses: which finding(s) this resolves (reference by finding ID)",
-    "  - Impact: estimated reduction or improvement",
-    "  - Effort: Low / Medium / High",
+    "  - Impact: estimated improvement to the constraint being addressed",
+    "  - Effort: Low (configuration change) / Medium (flow or code rework) / High (architectural redesign)",
+    "  - Effort type: Configuration change / Flow rework / Architectural redesign",
     "  - Risk: Low / Medium / High",
-    "  - Dependencies: what must be in place first",
+    "  - Dependencies: what must be completed first (reference prior phase numbers)",
+    "- After listing all phases, include a brief dependency narrative explaining the sequencing rationale in 2-3 sentences",
     "- End with a summary table of all phases",
     "",
     "### 3. What the Solution Does Well",
@@ -454,7 +477,9 @@ export function composeReviewPrompt(
     "",
     "For each finding use this structure:",
     "- **Priority**: Critical / High / Medium / Low",
-    "- **Evidence**: Documented platform behaviour / Observed platform behaviour / Solution-specific observation",
+    "- **Evidence**: Documented platform behaviour / Observed platform behaviour / Solution-specific observation / Customer-stated context",
+    "- **Source**: Platform limitation / Solution implementation / Integration pattern",
+    "- **Impact Horizon**: Immediate operational / Near-term stabilisation / Medium-term improvement / Strategic redesign",
     "- **Category**: (e.g., Prompt Engineering, Descriptions, Architecture, Constraints, Tool Safety)",
     "- **Finding**: What the issue is",
     "- **Rule**: Which specific best practice rule it violates (quote or cite from the rules above)",
@@ -466,6 +491,22 @@ export function composeReviewPrompt(
     "- **Documented platform behaviour**: Maps to published Microsoft Learn documentation or explicit platform limitations",
     "- **Observed platform behaviour**: Field-tested behaviour from real CPS deployments — edge cases, planner quirks, silent failures that official docs understate or omit. These are not less important than documented findings; they are often the most production-relevant",
     "- **Solution-specific observation**: Observation about this specific solution's YAML configuration — not a general platform claim",
+    "- **Customer-stated context**: Information provided in the customer's own documents — escalation notices, exemption letters, issue descriptions, meeting notes, or architecture explanations. Not independently verified in the solution artifacts",
+    "",
+    "Source definitions:",
+    "- **Platform limitation**: A constraint or behaviour inherent to Copilot Studio that the customer cannot change — only work around or design for",
+    "- **Solution implementation**: A decision made in this solution's CPS configuration (topics, prompts, knowledge, actions) that could be changed by the customer",
+    "- **Integration pattern**: An issue in the surrounding Azure, Power Automate, Dataverse, identity, or connector layer — outside CPS itself but affecting the solution",
+    "",
+    "When a finding's root cause spans multiple sources (e.g., a CPS topic triggers excessive Power Automate calls), tag the primary source and note the secondary in the finding description.",
+    "",
+    "Impact Horizon definitions:",
+    "- **Immediate operational**: Actively causing or contributing to a production issue now. Must be addressed within the current escalation or exemption window",
+    "- **Near-term stabilisation**: Not breaking production today but creates significant risk of recurrence or degradation. Address within weeks",
+    "- **Medium-term improvement**: Reduces technical debt, improves maintainability, or prevents future issues. Address within a normal development cycle",
+    "- **Strategic redesign**: Requires architectural rethinking. Important for long-term health but should not block immediate stabilisation work",
+    "",
+    "Impact Horizon is independent of Priority. A Critical finding is usually Immediate operational, but a High finding could be Near-term stabilisation or Medium-term improvement depending on whether it is actively affecting production.",
     "",
     "Priority definitions:",
     "- **Critical**: Deterministic failure or near-certain broken behaviour — wrong routing, tool failures, or blocked functionality",
@@ -482,6 +523,8 @@ export function composeReviewPrompt(
     "- Is output preservation handled correctly between agents?",
     "- Are there missing patterns (evaluator, reporter, versioning)?",
     "",
+    "When referencing architecture components that appear in customer-supplied diagrams or documents but are not visible in the CPS solution artifacts (e.g., API Management, identity providers, network topology, external services), clearly attribute the source: 'Per the customer's architecture diagram, the solution sits behind APIM' rather than 'The solution uses APIM for routing.'",
+    "",
     "### 6. Quick Wins",
     "Top 3-5 changes that would have the highest impact for the least effort.",
     "",
@@ -491,7 +534,7 @@ export function composeReviewPrompt(
     "",
     "---",
     "",
-    "**Save this report to `Reports/assessment.md` (create the `Reports` folder if it does not exist).**",
+    "**Save this report to `Reports/assessment.md` (create the `Reports` folder if it does not exist). Any previous assessment.md has already been archived automatically.**",
     "",
     "### 7. Generate Spec and Architecture (if missing)",
     "",
@@ -536,6 +579,32 @@ export function composeReviewPrompt(
       );
     }
   }
+
+  // --- Document manifest ---
+  const docList: string[] = [];
+  if (!specBlank) {
+    docList.push("- Requirements/spec.md");
+  }
+  if (!archBlank) {
+    docList.push("- Requirements/architecture.md");
+  }
+  for (const doc of requirements.docs) {
+    docList.push(`- Requirements/docs/${doc.filename}`);
+  }
+  for (const bp of bestPractices) {
+    docList.push(`- ${bp.filename}`);
+  }
+
+  sections.push(
+    "",
+    "---",
+    "",
+    "### Appendix: Documents Used in This Assessment",
+    "",
+    "The report you generate MUST end with this appendix. Copy the list below verbatim into the final section of your output:",
+    "",
+    ...docList,
+  );
 
   return sections.join("\n");
 }

@@ -5,7 +5,7 @@ import { readMarkdownFiles, findImageFiles } from "../services/fileUtils.js";
 import {
   requireWorkspaceRoot,
   collectList,
-  copyPromptAndNotify,
+  writePromptAndOpenChat,
 } from "../ui/uiUtils.js";
 
 /** Describes a single agent in the architecture */
@@ -488,9 +488,12 @@ async function createArchitectureFromDocs(root: string): Promise<void> {
     "- Write the architecture to Requirements/architecture.md",
   );
 
-  await copyPromptAndNotify(
+  await writePromptAndOpenChat(
+    root,
+    "architecture",
     sections.join("\n"),
-    "CPSAgentKit: Architecture prompt copied to clipboard. Paste into Copilot Chat to generate architecture.md from your requirements docs.",
+    "Requirements/architecture.md",
+    "Architecture generation from requirements docs.",
     imageFiles,
   );
 }

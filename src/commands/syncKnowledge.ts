@@ -53,7 +53,7 @@ export async function syncKnowledgeCommand(
           return;
         }
         progress.report({ message: msg });
-      });
+      }, extensionPath);
 
       if (token.isCancellationRequested) {
         statusBar.setSynced();
@@ -67,7 +67,7 @@ export async function syncKnowledgeCommand(
           return;
         }
         progress.report({ message: msg });
-      });
+      }, extensionPath);
 
       if (token.isCancellationRequested) {
         statusBar.setSynced();
@@ -85,6 +85,7 @@ export async function syncKnowledgeCommand(
           }
           progress.report({ message: msg });
         },
+        extensionPath,
       );
 
       if (token.isCancellationRequested) {

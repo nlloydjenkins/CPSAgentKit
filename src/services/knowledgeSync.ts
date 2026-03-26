@@ -182,6 +182,40 @@ async function downloadFile(downloadUrl: string): Promise<string> {
 }
 
 /**
+ * Recursively copy all .md files from a bundled source directory to a destination.
+ * Used as a fallback when GitHub sync is unavailable.
+ */
+async function copyBundledFiles(
+  srcDir: string,
+  destDir: string,
+  baseSrcDir?: string,
+): Promise<string[]> {
+  const base = baseSrcDir ?? srcDir;
+  let entries: import("fs").Dirent[];
+  try {
+    entries = await fs.readdir(srcDir, { withFileTypes: true });
+  } catch {
+    return []; // Source dir doesn't exist in the bundle
+  }
+
+  const copied: string[] = [];
+  for (const entry of entries) {
+    const srcPath = path.join(srcDir, entry.name);
+    if (entry.isDirectory()) {
+      const children = await copyBundledFiles(srcPath, destDir, base);
+      copied.push(...children);
+    } else if (entry.isFile() && entry.name.endsWith(".md")) {
+      const relativePath = path.relative(base, srcPath);
+      const destPath = safePath(destDir, relativePath);
+      await fs.mkdir(path.dirname(destPath), { recursive: true });
+      await fs.copyFile(srcPath, destPath);
+      copied.push(relativePath);
+    }
+  }
+  return copied;
+}
+
+/**
  * Sync knowledge files from the configured GitHub repo into the local workspace.
  * Overwrites existing knowledge files. Reports progress via callback.
  */
@@ -189,6 +223,7 @@ export async function syncKnowledge(
   workspaceRoot: string,
   config: CpsConfig,
   onProgress?: (message: string) => void,
+  extensionPath?: string,
 ): Promise<SyncResult> {
   const result: SyncResult = { filesWritten: [], errors: [] };
   const knowledgeDir = path.join(workspaceRoot, KNOWLEDGE_DIR);
@@ -209,6 +244,16 @@ export async function syncKnowledge(
     files = await listKnowledgeFiles(owner, repo, knowledgePath, branch);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    // Fall back to bundled files
+    if (extensionPath) {
+      onProgress?.("GitHub unavailable — copying bundled knowledge files...");
+      const bundledDir = path.join(extensionPath, "docs", "knowledge");
+      const copied = await copyBundledFiles(bundledDir, knowledgeDir);
+      result.filesWritten.push(...copied);
+      if (copied.length > 0) {
+        return result;
+      }
+    }
     result.errors.push(`Failed to list knowledge files: ${message}`);
     return result;
   }
@@ -247,6 +292,7 @@ export async function syncTemplates(
   workspaceRoot: string,
   config: CpsConfig,
   onProgress?: (message: string) => void,
+  extensionPath?: string,
 ): Promise<SyncResult> {
   const result: SyncResult = { filesWritten: [], errors: [] };
   const templatesDir = path.join(workspaceRoot, TEMPLATES_DIR);
@@ -264,6 +310,16 @@ export async function syncTemplates(
     files = await listFilesRecursive(owner, repo, templatesPath, branch);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    // Fall back to bundled files
+    if (extensionPath) {
+      onProgress?.("GitHub unavailable — copying bundled template files...");
+      const bundledDir = path.join(extensionPath, "docs", "templates");
+      const copied = await copyBundledFiles(bundledDir, templatesDir);
+      result.filesWritten.push(...copied);
+      if (copied.length > 0) {
+        return result;
+      }
+    }
     result.errors.push(`Failed to list template files: ${message}`);
     return result;
   }
@@ -306,6 +362,7 @@ export async function syncBestPractices(
   workspaceRoot: string,
   config: CpsConfig,
   onProgress?: (message: string) => void,
+  extensionPath?: string,
 ): Promise<SyncResult> {
   const result: SyncResult = { filesWritten: [], errors: [] };
   const bestPracticesDir = path.join(workspaceRoot, BEST_PRACTICES_DIR);
@@ -323,6 +380,16 @@ export async function syncBestPractices(
     files = await listKnowledgeFiles(owner, repo, bestPracticesPath, branch);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    // Fall back to bundled files
+    if (extensionPath) {
+      onProgress?.("GitHub unavailable — copying bundled best practice files...");
+      const bundledDir = path.join(extensionPath, "docs", "bestpractices");
+      const copied = await copyBundledFiles(bundledDir, bestPracticesDir);
+      result.filesWritten.push(...copied);
+      if (copied.length > 0) {
+        return result;
+      }
+    }
     result.errors.push(`Failed to list best practice files: ${message}`);
     return result;
   }
