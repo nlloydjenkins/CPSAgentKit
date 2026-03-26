@@ -8,35 +8,35 @@ Follow these phases in order. Do not skip phases.
 
 ### Phase 1: Define
 
-If `requirements/spec.md` does not exist in the workspace:
+If `Requirements/spec.md` does not exist in the workspace:
 
 - Ask the developer what they need in plain language
 - Ask clarifying questions: who uses it, what systems does it touch, what does success look like
-- **Read ALL files in `requirements/docs/`** — these contain domain context, reference material, and business requirements provided by the developer. Incorporate this information into the spec rather than asking the developer to repeat it
-- Create `requirements/spec.md` using the template in `/templates/spec-template.md`
-- In the Reference Documents section of the spec, list every document from `requirements/docs/` and note what it contributed
+- **Read ALL files in `Requirements/docs/`** — these contain domain context, reference material, and business requirements provided by the developer. Incorporate this information into the spec rather than asking the developer to repeat it
+- Create `Requirements/spec.md` using the template in `/templates/spec-template.md`
+- In the Reference Documents section of the spec, list every document from `Requirements/docs/` and note what it contributed
 - Keep it lightweight — 30-50 lines, not a PRD
 
 ### Phase 2: Architect
 
-If `requirements/spec.md` exists but `requirements/architecture.md` does not:
+If `Requirements/spec.md` exists but `Requirements/architecture.md` does not:
 
 - Read the spec and the knowledge files in `.cpsagentkit/knowledge/`
-- **Read ALL files in `requirements/docs/`** — these contain domain context, scoring frameworks, regulatory references, brand guidelines, or other material that directly shapes the architecture. Every document in this folder must be considered
+- **Read ALL files in `Requirements/docs/`** — these contain domain context, scoring frameworks, regulatory references, brand guidelines, or other material that directly shapes the architecture. Every document in this folder must be considered
 - Propose an architecture: how many agents, what each does, tools/connectors needed, how they relate
 - Be opinionated — if one agent is sufficient, say so. If it needs three, explain why
-- Create `requirements/architecture.md` using the template in `/templates/architecture-template.md`
-- In the Reference Documents section of the architecture, list every document from `requirements/docs/` and note how it influenced the design
+- Create `Requirements/architecture.md` using the template in `/templates/architecture-template.md`
+- In the Reference Documents section of the architecture, list every document from `Requirements/docs/` and note how it influenced the design
 - List what must be created manually in the CPS portal
 
 ### Phase 3: Build
 
-If both `requirements/spec.md` and `requirements/architecture.md` exist:
+If both `Requirements/spec.md` and `Requirements/architecture.md` exist:
 
-- Read all files from `requirements/docs/` as additional context for the build
+- Read all files from `Requirements/docs/` as additional context for the build
 - Generate agent instructions, topic descriptions, tool descriptions, knowledge source layouts
 - When something needs creating in the portal, say so explicitly with the exact settings to use
-- Track progress in the Build State section of `requirements/architecture.md`
+- Track progress in the Build State section of `Requirements/architecture.md`
 - Maintain cross-agent consistency: when one agent's scope changes, flag what else needs updating
 
 #### Tool/Action Connection Integrity (CRITICAL)
@@ -85,7 +85,7 @@ MCP tools have specific constraints:
 
 When the developer pastes test output from the CPS portal test pane:
 
-- Evaluate the output against `requirements/spec.md`
+- Evaluate the output against `Requirements/spec.md`
 - Check: did the agent route correctly? Use the right tool? Stay in scope? Match success criteria?
 - Diagnose specific issues — not "the prompt needs work" but "the billing agent description should exclude returns queries"
 - Suggest exact changes to instructions, descriptions, or architecture
@@ -99,7 +99,7 @@ When the developer pastes test output from the CPS portal test pane:
 - Design knowledge sources following `.cpsagentkit/knowledge/knowledge-sources.md`
 - Avoid anti-patterns documented in `.cpsagentkit/knowledge/anti-patterns.md`
 - When troubleshooting, reference `.cpsagentkit/knowledge/troubleshooting.md`
-- Read all documents in `requirements/docs/` as additional domain context — these contain agent-specific requirements, reference material, and documentation provided by the developer. **Always read these before creating or updating the spec or architecture.** They may contain scoring frameworks, regulatory rules, brand guidelines, sample outputs, or other material that directly shapes agent design. Do not ask the developer to repeat information that is already in these documents.
+- Read all documents in `Requirements/docs/` as additional domain context — these contain agent-specific requirements, reference material, and documentation provided by the developer. **Always read these before creating or updating the spec or architecture.** They may contain scoring frameworks, regulatory rules, brand guidelines, sample outputs, or other material that directly shapes agent design. Do not ask the developer to repeat information that is already in these documents.
 - If the developer's approach will hit a platform constraint, say so immediately and suggest the workaround
 - If a single agent is sufficient, do not over-engineer a multi-agent solution
 - Be direct. If something won't work, say so.

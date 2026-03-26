@@ -28,10 +28,10 @@ function buildProjectStateSection(state: ProjectState): string {
     "## Current Project State",
     "",
     `- **Current phase:** ${phase}`,
-    `- **spec.md:** ${state.hasSpec ? "exists (requirements/spec.md)" : "not yet created"}`,
-    `- **architecture.md:** ${state.hasArchitecture ? "exists (requirements/architecture.md)" : "not yet created"}`,
+    `- **spec.md:** ${state.hasSpec ? "exists (Requirements/spec.md)" : "not yet created"}`,
+    `- **architecture.md:** ${state.hasArchitecture ? "exists (Requirements/architecture.md)" : "not yet created"}`,
     `- **Knowledge synced:** ${state.hasKnowledge ? "yes" : "no"}`,
-    `- **Requirements docs:** ${state.hasRequirementsDocs ? "requirements/docs/ exists" : "no additional docs"}`,
+    `- **Requirements docs:** ${state.hasRequirementsDocs ? "Requirements/docs/ exists" : "no additional docs"}`,
     `- **Best practices:** ${state.hasBestPractices ? "docs/bestpractices/ exists" : "no custom best practices"}`,
   ];
 

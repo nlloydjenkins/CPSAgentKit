@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
-import { readMarkdownFiles } from "../services/fileUtils.js";
+import { readMarkdownFiles, findImageFiles } from "../services/fileUtils.js";
 import {
   requireWorkspaceRoot,
   collectList,
@@ -217,7 +217,7 @@ export async function createArchitectureCommand(): Promise<void> {
       {
         label: "Generate from requirements docs",
         description:
-          "Read spec.md and documents in requirements/docs/ and generate architecture via Copilot Chat",
+          "Read spec.md and documents in Requirements/docs/ and generate architecture via Copilot Chat",
         detail: "from-docs",
       },
     ],
@@ -236,7 +236,7 @@ export async function createArchitectureCommand(): Promise<void> {
     return;
   }
 
-  const requirementsDir = path.join(root, "requirements");
+  const requirementsDir = path.join(root, "Requirements");
   const archPath = path.join(requirementsDir, "architecture.md");
 
   // Check for spec.md
@@ -393,7 +393,7 @@ export async function createArchitectureCommand(): Promise<void> {
 
 /** Generate architecture from spec + requirements docs via Copilot Chat prompt */
 async function createArchitectureFromDocs(root: string): Promise<void> {
-  const requirementsDir = path.join(root, "requirements");
+  const requirementsDir = path.join(root, "Requirements");
 
   // Read spec.md
   let spec = "";
@@ -418,9 +418,12 @@ async function createArchitectureFromDocs(root: string): Promise<void> {
   const docsDir = path.join(requirementsDir, "docs");
   const docs = await readMarkdownFiles(docsDir);
 
+  // Detect images the user should paste into chat
+  const imageFiles = await findImageFiles(docsDir);
+
   if (!spec && docs.length === 0) {
     vscode.window.showWarningMessage(
-      "CPSAgentKit: No spec.md or documents found in requirements/docs/. Add your requirements documents there first.",
+      "CPSAgentKit: No spec.md or documents found in Requirements/docs/. Add your requirements documents there first.",
     );
     return;
   }
@@ -479,11 +482,15 @@ async function createArchitectureFromDocs(root: string): Promise<void> {
     "- List all tools and connectors with their owner agent and purpose",
     "- Identify any manual portal steps required",
     "- If something is not clear from the documents, note it as TBD with a brief explanation of what is missing",
-    "- Write the architecture to requirements/architecture.md",
+    imageFiles.length > 0
+      ? "- Architecture diagrams or design images may be pasted alongside this prompt. If present, use them to inform the architecture (network topology, integration boundaries, authentication flows, agent routing, etc.)"
+      : "",
+    "- Write the architecture to Requirements/architecture.md",
   );
 
   await copyPromptAndNotify(
     sections.join("\n"),
     "CPSAgentKit: Architecture prompt copied to clipboard. Paste into Copilot Chat to generate architecture.md from your requirements docs.",
+    imageFiles,
   );
 }

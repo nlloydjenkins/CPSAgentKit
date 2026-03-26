@@ -1,8 +1,8 @@
 # Agent Architecture
 
 <!-- GHCP generates this from the spec. Do not edit manually unless refining. -->
-<!-- Spec and architecture live in requirements/. Additional docs go in requirements/docs/. -->
-<!-- GHCP: Always read ALL files in requirements/docs/ before generating or updating this architecture. -->
+<!-- Spec and architecture live in Requirements/. Additional docs go in Requirements/docs/. -->
+<!-- GHCP: Always read ALL files in Requirements/docs/ before generating or updating this architecture. -->
 
 ## Overview
 
@@ -48,7 +48,7 @@
 
 ## Reference Documents
 
-<!-- List documents from requirements/docs/ that informed this architecture -->
+<!-- List documents from Requirements/docs/ that informed this architecture -->
 
 | Document | How It Influenced the Architecture |
 | -------- | ---------------------------------- |

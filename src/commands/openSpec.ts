@@ -9,14 +9,14 @@ export async function openSpecCommand(): Promise<void> {
     return;
   }
 
-  const specUri = vscode.Uri.file(path.join(root, "requirements", "spec.md"));
+  const specUri = vscode.Uri.file(path.join(root, "Requirements", "spec.md"));
 
   try {
     await vscode.workspace.fs.stat(specUri);
     await vscode.window.showTextDocument(specUri);
   } catch {
     const action = await vscode.window.showWarningMessage(
-      "CPSAgentKit: requirements/spec.md does not exist. Initialise the project first?",
+      "CPSAgentKit: Requirements/spec.md does not exist. Initialise the project first?",
       "Initialise",
       "Cancel",
     );

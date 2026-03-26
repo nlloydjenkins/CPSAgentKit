@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
-import { readMarkdownFiles } from "../services/fileUtils.js";
+import { readMarkdownFiles, findImageFiles } from "../services/fileUtils.js";
 import {
   requireWorkspaceRoot,
   collectList,
@@ -68,7 +68,7 @@ export async function createSpecCommand(): Promise<void> {
       {
         label: "Generate from requirements docs",
         description:
-          "Read documents in requirements/docs/ and generate spec via Copilot Chat",
+          "Read documents in Requirements/docs/ and generate spec via Copilot Chat",
         detail: "from-docs",
       },
     ],
@@ -87,14 +87,14 @@ export async function createSpecCommand(): Promise<void> {
     return;
   }
 
-  const requirementsDir = path.join(root, "requirements");
+  const requirementsDir = path.join(root, "Requirements");
   const specPath = path.join(requirementsDir, "spec.md");
 
   // Warn if spec already exists
   try {
     await fs.access(specPath);
     const overwrite = await vscode.window.showWarningMessage(
-      "requirements/spec.md already exists. Overwrite it?",
+      "Requirements/spec.md already exists. Overwrite it?",
       "Overwrite",
       "Cancel",
     );
@@ -241,15 +241,18 @@ export async function createSpecCommand(): Promise<void> {
 
 /** Generate spec from requirements docs via Copilot Chat prompt */
 async function createSpecFromDocs(root: string): Promise<void> {
-  const docsDir = path.join(root, "requirements", "docs");
+  const docsDir = path.join(root, "Requirements", "docs");
   const docs = await readMarkdownFiles(docsDir);
 
   if (docs.length === 0) {
     vscode.window.showWarningMessage(
-      "CPSAgentKit: No documents found in requirements/docs/. Add your requirements documents there first.",
+      "CPSAgentKit: No documents found in Requirements/docs/. Add your requirements documents there first.",
     );
     return;
   }
+
+  // Detect images the user should paste into chat
+  const imageFiles = await findImageFiles(docsDir);
 
   // Read the spec template
   const templatePath = path.join(
@@ -288,11 +291,15 @@ async function createSpecFromDocs(root: string): Promise<void> {
     "",
     "- Fill in every section of the spec based on what you can infer from the requirements documents",
     "- If something is not clear from the documents, note it as TBD with a brief explanation of what is missing",
-    "- Write the spec to requirements/spec.md",
+    imageFiles.length > 0
+      ? "- Architecture diagrams or design images may be pasted alongside this prompt. If present, use them to inform the spec (network topology, integration points, user flows, etc.)"
+      : "",
+    "- Write the spec to Requirements/spec.md",
   ].join("\n");
 
   await copyPromptAndNotify(
     prompt,
     "CPSAgentKit: Spec prompt copied to clipboard. Paste into Copilot Chat to generate spec.md from your requirements docs.",
+    imageFiles,
   );
 }

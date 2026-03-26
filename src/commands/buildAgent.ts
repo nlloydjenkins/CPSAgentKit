@@ -20,13 +20,13 @@ export async function buildAgentCommand(): Promise<void> {
   }
 
   // Require spec.md
-  const specPath = path.join(root, "requirements", "spec.md");
+  const specPath = path.join(root, "Requirements", "spec.md");
   let spec: string;
   try {
     spec = await fs.readFile(specPath, "utf-8");
   } catch {
     const action = await vscode.window.showWarningMessage(
-      "CPSAgentKit: requirements/spec.md not found. Create a spec first?",
+      "CPSAgentKit: Requirements/spec.md not found. Create a spec first?",
       "Create Spec",
       "Cancel",
     );
@@ -37,13 +37,13 @@ export async function buildAgentCommand(): Promise<void> {
   }
 
   // Require architecture.md
-  const archPath = path.join(root, "requirements", "architecture.md");
+  const archPath = path.join(root, "Requirements", "architecture.md");
   let architecture: string;
   try {
     architecture = await fs.readFile(archPath, "utf-8");
   } catch {
     const action = await vscode.window.showWarningMessage(
-      "CPSAgentKit: requirements/architecture.md not found. Create architecture first?",
+      "CPSAgentKit: Requirements/architecture.md not found. Create architecture first?",
       "Create Architecture",
       "Cancel",
     );
@@ -54,7 +54,7 @@ export async function buildAgentCommand(): Promise<void> {
   }
 
   // Read additional requirements docs
-  const docsDir = path.join(root, "requirements", "docs");
+  const docsDir = path.join(root, "Requirements", "docs");
   const requirementsDocs = await readMarkdownFiles(docsDir);
 
   // Read synced knowledge and best practices from .cpsagentkit/
@@ -163,7 +163,7 @@ function composeBuildPrompt(
           "",
           "## Requirements Docs",
           "",
-          "The following additional requirement documents are in `requirements/docs/`. Use them as context for building the agent:",
+          "The following additional requirement documents are in `Requirements/docs/`. Use them as context for building the agent:",
           "",
           ...requirementsDocs.map(
             (d) =>

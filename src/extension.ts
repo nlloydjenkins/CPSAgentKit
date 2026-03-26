@@ -6,6 +6,7 @@ import { createArchitectureCommand } from "./commands/createArchitecture.js";
 import { buildCommand } from "./commands/build.js";
 import { buildAgentCommand } from "./commands/buildAgent.js";
 import { reviewSolutionCommand } from "./commands/reviewSolution.js";
+import { reviewSolutionFileCommand } from "./commands/reviewSolutionFile.js";
 import { detectProjectState } from "./services/projectState.js";
 import { readConfig } from "./services/config.js";
 import { syncKnowledge, syncBestPractices } from "./services/knowledgeSync.js";
@@ -38,6 +39,9 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand("cpsAgentKit.reviewSolution", () =>
       reviewSolutionCommand(extensionPath),
+    ),
+    vscode.commands.registerCommand("cpsAgentKit.reviewSolutionFile", () =>
+      reviewSolutionFileCommand(extensionPath),
     ),
     statusBar,
   );

@@ -1,9 +1,11 @@
 import * as vscode from "vscode";
+import * as path from "path";
 import {
   gatherSolutionSnapshot,
   composeReviewPrompt,
 } from "../services/solutionReviewer.js";
-import { requireWorkspaceRoot, copyPromptAndNotify } from "../ui/uiUtils.js";
+import { findImageFiles } from "../services/fileUtils.js";
+import { requireWorkspaceRoot, writeAssessmentPrompt } from "../ui/uiUtils.js";
 
 /**
  * Run Agent Assessment command — reads all CPS agent YAML in the workspace,
@@ -18,18 +20,7 @@ export async function reviewSolutionCommand(
     return;
   }
 
-  // Gather solution data
-  const snapshot = await gatherSolutionSnapshot(root, extensionPath);
-
-  if (snapshot.agents.length === 0) {
-    vscode.window.showWarningMessage(
-      "CPSAgentKit: No CPS agent folders found in the workspace. " +
-        "Agent folders must contain settings.yaml and a topics/ directory.",
-    );
-    return;
-  }
-
-  // Ask review scope
+  // Ask review scope BEFORE doing heavy parsing
   const scope = await vscode.window.showQuickPick(
     [
       {
@@ -67,6 +58,33 @@ export async function reviewSolutionCommand(
     return;
   }
 
+  // Heavy work under a progress indicator
+  const result = await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: "CPSAgentKit: Gathering agent data...",
+      cancellable: false,
+    },
+    async () => {
+      const [snapshot, reqImages, docsImages] = await Promise.all([
+        gatherSolutionSnapshot(root, extensionPath),
+        findImageFiles(path.join(root, "Requirements", "docs")),
+        findImageFiles(path.join(root, "docs")),
+      ]);
+      return { snapshot, reqImages, docsImages };
+    },
+  );
+
+  const { snapshot, reqImages, docsImages } = result;
+
+  if (snapshot.agents.length === 0) {
+    vscode.window.showWarningMessage(
+      "CPSAgentKit: No CPS agent folders found in the workspace. " +
+        "Agent folders must contain settings.yaml and a topics/ directory.",
+    );
+    return;
+  }
+
   // Compose the review prompt
   const prompt = composeReviewPrompt(
     snapshot.agents,
@@ -87,12 +105,15 @@ export async function reviewSolutionCommand(
     0,
   );
 
-  // Copy to clipboard and notify
-  await copyPromptAndNotify(
+  // Deduplicate images from both folders
+  const uniqueImages = [...new Set([...reqImages, ...docsImages])];
+
+  // Write assessment file and copy runner instruction to clipboard
+  await writeAssessmentPrompt(
+    root,
     prompt,
-    `CPSAgentKit: Assessment prompt copied to clipboard. ` +
-      `Found ${snapshot.agents.length} agent(s) (${agentNames}), ` +
-      `${totalTopics} topic(s), ${totalActions} action(s). ` +
-      `Paste into Copilot Chat to generate the review report.`,
+    `${snapshot.agents.length} agent(s) (${agentNames}), ` +
+      `${totalTopics} topic(s), ${totalActions} action(s).`,
+    uniqueImages,
   );
 }

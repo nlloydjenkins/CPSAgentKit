@@ -71,16 +71,14 @@ export async function initCommand(extensionPath: string): Promise<void> {
       progress.report({ message: "Creating folder structure..." });
       const knowledgeDir = path.join(root, ".cpsagentkit", "knowledge");
       const githubDir = path.join(root, ".github");
-      const requirementsDir = path.join(root, "requirements");
-      const requirementsDocsDir = path.join(root, "requirements", "docs");
-      const bestPracticesDir = path.join(root, "docs", "bestpractices");
+      const requirementsDir = path.join(root, "Requirements");
+      const requirementsDocsDir = path.join(root, "Requirements", "docs");
       await fs.mkdir(knowledgeDir, { recursive: true });
       await fs.mkdir(githubDir, { recursive: true });
       await fs.mkdir(requirementsDir, { recursive: true });
       await fs.mkdir(requirementsDocsDir, { recursive: true });
-      await fs.mkdir(bestPracticesDir, { recursive: true });
 
-      // Scaffold templates (non-destructive) into requirements/
+      // Scaffold templates (non-destructive) into Requirements/
       progress.report({ message: "Scaffolding templates..." });
       await scaffoldTemplate(
         templateDir,
@@ -154,6 +152,6 @@ export async function initCommand(extensionPath: string): Promise<void> {
   );
 
   // Open spec.md for the developer
-  const specUri = vscode.Uri.file(path.join(root, "requirements", "spec.md"));
+  const specUri = vscode.Uri.file(path.join(root, "Requirements", "spec.md"));
   await vscode.window.showTextDocument(specUri);
 }

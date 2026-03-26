@@ -2,7 +2,7 @@
 
 <!-- Tell GHCP what you need. It will help you fill this out. -->
 <!-- Start by describing the business problem in plain language. -->
-<!-- GHCP: Always read ALL files in requirements/docs/ before generating or updating this spec. -->
+<!-- GHCP: Always read ALL files in Requirements/docs/ before generating or updating this spec. -->
 
 ## Purpose
 
@@ -36,7 +36,7 @@
 
 ## Reference documents
 
-<!-- List any documents placed in requirements/docs/ and what they contain -->
+<!-- List any documents placed in Requirements/docs/ and what they contain -->
 <!-- e.g., "brand-guidelines.pdf — Tone of voice rules and editorial style guide" -->
 
 | Document | Description |

@@ -15,7 +15,7 @@ export interface ProjectState {
 
 const CPS_ARCHITECT_DIR = ".cpsagentkit";
 const KNOWLEDGE_DIR = "knowledge";
-const REQUIREMENTS_DIR = "requirements";
+const REQUIREMENTS_DIR = "Requirements";
 
 /** Scan the workspace and return the current project state */
 export async function detectProjectState(

@@ -41,18 +41,20 @@ export async function readFilesByExtension(
   dir: string,
   extension: string,
 ): Promise<FileEntry[]> {
-  const files: FileEntry[] = [];
   try {
     const entries = await fs.readdir(dir);
     const filtered = entries.filter((f) => f.endsWith(extension)).sort();
-    for (const filename of filtered) {
-      const content = await fs.readFile(path.join(dir, filename), "utf-8");
-      files.push({ filename, content });
-    }
+    const results = await Promise.all(
+      filtered.map(async (filename) => ({
+        filename,
+        content: await fs.readFile(path.join(dir, filename), "utf-8"),
+      })),
+    );
+    return results;
   } catch {
     // Directory doesn't exist or can't be read
+    return [];
   }
-  return files;
 }
 
 /** Shorthand: read all .md files from a directory */
@@ -62,20 +64,22 @@ export function readMarkdownFiles(dir: string): Promise<FileEntry[]> {
 
 /** Shorthand: read all .yaml / .yml files from a directory */
 export async function readYamlFiles(dir: string): Promise<FileEntry[]> {
-  const files: FileEntry[] = [];
   try {
     const entries = await fs.readdir(dir);
     const yamls = entries
       .filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"))
       .sort();
-    for (const filename of yamls) {
-      const content = await fs.readFile(path.join(dir, filename), "utf-8");
-      files.push({ filename, content });
-    }
+    const results = await Promise.all(
+      yamls.map(async (filename) => ({
+        filename,
+        content: await fs.readFile(path.join(dir, filename), "utf-8"),
+      })),
+    );
+    return results;
   } catch {
     // Directory doesn't exist or can't be read
+    return [];
   }
-  return files;
 }
 
 /**
@@ -105,4 +109,29 @@ export async function findCpsAgentFolders(
     // Workspace listing failed — return empty
   }
   return agents;
+}
+
+const IMAGE_EXTENSIONS = new Set([
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".bmp",
+  ".webp",
+  ".svg",
+]);
+
+/**
+ * Find image files in a directory (non-recursive).
+ * Returns filenames only, sorted alphabetically.
+ */
+export async function findImageFiles(dir: string): Promise<string[]> {
+  try {
+    const entries = await fs.readdir(dir);
+    return entries
+      .filter((f) => IMAGE_EXTENSIONS.has(path.extname(f).toLowerCase()))
+      .sort();
+  } catch {
+    return [];
+  }
 }

@@ -18,5 +18,5 @@
     "curly": "warn",
     "eqeqeq": "warn"
   },
-  "ignorePatterns": ["out", "node_modules"]
+  "ignorePatterns": ["out", "node_modules", "scripts"]
 }

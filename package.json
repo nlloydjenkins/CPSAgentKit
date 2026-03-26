@@ -1,8 +1,8 @@
 {
   "name": "cpsagentkit",
-  "displayName": "CPSAgentKit",
+  "displayName": "Copilot Studio Agent Kit",
   "description": "Turns GitHub Copilot into a Copilot Studio expert — scaffolds CPS agent projects, syncs platform knowledge, and generates copilot-instructions.md for deep CPS awareness.",
-  "version": "0.2.7",
+  "version": "0.4.11",
   "publisher": "nicklj",
   "license": "MIT",
   "engines": {
@@ -62,6 +62,11 @@
         "command": "cpsAgentKit.reviewSolution",
         "title": "Run Agent Assessment",
         "category": "CPSAgentKit"
+      },
+      {
+        "command": "cpsAgentKit.reviewSolutionFile",
+        "title": "Run Solution Assessment",
+        "category": "CPSAgentKit"
       }
     ],
     "configuration": {
@@ -90,9 +95,10 @@
     "watch": "tsc -watch -p ./",
     "lint": "eslint src --ext ts",
     "package": "vsce package",
-    "build:patch": "scripts/build-release.sh patch",
-    "build:minor": "scripts/build-release.sh minor",
-    "build:major": "scripts/build-release.sh major"
+    "build:patch": "node scripts/build-release.js patch",
+    "build:minor": "node scripts/build-release.js minor",
+    "build:major": "node scripts/build-release.js major",
+    "install:vsix": "node scripts/install-vsix.js"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
