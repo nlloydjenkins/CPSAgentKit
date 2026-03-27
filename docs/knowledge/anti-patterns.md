@@ -50,6 +50,12 @@
 
 **No structured test-evaluate-fix cycle.** Building without a scoring rubric and structured review process leads to "it looks OK" testing. Define your rubric before the first live test. After each test, produce a structured review: what adopted, what regressed, what's still missing. Track version history with scores to see trajectory.
 
+## Prompt Tool Anti-Patterns
+
+**Changing a shared prompt tool's required inputs without auditing callers.** When a prompt tool's input schema changes (e.g. adding required parameters), every topic referencing that prompt tool breaks simultaneously with compile errors. Before adding required inputs to a shared prompt tool, audit all calling topics. Wire the new inputs in each topic or remove the action node from topics that cannot supply them.
+
+**Assuming prompt tools can return non-text output.** Prompt tools are text-in, text-out only. They cannot return images, files, or binary content. If the design requires visual output, use an external rendering service or return the content as text (e.g. HTML) for the caller to render.
+
 ## Knowledge Anti-Patterns
 
 **Uploading entire documentation sites as one knowledge source.** The chunker doesn't understand topic boundaries. Split into focused, topic-specific documents.

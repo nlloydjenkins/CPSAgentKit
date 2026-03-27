@@ -75,6 +75,11 @@
 - Include a failure path: if conversion fails, stop and ask the user for a replacement or text-based source document. Do not silently proceed with degraded input.
 - Tell specialist agents that the content "was converted from the uploaded document" so they don't reference the original format or assume they can access the raw file.
 
+## Prompt Tools
+
+- Prompt tools are text-in, text-out only. They cannot return images, files, or binary content. If the architecture assumes visual or file output from a prompt tool, redesign to either use an external rendering service or return the content as text.
+- To return structured data from a prompt tool, have the prompt return JSON as its text response, capture it via `predictionOutput`, and parse it downstream using the `JSON() -> ParseJSON() -> .property -> Text()` chain (see `yaml-syntax.md`).
+
 ## Code Interpreter
 
 - The documented configuration path for code interpreter is through prompts (prompt tools with code interpreter enabled in settings).

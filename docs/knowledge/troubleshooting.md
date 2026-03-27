@@ -72,6 +72,16 @@
 4. If using Dataverse: check valid values for choice columns. Bad values produce HTTP 400 with no useful detail.
 5. Use a test Power Automate flow to replay the exact input data and get the real error message.
 
+## Prompt Tool Output Binding Staleness
+
+When a prompt tool's output schema changes, existing `InvokeAIBuilderModelAction` nodes in topics may not pick up the new output bindings.
+
+1. Try deleting and re-adding the action node in the portal, then sync the YAML locally.
+2. If re-adding still does not resolve the issue, fall back to `predictionOutput` with client-side JSON parsing. Capture the full response via `predictionOutput: Topic.PredictionOutput`, then use `Text(ParseJSON(JSON(Topic.PredictionOutput)).fieldName)` to extract fields.
+3. The `predictionOutput` approach is the most reliable pattern regardless of schema state. Prefer it over named output bindings for any new development.
+
+See `yaml-syntax.md` for the full `InvokeAIBuilderModelAction` YAML structure and Power Fx parsing patterns.
+
 ## Inconsistent Responses to Identical Queries
 
 1. LLM non-determinism is normal — identical queries won't always give identical responses.
