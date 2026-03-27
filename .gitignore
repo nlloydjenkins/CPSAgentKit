@@ -3,6 +3,7 @@ node_modules/
 *.vsix
 releases/
 .vscode-test/
+change-requests/
 
 .DS_Store
 *.vsix
