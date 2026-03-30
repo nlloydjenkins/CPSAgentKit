@@ -65,3 +65,29 @@ When approaching the 25-30 tool limit:
 - Group related capabilities into child agents (each gets own tool limit)
 - Use topics for simple logic that doesn't need a separate tool
 - Disable tools that aren't needed for every conversation
+
+## Architecture → modelDescription Workflow
+
+**This is the single biggest impact area for CPS build quality.** Platform-generated `modelDescription` values in action YAML are always too generic for routing. Every action YAML pulled from the portal will have a useless default like "List rows from a table in a Power Platform environment." — the orchestrator has no basis to select the right table or construct filters from this.
+
+### The Fix
+
+The architecture document should contain a § Tool Descriptions (or § Dataverse Connector Tool Descriptions) section with **exact** descriptions for each tool. During the Build phase, these architecture-defined descriptions must be applied to the `modelDescription` field in each action `.mcs.yml` file.
+
+### Critical Rules
+
+- `modelDescription` in action YAML is the **only safe field to edit** (along with `modelDisplayName`). All other fields are platform-generated.
+- NEVER use `>-` or `|` block scalar syntax for modelDescription — block scalars break tools in CPS. Always use plain inline strings.
+- Child agent tool copies have a ` 1` suffix on `modelDisplayName`. Their `modelDescription` should be scoped to the child agent's operations only (not a copy of the parent's description).
+- For Dataverse connectors shared across multiple tables: include which tables are valid, per-table purpose, key filterable columns with schema names, and OData filter examples.
+- For email connectors: include shared mailbox address, when to call, what to include, logging requirements.
+
+## External Connector Reference Library
+
+The `skills-for-copilot-studio` repo includes connector metadata files under `reference/connectors/`. Use them as a lookup aid when improving tool descriptions:
+
+- inspect operation intent and naming
+- identify likely input/output fields
+- confirm whether a connector is the right capability at all
+
+Do not generate production action YAML directly from those files. Keep using portal-created actions plus local edits to `modelDisplayName` and `modelDescription` only.

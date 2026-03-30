@@ -9,3 +9,5 @@ change-requests/**
 **/*.map
 **/*.ts
 !out/**
+test-*.js
+migration_feature_plan.md

@@ -26,6 +26,14 @@ CPSAgentKit scaffolds CPS agent projects, syncs curated platform knowledge and b
 
 All commands are available from the VS Code command palette under the **CPSAgentKit** category.
 
+### Generate Repo Copilot Instructions
+
+Regenerates the repo-maintenance instruction file at `.github/copilot-instructions.md` from the source material in `templates/copilot-instructions-template.md`, `docs/knowledge/`, and `docs/bestpractices/`.
+
+Use this in the CPSAgentKit repo itself after changing knowledge docs, best-practice docs, or the instructions template.
+
+CLI fallback: `npm run generate:repo-instructions`
+
 ### Initialise CPS Project
 
 Scaffolds the project folder structure, pulls the latest CPS platform knowledge from the central repo, and generates `.github/copilot-instructions.md`. If a CPS agent already exists in the workspace, it initialises around it non-destructively.
@@ -34,13 +42,9 @@ Scaffolds the project folder structure, pulls the latest CPS platform knowledge 
 
 Pulls the latest knowledge, templates, and best practices from the central repo. Overwrites the local knowledge folder and regenerates `copilot-instructions.md`. Runs automatically on workspace open if `cpsAgentKit.syncOnOpen` is enabled.
 
-### Create Spec (Guided)
+### Create Specification
 
-Step-by-step wizard that walks through defining agent purpose, capabilities, boundaries, and success criteria. Writes the result to `requirements/spec.md`.
-
-### Create Architecture (Guided)
-
-Wizard to define agents, tools, routing logic, and manual portal steps. Writes the result to `requirements/architecture.md`.
+Single guided flow that defines agent purpose, capabilities, boundaries, success criteria, agent shape, tools, routing, and manual portal steps. Writes the result to both `requirements/spec.md` and `requirements/architecture.md`.
 
 ### Build Checklist
 
@@ -49,6 +53,18 @@ Interactive checklist driven by the Build State section in `requirements/archite
 ### Build Agent
 
 Composes a build prompt from spec + architecture + knowledge and copies it to the clipboard. Paste into Copilot Chat to generate or update agent configurations.
+
+### Apply Tool Descriptions From Architecture
+
+Reads the `Tool Descriptions` section in `Requirements/architecture.md` and applies the resulting `modelDescription` text to cloned CPS action YAML files. Only safe action fields are updated.
+
+### Scaffold Agent Topics
+
+Generates topic YAML scaffolds from the architecture's topic definitions and writes them into the cloned agent's `topics/` folder. Also applies matching topic and trigger description customisations where possible.
+
+### Run Pre-Build Checklist
+
+Compares the architecture against the currently cloned CPS YAML, highlights missing build prerequisites, and flags manual portal work such as knowledge sources, MCP setup, and portal-only settings.
 
 ### Run Agent Assessment
 

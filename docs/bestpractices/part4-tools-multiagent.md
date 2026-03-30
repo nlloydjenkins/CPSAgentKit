@@ -13,8 +13,48 @@ How to connect agents to external systems and design multi-agent architectures.
 - **Tool names matter more than descriptions.** The planner gives more weight to tool names when deciding what to invoke. Use active, descriptive names: `TranslateText`, `CheckOrderStatus`, `CreateSupportTicket`. Never `Flow1` or `Action_3`.
 - **Curate your toolkit.** Connect all useful actions, but remove or disable tools that are irrelevant or risky. A smaller set of high-quality choices is better than an exhaustive set with overlaps. Overlapping descriptions cause the agent to invoke multiple tools unnecessarily.
 
+### Tool Count Guidance
+
+- **Hard platform limit:** 128 tools per agent
+- **Practical limit:** 25–30 tools. Beyond this, the model's ability to select the correct tool degrades. Response latency increases and the planner may invoke unrelated tools.
+- If an agent needs more than 30 tools, split into connected agents or sub-agents with distinct domains.
+
+### Custom Connector vs MCP Server — Decision Guide
+
+| Decision Factor            | Custom Connector                                                              | MCP Server                                                                  |
+| -------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **Best for**               | Power Platform-native APIs, SharePoint lists, Dataverse, certified connectors | External SaaS APIs, custom microservices, cross-platform tool sharing       |
+| **Auth model**             | Per-connection (OAuth, API key, Windows Auth) — managed by Power Platform     | OAuth 2.0 or API key — configured in mcp.json; server-side token management |
+| **DLP governance**         | Full DLP policy enforcement — classify, block, endpoint filter                | MCP allow/deny tool controls; no DLP connector-level classification yet     |
+| **ALM / solution support** | Included in Power Platform solutions; exports with agent                      | External server — must be deployed and versioned separately                 |
+| **Payload limit**          | 5 MB public / 450 KB GCC                                                      | No platform-imposed limit (server-dependent)                                |
+| **Latency**                | Power Platform connector runtime overhead                                     | Direct HTTP — potentially lower latency for external APIs                   |
+| **Multi-agent sharing**    | Connector shared across agents in same environment                            | MCP server can serve multiple agents, platforms, and non-CPS clients        |
+| **Offline / local**        | Cloud only                                                                    | Can run locally for dev/test (stdio transport)                              |
+| **Maturity**               | GA, well-documented, thousands of certified connectors                        | GA in CPS but evolving rapidly; fewer governance controls                   |
+
+**Decision heuristic:** Use a Custom Connector when the API is already in the Power Platform connector ecosystem or when DLP governance is mandatory. Use an MCP Server when the API is external, needs to be shared across non-Power-Platform clients, or when the connector ecosystem doesn't cover the API.
+
+### Agent 365 Tooling Servers
+
+Agent 365 Tooling Servers (preview) bundle enterprise M365 tool collections into a single MCP-compatible server that can be attached to any Copilot Studio agent.
+
+**Key characteristics:**
+
+- Pre-built bundles for common M365 operations (e.g. SharePoint CRUD, Teams messaging, Outlook calendar)
+- Runs with delegated user identity — actions execute as the signed-in user, not the maker
+- Governed by existing M365 permissions and Conditional Access policies
+- Reduces the need to build individual connectors for common M365 operations
+
+**When to use:** When the agent needs broad M365 integration (read/write SharePoint, send Teams messages, manage calendar) and per-user identity is required. Replaces the pattern of building multiple custom connectors for M365 APIs.
+
+**When NOT to use:** When fine-grained DLP control per operation is needed (Agent 365 is governed at the server level, not per-tool). When the agent only needs one or two M365 operations — a single connector action is simpler.
+
 ### Power Automate Flows as Actions
 
+- **Flows run as the flow author by default, not the end user.** When a Power Automate flow is invoked as an action from an agent, every connection inside that flow uses the credentials of whoever created (or last modified) the flow — the maker. The end user's identity is not passed through. This means the flow accesses data with the maker's permissions, not the user's. This is a major limitation for scenarios that require per-user data access, audit trails, or least-privilege enforcement.
+- **Per-connection identity override:** Individual connections inside a flow can be reconfigured to "Provided by run-only user" (end-user delegated) instead of "Embedded" (maker). However, the agent must be configured for Entra ID authentication, the user must consent to each connection type, and not all connectors support delegated identity. Test each connection type individually.
+- **If the flow must run as the maker:** Apply strict least privilege to the maker account. Use a dedicated service account rather than a personal maker account. Document which flows use maker identity and audit their permissions regularly. Consider this a security-sensitive pattern.
 - Flows used as actions have a **100-second timeout.** If the flow takes longer than 100 seconds to return a response, the agent receives no output. Optimise queries and data returned from backend systems.
 - **Long-running flow logic should be placed after the "Return value(s) to Copilot Studio" step.** If some flow logic can continue running after a result is sent to the agent, move those actions after the return step.
 - **Maker connection blocking:** Administrators can prevent agents from using maker credentials in flow connections. If blocked, you must share the flow with run-only permissions in Power Automate.
@@ -59,6 +99,7 @@ Copilot Studio supports delegating messages from a parent agent to child (connec
 ### Context Passing Between Agents
 
 When the orchestrator delegates to another agent, it passes relevant context. But:
+
 - Test interaction flows thoroughly to ensure context is passed clearly and handoffs behave as expected
 - Receiving agents must be configured correctly to handle the queries or events passed to them
 - If the receiving agent isn't designed to process a particular task, it returns incomplete or irrelevant responses — the parent doesn't validate this
@@ -66,10 +107,12 @@ When the orchestrator delegates to another agent, it passes relevant context. Bu
 ### MCP Server Integration
 
 Microsoft's adoption of Model Context Protocol (MCP) enables centralised tool orchestration with OAuth support for secure API connections. When working:
+
 - Centralised execution simplifies multi-agent workflows compared to older distributed models
 - OAuth support makes it possible to securely connect APIs, internal systems, and external services
 
 When broken:
+
 - MCP support and behaviour are tied to the orchestration runtime version, which you can't easily check or control
 - No structured logs or developer mode showing exact tool invocation flow per agent
 - Silent failures when MCP calls fail — conversation logs are opaque for tool execution
@@ -79,6 +122,7 @@ When broken:
 ## Autonomous Agents and Event Triggers
 
 Agents can be triggered by external events without user interaction:
+
 - Scheduled triggers (time-based)
 - Event-based triggers (e.g. Dataverse record update, email received)
 
@@ -125,6 +169,7 @@ Use the **Microsoft 365 Copilot Developer License** for testing SharePoint groun
 ### Generative AI Settings
 
 Access via Settings > Generative AI:
+
 - **Orchestration mode:** Toggle between generative AI orchestration and classic orchestration. Changing this takes a while to apply — publish the agent after changing to confirm.
 - **Deep reasoning:** Optional capability that enables more complex reasoning at higher credit cost. Evaluate whether your use case benefits before enabling.
 - **Content moderation:** Built-in, cannot be tuned or overridden. Blocking reasons are not exposed.

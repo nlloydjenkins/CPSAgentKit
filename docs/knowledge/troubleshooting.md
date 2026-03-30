@@ -1,5 +1,7 @@
 # CPS Troubleshooting
 
+For curated external YAML examples and schema references, see `reference-library.md` and `reference-patterns.md`. Use them to recognize patterns faster, but validate changes against real exported YAML from your environment.
+
 ## Agent Calls the Wrong Tool/Topic
 
 1. Check the description — is it specific enough? Does it overlap with another tool's description?

@@ -41,9 +41,13 @@
 - Citations/links stripped in parent-child handoffs.
 - MCP tools on child agents are NOT invoked when called via parent orchestration. The child agent fires, but MCP calls don't execute. Workaround: parent owns the MCP tool and passes results to children as context.
 - Child agents have separate tool limits from the parent (benefit of using them).
+- **Autonomous triggers (scheduled)** can only be owned by top-level (parent) agents. Child agents CANNOT own triggers. If the child runs the proactive logic, triggers must be on the parent with delegation to the child.
+- Connected agents require separate publishing, separate lifecycle management, and their responses are always summarised by the parent (citations stripped). For internal single-team solutions, child agents are simpler with less operational overhead.
 
 ## Flows and Connectors
 
+- **Power Automate flows run as the author** (maker identity). This is a critical governance constraint — approvals, user-attributed actions, and audit trails WILL reflect the flow maker, not the end user. Agent Flows have the same maker-only constraint with no workaround. For user-attributed operations (approvals, user-context Dataverse queries), prefer CPS connector tools with invoker auth over PA flows.
+- Per-connection auth override: individual connector connections within a flow can use invoker identity, but only for connections explicitly configured this way. The flow shell itself still runs as the author.
 - Cloud flow timeout: 100 seconds. Place post-response logic after "Return value(s) to Copilot Studio" step.
 - Connector payload limit: 5 MB public cloud, 450 KB GCC.
 - Direct Line message size: 262,144 bytes (includes all context variables).
@@ -87,8 +91,9 @@
 
 ## Content Moderation
 
-- `contentModeration` can be set to `Low`, `Medium`, or `High` in agent settings YAML. This is the **only** available control surface for content filtering — there is no per-topic, per-utterance, or per-tool override.
-- For agents that process financial, medical, legal, or other specialist domain content, `Low` may be necessary to avoid false positive content filtering that blocks legitimate review output.
+- **Portal-only setting** — content moderation must be configured in the CPS portal under Settings → Generative AI. There is **no YAML field** to set this. The `settings.mcs.yml` does not include a content moderation property. The Build phase must flag this as a required manual portal step.
+- Content moderation can be set to `Low`, `Medium`, or `High`. This is the **only** available control surface for content filtering — there is no per-topic, per-utterance, or per-tool override.
+- For agents that process financial, medical, legal, HR, or other specialist domain content, `Low` may be necessary to avoid false positive content filtering that blocks legitimate terms (e.g. employment law terminology, right-to-work language, compliance content).
 - Content filtering remains a black box at every level — no logging, no reason code, no diagnostic info when triggered. Debugging content filter blocks is currently impossible without a support ticket.
 - Setting the level does not provide any additional transparency or diagnostics — it only adjusts the threshold.
 
@@ -130,3 +135,4 @@ Settings flags in `settings.mcs.yml` and capabilities in `agent.mcs.yml` must be
 - `useModelKnowledge: false` also suppresses the agent's follow-up clarifying questions. If the agent should ask clarifying questions before acting, `useModelKnowledge` must be `true` — or the agent must implement clarifying logic explicitly in topic prompts.
 - `optInUseLatestModels` and `aISettings.model.modelNameHint` can conflict — `modelNameHint` requests a specific model while `optInUseLatestModels` tells the platform to override with whatever is newest. Clarify which should take priority and document the intended model strategy.
 - When reviewing an agent, check that every enabled capability (`webBrowsing`, `codeInterpreter`, `isFileAnalysisEnabled`, `isSemanticSearchEnabled`) has a corresponding implementation. An enabled feature with no backing configuration is dead config at best, a grounding leak at worst.
+- **Portal defaults are aggressive:** New agents arrive from the portal with `useModelKnowledge: true`, `webBrowsing: true`, `isSemanticSearchEnabled: true`, `isFileAnalysisEnabled: true`. The Build phase MUST validate these against the architecture specification and fix mismatches. For internal enterprise agents, most of these should typically be `false`.

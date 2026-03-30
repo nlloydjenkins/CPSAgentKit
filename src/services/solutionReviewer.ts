@@ -1,6 +1,10 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import {
+  listCuratedConnectorDisplayNames,
+  resolveCuratedConnectorRequirement,
+} from "./connectorCatalog.js";
+import {
   readYamlFiles,
   readMarkdownFiles,
   findCpsAgentFolders,
@@ -154,20 +158,136 @@ export function isTemplateOnly(md: string): boolean {
   const lines = md.split(/\r?\n/);
   for (const raw of lines) {
     const line = raw.trim();
-    if (line === "") { continue; }              // blank line
-    if (line.startsWith("#")) { continue; }      // heading
-    if (line.startsWith("<!--")) { continue; }   // HTML comment
-    if (/^[\|\-\s:]+$/.test(line)) { continue; } // table separator row
-    if (/^\|(\s*\|)+$/.test(line)) { continue; } // empty table data row (any column count)
-    if (/^\|[\w\s|]+\|$/.test(line)) { continue; } // table header row (words only)
-    if (line === "-") { continue; }              // placeholder list item
-    if (/^-\s+\*\*[^*]+:\*\*/.test(line)) { continue; } // bold-label list item
-    if (/^-\s*\[[ x]\]/.test(line)) { continue; } // checkbox
-    if (/^\d+\.$/.test(line)) { continue; }      // placeholder ordered list item
+    if (line === "") {
+      continue;
+    } // blank line
+    if (line.startsWith("#")) {
+      continue;
+    } // heading
+    if (line.startsWith("<!--")) {
+      continue;
+    } // HTML comment
+    if (/^[\|\-\s:]+$/.test(line)) {
+      continue;
+    } // table separator row
+    if (/^\|(\s*\|)+$/.test(line)) {
+      continue;
+    } // empty table data row (any column count)
+    if (/^\|[\w\s|]+\|$/.test(line)) {
+      continue;
+    } // table header row (words only)
+    if (line === "-") {
+      continue;
+    } // placeholder list item
+    if (/^-\s+\*\*[^*]+:\*\*/.test(line)) {
+      continue;
+    } // bold-label list item
+    if (/^-\s*\[[ x]\]/.test(line)) {
+      continue;
+    } // checkbox
+    if (/^\d+\.$/.test(line)) {
+      continue;
+    } // placeholder ordered list item
     // If we get here, this line has real content
     return false;
   }
   return true;
+}
+
+interface ArchitectureToolRow {
+  tool: string;
+  ownerAgent: string;
+  purpose: string;
+  manualPortalStepRequired: string;
+}
+
+interface ConnectorNamingMismatch {
+  actualTool: string;
+  expectedTool: string;
+  ownerAgent: string;
+  purpose: string;
+}
+
+function extractMarkdownSection(md: string, heading: string): string {
+  const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const sectionRegex = new RegExp(
+    `^##\\s+${escapedHeading}\\s*$([\\s\\S]*?)(?=^##\\s+|$)`,
+    "m",
+  );
+  return md.match(sectionRegex)?.[1]?.trim() ?? "";
+}
+
+function parseArchitectureToolsTable(
+  architecture: string,
+): ArchitectureToolRow[] {
+  const section = extractMarkdownSection(architecture, "Tools & Connectors");
+  if (!section) {
+    return [];
+  }
+
+  const rows: ArchitectureToolRow[] = [];
+  const lines = section.split(/\r?\n/);
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("|")) {
+      continue;
+    }
+
+    if (/^\|\s*-+/.test(trimmed) || /^\|\s*Tool\s*\|/i.test(trimmed)) {
+      continue;
+    }
+
+    const cells = trimmed
+      .split("|")
+      .slice(1, -1)
+      .map((cell) => cell.trim());
+
+    if (cells.length < 4) {
+      continue;
+    }
+
+    if (cells[0] === "(none defined yet)") {
+      continue;
+    }
+
+    rows.push({
+      tool: cells[0],
+      ownerAgent: cells[1],
+      purpose: cells[2],
+      manualPortalStepRequired: cells[3],
+    });
+  }
+
+  return rows;
+}
+
+function findArchitectureConnectorNamingMismatches(
+  architecture: string,
+): ConnectorNamingMismatch[] {
+  const rows = parseArchitectureToolsTable(architecture);
+  const mismatches: ConnectorNamingMismatch[] = [];
+
+  for (const row of rows) {
+    const resolved = resolveCuratedConnectorRequirement(row.tool, row.purpose);
+    if (!resolved) {
+      continue;
+    }
+
+    const expectedTool = `${resolved.connectorName} - ${resolved.actionName}`;
+    if (row.tool === expectedTool) {
+      continue;
+    }
+
+    mismatches.push({
+      actualTool: row.tool,
+      expectedTool,
+      ownerAgent: row.ownerAgent,
+      purpose: row.purpose,
+    });
+  }
+
+  return mismatches;
 }
 
 /** Strip noisy XML elements from settings content (e.g. iconbase64, synchronizationstatus) */
@@ -175,7 +295,10 @@ function stripSettingsNoise(settings: string): string {
   // Remove <iconbase64>...</iconbase64> (can be multiline)
   let result = settings.replace(/<iconbase64>[\s\S]*?<\/iconbase64>/g, "");
   // Remove <synchronizationstatus>...</synchronizationstatus> (can be multiline)
-  result = result.replace(/<synchronizationstatus>[\s\S]*?<\/synchronizationstatus>/g, "");
+  result = result.replace(
+    /<synchronizationstatus>[\s\S]*?<\/synchronizationstatus>/g,
+    "",
+  );
   // Clean up resulting blank lines
   result = result.replace(/\n{3,}/g, "\n\n");
   return result;
@@ -209,7 +332,10 @@ export function composeReviewPrompt(
 
   // --- Role & task ---
   const now = new Date();
-  const timestamp = now.toISOString().replace("T", " ").replace(/\.\d+Z$/, " UTC");
+  const timestamp = now
+    .toISOString()
+    .replace("T", " ")
+    .replace(/\.\d+Z$/, " UTC");
   sections.push(
     "# CPS Solution Review",
     "",
@@ -232,7 +358,12 @@ export function composeReviewPrompt(
 
   // --- Requirements context (skip if just the empty template) ---
   const specBlank = !requirements.spec || isTemplateOnly(requirements.spec);
-  const archBlank = !requirements.architecture || isTemplateOnly(requirements.architecture);
+  const archBlank =
+    !requirements.architecture || isTemplateOnly(requirements.architecture);
+  const connectorNamingMismatches = archBlank
+    ? []
+    : findArchitectureConnectorNamingMismatches(requirements.architecture);
+  const curatedConnectorDisplayNames = listCuratedConnectorDisplayNames();
 
   if (!specBlank) {
     sections.push("## Spec", "", requirements.spec, "");
@@ -240,6 +371,49 @@ export function composeReviewPrompt(
   if (!archBlank) {
     sections.push("## Architecture", "", requirements.architecture, "");
   }
+
+  if (!archBlank) {
+    sections.push("## Deterministic Connector Naming Check", "");
+    sections.push(
+      "Use this section as hard review context for architecture connector naming. The curated standard connector actions below are the preferred naming baseline for architecture.md and pre-build guidance.",
+      "",
+      "### Curated Standard Connector Actions",
+      "",
+    );
+
+    for (const entry of curatedConnectorDisplayNames) {
+      sections.push(`- ${entry.displayName}`);
+    }
+
+    sections.push("");
+
+    if (connectorNamingMismatches.length > 0) {
+      sections.push(
+        "### Detected Non-Standard Connector Names",
+        "",
+        "The architecture contains tool names that resolve to curated standard connector actions but are not written using the standard 'Connector Name - Action Name' format. Treat each mismatch as a review finding unless the architecture provides an explicit justification for keeping the non-standard name.",
+        "",
+      );
+
+      for (const mismatch of connectorNamingMismatches) {
+        sections.push(
+          `- Actual: ${mismatch.actualTool}`,
+          `  - Expected: ${mismatch.expectedTool}`,
+          `  - Owner agent: ${mismatch.ownerAgent}`,
+          `  - Purpose: ${mismatch.purpose}`,
+        );
+      }
+    } else {
+      sections.push(
+        "### Detected Non-Standard Connector Names",
+        "",
+        "No connector naming mismatches were detected in the architecture Tools & Connectors table against the curated catalog.",
+      );
+    }
+
+    sections.push("");
+  }
+
   if (requirements.docs.length > 0) {
     sections.push("## Requirements Docs", "");
     for (const doc of requirements.docs) {
@@ -343,6 +517,12 @@ export function composeReviewPrompt(
     "Review the solution against ALL of the following CPS best practice rules. These are the authoritative reference — cite specific rules when you find issues.",
     "",
   );
+  sections.push(
+    "When the knowledge rules include `reference-library.md` or `reference-patterns.md`, use them to compare the exported CPS YAML against known external patterns from `skills-for-copilot-studio`.",
+    "Treat those reference-library files as a secondary pattern catalog only: they help you recognise likely structures, system-topic patterns, and connector shapes, but they do NOT override the actual exported YAML under review and they do NOT make an unsupported field safe to edit.",
+    "If the exported YAML differs from the external pattern library, prefer the exported YAML as the authoritative implementation and discuss the external pattern only as a comparison point.",
+    "",
+  );
 
   for (const rule of knowledgeRules) {
     const title = rule.filename.replace(/\.md$/, "").replace(/-/g, " ");
@@ -371,6 +551,8 @@ export function composeReviewPrompt(
       "",
       "Also check for configuration coherence across files: verify that settings flags (isSemanticSearchEnabled, useModelKnowledge, webBrowsing, optInUseLatestModels, modelNameHint) are consistent with each other and with the agent's actual knowledge sources, tools, and capabilities. Flag any enabled feature that has no corresponding implementation, and any contradictory flag combinations.",
       "",
+      "Use the external reference-library rules to compare cloned/exported CPS files against known topic, action, child-agent, and connector patterns. Flag meaningful deviations, but do not treat the external patterns as schema authority.",
+      "",
       "Check Dataverse connector usage: unfiltered full-table loads, missing $top/$filter, unchecked @odata.nextLink pagination, and duplicate queries across topics.",
       "",
     );
@@ -391,6 +573,8 @@ export function composeReviewPrompt(
       "",
       "Also check for configuration coherence: verify that settings flags (isSemanticSearchEnabled, useModelKnowledge, webBrowsing, optInUseLatestModels, modelNameHint) are consistent with each other and with the agent's actual knowledge sources, tools, and capabilities.",
       "",
+      "Compare topic/action/agent YAML against the external reference-library patterns where useful, especially for system topics, connector action shape, child-agent description quality, and safe-vs-unsafe action fields.",
+      "",
       "Check Dataverse connector usage: unfiltered full-table loads, missing $top/$filter, unchecked @odata.nextLink pagination, and duplicate queries across topics.",
       "",
     );
@@ -401,6 +585,10 @@ export function composeReviewPrompt(
       "Focus your review on the multi-agent architecture: agent decomposition, routing patterns, output preservation, specialist design, and whether the agent split is appropriate.",
       "",
       "Also check for configuration coherence: verify that settings flags (isSemanticSearchEnabled, useModelKnowledge, webBrowsing, optInUseLatestModels, modelNameHint) are consistent with each other and with the agent's actual knowledge sources, tools, and capabilities.",
+      "",
+      "Use the external reference-library patterns to sanity-check child-agent structure, delegation patterns, and system-topic expectations, while treating the exported solution files as the authoritative implementation.",
+      "",
+      "Use the Deterministic Connector Naming Check section above as authoritative review input for standard connector naming. If architecture.md uses function-specific or non-standard connector action names where the curated catalog identifies a standard action, raise a finding and recommend the exact standard display name.",
       "",
       "Check Dataverse connector usage: unfiltered full-table loads, missing $top/$filter, unchecked @odata.nextLink pagination, and duplicate queries across topics.",
       "",

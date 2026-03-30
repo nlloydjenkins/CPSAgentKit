@@ -1,4 +1,5 @@
 import * as fs from "fs/promises";
+import type { Dirent } from "fs";
 import * as path from "path";
 
 /** Check if a path exists on disk */
@@ -9,6 +10,30 @@ export async function fileExists(p: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+const AGENT_SCAN_SKIP_DIRS = new Set([
+  ".git",
+  ".github",
+  ".vscode",
+  ".claude",
+  "node_modules",
+  "out",
+  "dist",
+  "build",
+  "releases",
+  "Pre-Build",
+  "change-requests",
+  "docs",
+  "templates",
+  "scripts",
+  "src",
+  "test",
+  "tests",
+]);
+
+function shouldSkipAgentScanDir(name: string): boolean {
+  return name.startsWith(".") || AGENT_SCAN_SKIP_DIRS.has(name);
 }
 
 /**
@@ -83,32 +108,50 @@ export async function readYamlFiles(dir: string): Promise<FileEntry[]> {
 }
 
 /**
- * Detect CPS agent folders in the workspace — directories containing
- * a settings file (settings.yaml or settings.mcs.yml) and a topics/ subdirectory.
+ * Detect CPS agent folders anywhere in the workspace.
+ *
+ * A CPS agent root is a directory containing a settings file
+ * (settings.yaml or settings.mcs.yml) and a topics/ subdirectory.
+ *
+ * Returns workspace-relative paths. Once a CPS agent root is found, the scan
+ * stops descending into that subtree so internal CPS folders are not re-scanned.
  */
 export async function findCpsAgentFolders(
   workspaceRoot: string,
 ): Promise<string[]> {
   const agents: string[] = [];
-  try {
-    const entries = await fs.readdir(workspaceRoot, { withFileTypes: true });
+
+  async function walk(dir: string): Promise<void> {
+    let entries: Dirent[];
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    const hasSettings =
+      (await fileExists(path.join(dir, "settings.yaml"))) ||
+      (await fileExists(path.join(dir, "settings.mcs.yml")));
+    const hasTopics = await fileExists(path.join(dir, "topics"));
+    if (hasSettings && hasTopics) {
+      const relative = path.relative(workspaceRoot, dir) || ".";
+      agents.push(relative);
+      return;
+    }
+
     for (const entry of entries) {
-      if (!entry.isDirectory() || entry.name.startsWith(".")) {
+      if (!entry.isDirectory()) {
         continue;
       }
-      const dir = path.join(workspaceRoot, entry.name);
-      const hasSettings =
-        (await fileExists(path.join(dir, "settings.yaml"))) ||
-        (await fileExists(path.join(dir, "settings.mcs.yml")));
-      const hasTopics = await fileExists(path.join(dir, "topics"));
-      if (hasSettings && hasTopics) {
-        agents.push(entry.name);
+      if (shouldSkipAgentScanDir(entry.name)) {
+        continue;
       }
+      await walk(path.join(dir, entry.name));
     }
-  } catch {
-    // Workspace listing failed — return empty
   }
-  return agents;
+
+  await walk(workspaceRoot);
+  return agents.sort((a, b) => a.localeCompare(b));
 }
 
 const IMAGE_EXTENSIONS = new Set([

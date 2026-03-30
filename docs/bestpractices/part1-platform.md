@@ -28,16 +28,36 @@ Once the quota is met, the user sees a failure notice. There's no graceful degra
 
 ## Agent Authoring Limits
 
-| Limit | Value | Notes |
-|-------|-------|-------|
-| Instructions field | 8,000 characters | This is the single most important config for agent behaviour — and you're capped at roughly 1,500 words |
-| Topics per agent | 1,000 (Dataverse environments) | 250 in Dataverse for Teams environments |
-| Trigger phrases per topic | 200 | Relevant for classic orchestration only; generative orchestration uses descriptions instead |
-| Skills per agent | 100 | |
-| Connector payload | 450 KB (GCC) / 5 MB (public cloud) | The GCC limit is dramatically lower — verify which cloud you're on |
-| File upload size | 512 MB | Per individual file |
-| File knowledge sources | 500 files max | Does NOT apply to SharePoint as a knowledge source |
-| Agents per team (Teams app) | 50 | |
+| Limit                        | Value                              | Notes                                                                                                                                                                                                      |
+| ---------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Instructions field           | 8,000 characters                   | This is the single most important config for agent behaviour — and you're capped at roughly 1,500 words                                                                                                    |
+| Topics per agent             | 1,000 (Dataverse environments)     | 250 in Dataverse for Teams environments                                                                                                                                                                    |
+| Tools per agent (hard limit) | 128                                | With generative orchestration enabled. Performance degrades well before this — see below.                                                                                                                  |
+| Tool count (practical limit) | 25–30                              | Orchestration quality degrades beyond ~30 active tools. Over-tooled agents also increase blast radius for prompt injection. Use MCP allow/deny controls and agent decomposition to stay within this range. |
+| Trigger phrases per topic    | 200                                | Relevant for classic orchestration only; generative orchestration uses descriptions instead                                                                                                                |
+| Skills per agent             | 100                                |                                                                                                                                                                                                            |
+| Connector payload            | 450 KB (GCC) / 5 MB (public cloud) | The GCC limit is dramatically lower — verify which cloud you're on                                                                                                                                         |
+| File upload size             | 512 MB                             | Per individual file                                                                                                                                                                                        |
+| File knowledge sources       | 500 files max                      | Does NOT apply to SharePoint as a knowledge source                                                                                                                                                         |
+| Agents per team (Teams app)  | 50                                 |                                                                                                                                                                                                            |
+
+---
+
+## Model Availability
+
+**Default model:** GPT-4.1 mini (GA). Available in all commercial regions.
+
+**GA options:** GPT-5 chat and reasoning models are GA options via Prompt and Model Settings.
+
+**Experimental models:** GPT-5.2 variants are experimental. Do not use experimental models in production without full re-evaluation of agent behaviour.
+
+**Regional and cloud caveats:**
+
+- Model availability varies by region. Not every model option is available in every tenant region.
+- US Government cloud regions (GCC, GCC High, DoD) use a separate model set (currently GPT-4o mini / GPT-4o).
+- Validate model availability for your target tenant region and cloud before finalising architecture.
+
+**Re-evaluate after every model upgrade.** When the default model changes or you switch to a new model option, run your full evaluation pipeline. Agent behaviour, tool selection accuracy, and response quality can all shift with model changes.
 
 ---
 
@@ -48,12 +68,14 @@ SharePoint is the most common knowledge source, and has the most constraints. Kn
 **File type support:** Only DOC/DOCX, PPT/PPTX, and PDF. No Excel for analytical queries (agents can't write and run code). No images, no plain text files, no HTML.
 
 **File size:**
+
 - With M365 Copilot licence + Tenant Graph Grounding enabled: up to 200 MB per file
 - Without M365 Copilot licence: 7 MB max. Files over 7 MB are silently ignored — no error, just no answers. Split large files into smaller ones.
 
 **Page type support:** Only modern SharePoint pages. Classic ASPX pages are silently ignored. Modern pages containing SPFx components are also not supported.
 
 **Things that silently break or don't work:**
+
 - SharePoint sites with accordion navigation menus or custom CSS — content isn't used for answers
 - Queries that reference a specific file name (e.g. "What does document-x.pdf say about...") — cannot be answered
 - The ampersand "&" symbol in document or folder names — not supported
@@ -102,10 +124,10 @@ All unstructured data sources (OneDrive, SharePoint files/folders, Salesforce, C
 
 ## Power Platform Request Limits
 
-| Plan | Limit |
-|------|-------|
-| Standard subscription | 250,000 requests per 24 hours (can be increased via Chat Session add-on) |
-| Teams (M365 subscriptions) | 6,000 requests per 24 hours |
+| Plan                       | Limit                                                                    |
+| -------------------------- | ------------------------------------------------------------------------ |
+| Standard subscription      | 250,000 requests per 24 hours (can be increased via Chat Session add-on) |
+| Teams (M365 subscriptions) | 6,000 requests per 24 hours                                              |
 
 Teams plan also enforces a service limit of 10 sessions per user every 24 hours across all agents in a tenant. These sessions are not pooled.
 

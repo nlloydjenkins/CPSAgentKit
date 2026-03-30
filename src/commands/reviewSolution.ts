@@ -108,7 +108,7 @@ export async function reviewSolutionCommand(
   // Deduplicate images from both folders
   const uniqueImages = [...new Set([...reqImages, ...docsImages])];
 
-  // Write assessment file and copy runner instruction to clipboard
+  // Write assessment file and load the runner instruction into GitHub Copilot Chat
   await writeAssessmentPrompt(
     root,
     prompt,

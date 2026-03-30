@@ -2,6 +2,8 @@
 
 Verified syntax patterns from hands-on editing of exported CPS agent components.
 
+For external pattern examples and schema references, see `reference-library.md` and `reference-patterns.md`. Those files capture what is useful from `microsoft/skills-for-copilot-studio` without treating it as authoritative.
+
 ---
 
 ## Topic File Structure

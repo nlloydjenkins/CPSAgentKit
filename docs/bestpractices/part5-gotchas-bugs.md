@@ -61,6 +61,34 @@ These are the most dangerous issues because you won't know something is wrong un
 
 ---
 
+## Security and Monitoring Gotchas
+
+### External Threat Detection Fail-Open
+
+External security providers (e.g. Noma Security) invoked during generative orchestration must respond within approximately 1 second. If the provider times out or returns no decision, runtime behaviour defaults to **allow** — the tool call proceeds unblocked. In high-security deployments, this fail-open default can silently bypass your guardrail layer. Configure the error behaviour to **block** explicitly if your security posture requires it, and monitor provider p99 latency.
+
+### Transcript Channel Caveat
+
+Dataverse conversation transcripts are **not** written for Microsoft 365 Copilot agents. M365 Copilot uses separate M365 logging paths. If your monitoring, compliance, or analytics strategy relies on Dataverse transcript data, verify per deployment channel. Agents published to Teams (standalone) do write transcripts; agents surfaced through M365 Copilot do not.
+
+### Admin Transcript Disable Lag
+
+Tenant admins can disable transcript saving per environment, but the setting takes approximately 24 hours to take effect. Transcripts may continue being saved during this window. Environment group rules override individual environment settings.
+
+### Power Automate Flows Run As the Author
+
+Power Automate flows invoked as agent actions run with the **flow author's (maker's) credentials by default** — not the end user's. Every connection in the flow uses the maker's identity unless explicitly reconfigured to "Provided by run-only user." This means the agent accesses data with the maker's permissions regardless of who is chatting. Audit trails attribute actions to the maker, not the actual user. If the maker leaves the organisation or their account is disabled, all flows using their embedded credentials break silently. Use a dedicated service account for production flows and configure per-connection delegation where possible.
+
+### Model Availability and Regional Gaps
+
+Not all model tiers are available in all regions. GPT-5.2 (experimental) may not be available in GCC or sovereign cloud environments. Model inference may route to a different region than the Dataverse environment's geo based on capacity. Document the data-flow geography for each model tier during compliance review.
+
+### CMK and Delegated Credentials
+
+Environments with Customer Managed Keys (CMK) enabled may restrict delegated credentials in generative orchestration. Verify per-tenant before deploying agents that require end-user identity delegation in CMK environments.
+
+---
+
 ## Content Filtering Issues
 
 - **Zero transparency on ContentFiltered responses.** When an agent response is blocked by content filtering, Microsoft provides no logging, no reason code, and no detail explaining what triggered the filter. The response simply doesn't appear or shows a generic error.

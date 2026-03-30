@@ -76,6 +76,7 @@ Things that catch people out, behave unexpectedly, or aren't in the docs. For de
 
 ## YAML & Extension
 
+- External CPS reference library: use `reference-library.md` and `reference-patterns.md` for curated patterns from `skills-for-copilot-studio`, but treat them as reference-only.
 - **YAML kind mapping:** Top-level agent definitions use `kind: GptComponentMetadata`. Child agents use `kind: AgentDialog`. Topics use `kind: AdaptiveDialog`. Preserve these when editing — the platform expects them.
 - **Model hints in agent YAML:** Exported agent YAML may contain `aISettings.model.modelNameHint`. Preserve it during edits, but don't invent new values unless the workspace already uses that pattern. The documented model/temperature configuration path is through prompt tools.
 - **Prompt-level model/temperature:** Prompt tools let makers choose the model and temperature in the prompt editor. This is the supported configuration surface — use it for any capability that needs specific model settings.

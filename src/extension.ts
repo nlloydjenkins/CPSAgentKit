@@ -2,12 +2,14 @@ import * as vscode from "vscode";
 import { initCommand } from "./commands/init.js";
 import { syncKnowledgeCommand } from "./commands/syncKnowledge.js";
 import { createSpecCommand } from "./commands/createSpec.js";
-import { createArchitectureCommand } from "./commands/createArchitecture.js";
 import { buildCommand } from "./commands/build.js";
 import { buildAgentCommand } from "./commands/buildAgent.js";
+import { applyToolDescriptionsCommand } from "./commands/applyToolDescriptions.js";
+import { generateRepoInstructionsCommand } from "./commands/generateRepoInstructions.js";
 import { reviewSolutionCommand } from "./commands/reviewSolution.js";
 import { reviewSolutionFileCommand } from "./commands/reviewSolutionFile.js";
 import { preBuildCommand } from "./commands/preBuild.js";
+import { scaffoldTopicsCommand } from "./commands/scaffoldTopics.js";
 import { detectProjectState } from "./services/projectState.js";
 import { readConfig } from "./services/config.js";
 import { syncKnowledge, syncBestPractices } from "./services/knowledgeSync.js";
@@ -31,12 +33,16 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("cpsAgentKit.createSpec", () =>
       createSpecCommand(),
     ),
-    vscode.commands.registerCommand("cpsAgentKit.createArchitecture", () =>
-      createArchitectureCommand(),
-    ),
     vscode.commands.registerCommand("cpsAgentKit.build", () => buildCommand()),
     vscode.commands.registerCommand("cpsAgentKit.buildAgent", () =>
       buildAgentCommand(),
+    ),
+    vscode.commands.registerCommand("cpsAgentKit.applyToolDescriptions", () =>
+      applyToolDescriptionsCommand(),
+    ),
+    vscode.commands.registerCommand(
+      "cpsAgentKit.generateRepoInstructions",
+      () => generateRepoInstructionsCommand(),
     ),
     vscode.commands.registerCommand("cpsAgentKit.reviewSolution", () =>
       reviewSolutionCommand(extensionPath),
@@ -46,6 +52,9 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand("cpsAgentKit.preBuild", () =>
       preBuildCommand(),
+    ),
+    vscode.commands.registerCommand("cpsAgentKit.scaffoldTopics", () =>
+      scaffoldTopicsCommand(),
     ),
     statusBar,
   );

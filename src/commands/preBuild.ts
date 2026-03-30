@@ -3,17 +3,16 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { requireWorkspaceRoot } from "../ui/uiUtils.js";
 import {
-  composePreBuildChecklist,
-  composeDataverseChatPrompt,
+  composePreBuildReport,
   readRequirements,
-  detectDataverseMcp,
+  detectPreBuildState,
 } from "../services/preBuildGenerator.js";
 import { isTemplateOnly } from "../services/solutionReviewer.js";
 
 /**
  * Run Pre-Build command — reads spec.md and architecture.md, generates a
  * checklist of portal actions the user needs to take before the Build phase.
- * Outputs a markdown document with checkboxes + automation prompts.
+ * Outputs a markdown document with repeatable manual setup checks.
  */
 export async function preBuildCommand(): Promise<void> {
   const root = requireWorkspaceRoot();
@@ -27,12 +26,12 @@ export async function preBuildCommand(): Promise<void> {
     await fs.access(archPath);
   } catch {
     const action = await vscode.window.showWarningMessage(
-      "CPSAgentKit: Requirements/architecture.md not found. Create architecture first?",
-      "Create Architecture",
+      "CPSAgentKit: Requirements/architecture.md not found. Create specification first?",
+      "Create Specification",
       "Cancel",
     );
-    if (action === "Create Architecture") {
-      await vscode.commands.executeCommand("cpsAgentKit.createArchitecture");
+    if (action === "Create Specification") {
+      await vscode.commands.executeCommand("cpsAgentKit.createSpec");
     }
     return;
   }
@@ -53,15 +52,15 @@ export async function preBuildCommand(): Promise<void> {
     }
   }
 
-  // Check Dataverse MCP configuration
-  const mcpStatus = await detectDataverseMcp(root);
+  // Detect current state from cloned agent YAML files
+  const preBuildState = await detectPreBuildState(root, architecture);
 
-  // Generate the checklist
-  const checklist = composePreBuildChecklist(
+  // Generate the gap-focused report
+  const checklist = composePreBuildReport(
     spec,
     architecture,
     docs,
-    mcpStatus,
+    preBuildState,
   );
 
   // Write to Pre-Build/ folder
@@ -95,37 +94,8 @@ export async function preBuildCommand(): Promise<void> {
   const doc = await vscode.workspace.openTextDocument(filePath);
   await vscode.window.showTextDocument(doc);
 
-  // If Dataverse tools exist, offer to create tables via GHCP Agent mode
-  const dvPrompt = composeDataverseChatPrompt(spec, architecture);
-  if (dvPrompt && mcpStatus.configured) {
-    const createTables = await vscode.window.showInformationMessage(
-      `CPSAgentKit: Pre-build checklist saved to Pre-Build/${filename}. ` +
-        `Dataverse MCP is configured — create the tables now via Copilot Chat?`,
-      "Create Tables",
-      "Skip",
-    );
-    if (createTables === "Create Tables") {
-      await vscode.commands.executeCommand("workbench.action.chat.open", {
-        query: dvPrompt,
-        isPartialQuery: true,
-      });
-      vscode.window.showInformationMessage(
-        "CPSAgentKit: Dataverse table prompt loaded into Copilot Chat. " +
-          "Ensure you're in Agent mode, then press Enter to create the tables.",
-      );
-      return;
-    }
-  } else if (dvPrompt && !mcpStatus.configured) {
-    vscode.window.showWarningMessage(
-      `CPSAgentKit: Pre-build checklist saved to Pre-Build/${filename}. ` +
-        `Dataverse tools detected but MCP is not configured. ` +
-        `Follow the setup guide in .cpsagentkit/knowledge/dataverse-mcp-setup.md first.`,
-    );
-    return;
-  }
-
   vscode.window.showInformationMessage(
     `CPSAgentKit: Pre-build checklist saved to Pre-Build/${filename}. ` +
-      `Work through the checklist, then run Build Agent.`,
+      `Complete the checklist, run Pre-Build again if needed, then run Build.`,
   );
 }

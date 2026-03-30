@@ -43,32 +43,37 @@ export async function collectList(
 }
 
 /**
- * Copy text to clipboard and offer to open Copilot Chat.
- * If imageFiles are provided, shows a follow-up message prompting the
- * user to paste them into the chat window.
+ * Open GitHub Copilot Chat with a prompt pre-filled in the input box.
  */
-export async function copyPromptAndNotify(
+export async function openPromptInCopilotChat(
   prompt: string,
-  message: string,
   imageFiles?: string[],
 ): Promise<void> {
-  await vscode.env.clipboard.writeText(prompt);
-  const action = await vscode.window.showInformationMessage(
-    message,
-    "Open Copilot Chat",
-  );
-  if (action === "Open Copilot Chat") {
-    await vscode.commands.executeCommand("workbench.action.chat.open");
-  }
+  await vscode.commands.executeCommand("workbench.action.chat.open", {
+    query: prompt,
+    isPartialQuery: true,
+  });
 
   if (imageFiles && imageFiles.length > 0) {
     const fileList = imageFiles.join(", ");
     vscode.window.showInformationMessage(
       `CPSAgentKit: Found ${imageFiles.length} image(s) in your docs folder: ${fileList}. ` +
-        `Paste these into the Copilot Chat window alongside the prompt so they can be analysed ` +
+        `Attach these to GitHub Copilot Chat alongside the loaded prompt so they can be analysed ` +
         `(architecture diagrams, network topology, etc.).`,
     );
   }
+}
+
+/**
+ * Open GitHub Copilot Chat with a prompt pre-filled and show a completion message.
+ */
+export async function openPromptAndNotify(
+  prompt: string,
+  message: string,
+  imageFiles?: string[],
+): Promise<void> {
+  await openPromptInCopilotChat(prompt, imageFiles);
+  vscode.window.showInformationMessage(message);
 }
 
 /**
