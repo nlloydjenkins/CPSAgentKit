@@ -34,6 +34,15 @@
 
 -
 
+## CPS Constraints & Platform Implications
+
+<!-- Record which Copilot Studio platform constraints shape this solution's scope and design -->
+<!-- e.g., "SharePoint knowledge sources limited to 7 MB per file without M365 Copilot license" -->
+<!-- e.g., "Single agent design preferred — tool count is within the 25-30 practical limit" -->
+<!-- If a customer requirement conflicts with a CPS constraint, state the conflict and the chosen resolution -->
+
+-
+
 ## Reference documents
 
 <!-- List any documents placed in Requirements/docs/ and what they contain -->

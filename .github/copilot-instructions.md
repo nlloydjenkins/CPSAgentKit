@@ -252,6 +252,10 @@ The following sections contain the CPS platform knowledge base used to maintain 
 
 ## Dataverse Connector Query Anti-Patterns
 
+**Passing text labels for choice/option-set columns.** The Dataverse MCP Server requires integer values for choice columns. Passing text like "High" or "Open" causes a `FormatException` with no useful error detail. Always include the integer mappings in agent instructions and tool descriptions (e.g. `Priority: Low=100000000, High=100000002`).
+
+**Using "Get user profile (V2)" when you need the current user.** This Office 365 Users action requires a UPN input parameter. Use "Get my profile (V2)" instead — it returns the logged-in user automatically with no input.
+
 **Fetching all rows without `$filter` or `$top`.** Direct `InvokeConnectorAction` calls against Dataverse return up to 5,000 rows per page by default. As tables grow, unfiltered queries degrade performance and may silently miss rows beyond the first page.
 
 **Not checking `@odata.nextLink` in connector results.** If the result set exceeds one page, the topic operates on incomplete data with no error or warning. Either add `$top` to guarantee the full result fits one page, or follow `@odata.nextLink` to fetch remaining pages.
@@ -347,6 +351,9 @@ Things that catch people out, behave unexpectedly, or aren't in the docs. For de
 - Connector payload: 5 MB public cloud, 450 KB GCC.
 - Switching models can change agent behaviour — prompts that worked on one model may not work on another.
 - Suggested prompts cache aggressively — may need cache clearing, new sessions, or channel re-add after publishing.
+- Dataverse MCP Server requires **integer values** for choice columns — text labels cause `FormatException`. _(See constraints.md → Dataverse Choice/Option-Set Columns)_
+- Office 365 Users "Get user profile (V2)" needs a UPN input — use "Get my profile (V2)" for the current user. _(See constraints.md → Connector Action Gotchas)_
+- `conversationStarters` must use `title`/`text` object format — plain strings cause `MissingRequiredProperty` errors. _(See constraints.md → conversationStarters Format)_
 
 ## YAML & Extension
 
@@ -501,6 +508,25 @@ _Last updated: March 2026. The platform changes fast — validate against your e
 - Connector payload limit: 5 MB public cloud, 450 KB GCC.
 - Direct Line message size: 262,144 bytes (includes all context variables).
 - Omnichannel ACS limit: 28 KB. Variables silently dropped if exceeded.
+
+## Dataverse Choice/Option-Set Columns
+
+- The Dataverse MCP Server requires **integer values** for choice (option-set) columns. Passing text labels like "High" or "Open" causes a `FormatException`. Agent instructions and tool descriptions must include the integer mapping for every choice column (e.g. `Priority: Low=100000000, Medium=100000001, High=100000002, Critical=100000003`).
+- Standard Dataverse choice columns use integer values starting at `100000000` by default. Custom choices may differ — always inspect the live schema after table creation.
+- This applies to both creates and updates via MCP. Queries that filter on choice columns also need the integer value in OData filters.
+
+## Connector Action Gotchas
+
+- **Office 365 Users — "Get user profile (V2)"** requires a UPN input parameter, making it unsuitable when you just want the current user's identity. Use **"Get my profile (V2)"** instead — it returns the logged-in user automatically with no input required.
+
+## conversationStarters Format
+
+- CPS requires `conversationStarters` entries to have `title` and `text` properties. Plain strings produce `MissingRequiredProperty` compile errors. Correct format:
+  ```yaml
+  conversationStarters:
+    - title: Short label
+      text: Full suggested prompt text
+  ```
 
 ## Rate Limits
 
@@ -1943,7 +1969,7 @@ For curated external YAML examples and schema references, see `reference-library
 1. Check the flow completed within 100 seconds.
 2. Place post-response logic after "Return value(s) to Copilot Studio" step.
 3. Check connector payload size (<5 MB public cloud, <450 KB GCC).
-4. If using Dataverse: check valid values for choice columns. Bad values produce HTTP 400 with no useful detail.
+4. If using Dataverse: check valid values for choice columns. Bad values produce HTTP 400 with no useful detail. The Dataverse MCP Server specifically throws a `FormatException` if you pass text labels (e.g. "High") instead of the required integer values (e.g. 100000002). Always include the integer mappings for choice/option-set columns in agent instructions.
 5. Use a test Power Automate flow to replay the exact input data and get the real error message.
 
 ## Prompt Tool Output Binding Staleness
@@ -2018,6 +2044,28 @@ The Copilot Studio MCP client record doesn't exist in your environment's allowed
 Verified syntax patterns from hands-on editing of exported CPS agent components.
 
 For external pattern examples and schema references, see `reference-library.md` and `reference-patterns.md`. Those files capture what is useful from `microsoft/skills-for-copilot-studio` without treating it as authoritative.
+
+---
+
+## conversationStarters
+
+CPS requires each entry to have `title` and `text` properties. Plain strings produce `MissingRequiredProperty` compile errors.
+
+```yaml
+# Correct — object with title and text
+conversationStarters:
+  - title: Check ticket status
+    text: What's the status of my ticket?
+  - title: VPN help
+    text: How do I connect to VPN from home?
+```
+
+```yaml
+# WRONG — plain strings cause MissingRequiredProperty errors
+conversationStarters:
+  - "What's the status of my ticket?"
+  - "How do I connect to VPN?"
+```
 
 ---
 

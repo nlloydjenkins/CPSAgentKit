@@ -53,6 +53,25 @@
 - Direct Line message size: 262,144 bytes (includes all context variables).
 - Omnichannel ACS limit: 28 KB. Variables silently dropped if exceeded.
 
+## Dataverse Choice/Option-Set Columns
+
+- The Dataverse MCP Server requires **integer values** for choice (option-set) columns. Passing text labels like "High" or "Open" causes a `FormatException`. Agent instructions and tool descriptions must include the integer mapping for every choice column (e.g. `Priority: Low=100000000, Medium=100000001, High=100000002, Critical=100000003`).
+- Standard Dataverse choice columns use integer values starting at `100000000` by default. Custom choices may differ — always inspect the live schema after table creation.
+- This applies to both creates and updates via MCP. Queries that filter on choice columns also need the integer value in OData filters.
+
+## Connector Action Gotchas
+
+- **Office 365 Users — "Get user profile (V2)"** requires a UPN input parameter, making it unsuitable when you just want the current user's identity. Use **"Get my profile (V2)"** instead — it returns the logged-in user automatically with no input required.
+
+## conversationStarters Format
+
+- CPS requires `conversationStarters` entries to have `title` and `text` properties. Plain strings produce `MissingRequiredProperty` compile errors. Correct format:
+  ```yaml
+  conversationStarters:
+    - title: Short label
+      text: Full suggested prompt text
+  ```
+
 ## Rate Limits
 
 - Generative AI requests throttled per Dataverse environment (RPM and RPH).

@@ -405,10 +405,15 @@ async function createSpecificationFromDocs(
     "- Normalize the customer requirements into a CPS-compliant solution design that follows the bundled repo guidance, not generic defaults",
     "- Fill in every section of both documents based on what you can infer from the requirements documents",
     "- Keep the spec focused on purpose, scope, boundaries, success criteria, and reference documents",
+    "- In the spec, include a 'CPS Constraints & Platform Implications' section that records which platform constraints shape the solution scope and which customer requirements triggered CPS-specific design decisions",
+    "- If a customer requirement implies a platform-risky design (e.g. over-tooled agent, child-agent MCP reliance, SharePoint files over 7 MB, unfiltered Dataverse queries), state the constraint in the spec rather than silently carrying it forward",
+    "- Exclusions in the spec should include both business exclusions and CPS platform exclusions derived from the guidance pack",
     "- Keep the architecture focused on agent shape, routing, tools, knowledge, manual portal steps, applied CPS constraints, best-practice decisions, known risks, and build state",
     "- Make platform and governance implications explicit: tool strategy, general-knowledge stance, knowledge-source limits, parent/child constraints, and portal-only settings must be called out in the output",
+    "- Prefer a shared Dataverse CRUD scaffold (one read, one write, one delete per agent) rather than one connector per business function or table",
     "- If a requirement suggests an anti-pattern or invalid Copilot Studio design, rewrite it into a compliant approach and explain the deviation briefly in the generated document",
-    "- If something is not clear from the documents, note it as TBD with a brief explanation of what is missing",
+    "- If something is not clear from the documents, note it as TBD with a brief explanation of what is missing — do not invent unsupported CPS behavior",
+    "- When the repo documentation does not support a design claim, say so explicitly instead of inventing a best practice",
     imageFiles.length > 0
       ? "- Architecture diagrams or design images may be pasted alongside this prompt. If present, use them to inform both documents (network topology, integration points, user flows, routing, authentication, etc.)"
       : "",

@@ -71,7 +71,7 @@ For curated external YAML examples and schema references, see `reference-library
 1. Check the flow completed within 100 seconds.
 2. Place post-response logic after "Return value(s) to Copilot Studio" step.
 3. Check connector payload size (<5 MB public cloud, <450 KB GCC).
-4. If using Dataverse: check valid values for choice columns. Bad values produce HTTP 400 with no useful detail.
+4. If using Dataverse: check valid values for choice columns. Bad values produce HTTP 400 with no useful detail. The Dataverse MCP Server specifically throws a `FormatException` if you pass text labels (e.g. "High") instead of the required integer values (e.g. 100000002). Always include the integer mappings for choice/option-set columns in agent instructions.
 5. Use a test Power Automate flow to replay the exact input data and get the real error message.
 
 ## Prompt Tool Output Binding Staleness

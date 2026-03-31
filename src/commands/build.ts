@@ -225,6 +225,7 @@ function buildGuidancePrompt(
       "Do not continue to Dataverse connector descriptions or mark the build step complete until the tables have actually been created.",
       "After the tables are created, replace any placeholder Dataverse logical-name guidance with the real schema names and valid OData examples based on the created tables.",
       "After the Dataverse MCP server confirms the live schema, align Dataverse action descriptions, OData examples, and topic logic to the exact live logical field names.",
+      "For choice/option-set columns, the Dataverse MCP Server requires integer values — passing text labels (e.g. 'High') causes a FormatException. After table creation, inspect the choice definitions and include the integer mappings (e.g. High=100000002) in agent instructions and tool descriptions so the agent passes valid values.",
       "Do not leave live field-name alignment as a next step.",
       "Then summarise which tables, key columns, and relationships were added.",
       "Also summarise which sample data was inserted and which live logical names downstream steps must use.",

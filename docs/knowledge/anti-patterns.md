@@ -80,6 +80,10 @@
 
 ## Dataverse Connector Query Anti-Patterns
 
+**Passing text labels for choice/option-set columns.** The Dataverse MCP Server requires integer values for choice columns. Passing text like "High" or "Open" causes a `FormatException` with no useful error detail. Always include the integer mappings in agent instructions and tool descriptions (e.g. `Priority: Low=100000000, High=100000002`).
+
+**Using "Get user profile (V2)" when you need the current user.** This Office 365 Users action requires a UPN input parameter. Use "Get my profile (V2)" instead — it returns the logged-in user automatically with no input.
+
 **Fetching all rows without `$filter` or `$top`.** Direct `InvokeConnectorAction` calls against Dataverse return up to 5,000 rows per page by default. As tables grow, unfiltered queries degrade performance and may silently miss rows beyond the first page.
 
 **Not checking `@odata.nextLink` in connector results.** If the result set exceeds one page, the topic operates on incomplete data with no error or warning. Either add `$top` to guarantee the full result fits one page, or follow `@odata.nextLink` to fetch remaining pages.

@@ -73,6 +73,9 @@ Things that catch people out, behave unexpectedly, or aren't in the docs. For de
 - Connector payload: 5 MB public cloud, 450 KB GCC.
 - Switching models can change agent behaviour — prompts that worked on one model may not work on another.
 - Suggested prompts cache aggressively — may need cache clearing, new sessions, or channel re-add after publishing.
+- Dataverse MCP Server requires **integer values** for choice columns — text labels cause `FormatException`. _(See constraints.md → Dataverse Choice/Option-Set Columns)_
+- Office 365 Users "Get user profile (V2)" needs a UPN input — use "Get my profile (V2)" for the current user. _(See constraints.md → Connector Action Gotchas)_
+- `conversationStarters` must use `title`/`text` object format — plain strings cause `MissingRequiredProperty` errors. _(See constraints.md → conversationStarters Format)_
 
 ## YAML & Extension
 

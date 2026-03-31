@@ -47,24 +47,44 @@
 
 ## Applied CPS Constraints
 
-<!-- Record the specific Copilot Studio platform constraints that shaped this architecture.
-     Do not leave this generic. Examples: child agents cannot own triggers, MCP tools stay on parent,
-     PA flows run as author unless otherwise configured, content moderation is portal-only. -->
+<!-- REQUIRED: Record the specific Copilot Studio platform constraints that materially shaped this architecture.
+     Do not leave this generic or empty. Every architecture decision driven by a CPS constraint must be recorded here.
+     Examples:
+     - Single-agent design chosen because tool count (N) stays within the 25-30 practical limit
+     - Parent agent owns MCP tool because child-agent MCP execution is unreliable through parent orchestration
+     - Shared Dataverse CRUD scaffold used instead of per-table actions to avoid tool proliferation
+     - Content moderation is portal-only and must be set manually (no YAML surface)
+     - Power Automate flows run as author by default — identity risk flagged for approval workflows
+     - Knowledge sources scoped to modern SharePoint pages only; classic ASPX pages silently ignored
+     - Settings coherence: useModelKnowledge and webBrowsing explicitly set to match architecture intent -->
 
 -
 
 ## Best-Practice Decisions
 
-<!-- Record the repo-guided design choices made for this solution.
-     Examples: single-agent vs multi-agent rationale, shared Dataverse CRUD scaffold,
-     tool-first instructions, topic-specific knowledge sources, exact routing boundaries. -->
+<!-- REQUIRED: Record the repo-guided design choices made for this solution.
+     Every significant design choice should trace back to a documented CPS best practice.
+     Examples:
+     - Single-agent vs multi-agent rationale and the specific justification
+     - Shared Dataverse CRUD scaffold preferred over per-function actions (anti-pattern avoidance)
+     - Tool-first instructions: agents must use configured tools before general knowledge
+     - Knowledge sources kept topic-specific with explicit descriptions for routing accuracy
+     - Prompt tool used instead of child agent for [reason: temperature control / format enforcement / code interpreter]
+     - Exact routing boundaries documented to prevent specialist domain leakage -->
 
 -
 
 ## Known Risks / Deferred Exceptions
 
-<!-- Record any remaining CPS risks, tradeoffs, or exceptions that still need review.
-     Use this instead of silently preserving a risky design. -->
+<!-- REQUIRED: Record any remaining CPS risks, tradeoffs, or exceptions that still need review.
+     Use this instead of silently preserving a risky design.
+     Examples:
+     - Child-owned MCP tools need redesign or explicit parent justification
+     - Power Automate approval flow runs as maker — identity governance review needed before build
+     - Content moderation level not yet decided — domain may trigger false positives at default setting
+     - Connected agent responses will be summarised by parent — citations stripped by design
+     - Knowledge source over 7 MB — requires M365 Copilot license or file must be split
+     If no risks are identified, state: "No immediate CPS-specific architecture exceptions identified from the current draft." -->
 
 -
 

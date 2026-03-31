@@ -6,6 +6,28 @@ For external pattern examples and schema references, see `reference-library.md` 
 
 ---
 
+## conversationStarters
+
+CPS requires each entry to have `title` and `text` properties. Plain strings produce `MissingRequiredProperty` compile errors.
+
+```yaml
+# Correct — object with title and text
+conversationStarters:
+  - title: Check ticket status
+    text: What's the status of my ticket?
+  - title: VPN help
+    text: How do I connect to VPN from home?
+```
+
+```yaml
+# WRONG — plain strings cause MissingRequiredProperty errors
+conversationStarters:
+  - "What's the status of my ticket?"
+  - "How do I connect to VPN?"
+```
+
+---
+
 ## Topic File Structure
 
 ```yaml

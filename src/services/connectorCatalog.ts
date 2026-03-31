@@ -137,7 +137,7 @@ export const CURATED_CONNECTOR_CATALOG: CuratedConnectorCatalogEntry[] = [
     ],
     actions: [
       {
-        actionName: "Get user profile (V2)",
+        actionName: "Get my profile (V2)",
         operationKinds: ["profile-read"],
       },
       {

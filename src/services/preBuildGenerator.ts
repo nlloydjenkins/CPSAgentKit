@@ -695,7 +695,7 @@ function inferStandardConnectorRequirement(
   ) {
     return {
       connectorFamily: "Office 365 Users",
-      actionName: "Get user profile (V2)",
+      actionName: "Get my profile (V2)",
     };
   }
 
@@ -1129,6 +1129,15 @@ export function composePreBuildChecklist(
     "Work through each section in order. Tick items off as you go.",
     "",
   );
+
+  // --- Documentation Compliance Summary ---
+  const complianceSummary = buildDocumentationComplianceSummary(
+    agents,
+    tools,
+    knowledgeSources,
+    manualSteps,
+  );
+  sections.push(...complianceSummary);
 
   // --- Prerequisites ---
   const hasDataverseTools = tools.some(isDataverseTool);
@@ -2323,6 +2332,7 @@ function buildDocumentationComplianceSummary(
   const review: string[] = [];
   const manualChecks: string[] = [];
 
+  // --- Agent shape ---
   if (agents.length === 1) {
     aligned.push(
       "Single-agent shape matches the repo preference for the smallest viable architecture unless later requirements force decomposition.",
@@ -2340,6 +2350,7 @@ function buildDocumentationComplianceSummary(
     );
   }
 
+  // --- Dataverse tooling ---
   const dataverseTools = tools.filter(isDataverseTool);
   if (dataverseTools.length > 0 && dataverseTools.length <= agents.length * 3) {
     aligned.push(
@@ -2351,6 +2362,7 @@ function buildDocumentationComplianceSummary(
     );
   }
 
+  // --- MCP on child agents ---
   const childOwnedMcp = tools.filter((tool) => {
     if (!isMcpTool(tool)) {
       return false;
@@ -2360,10 +2372,11 @@ function buildDocumentationComplianceSummary(
   });
   if (childOwnedMcp.length > 0) {
     review.push(
-      `Child-agent MCP ownership needs redesign or explicit parent justification: ${childOwnedMcp.map((tool) => tool.name).join(", ")}.`,
+      `Child-agent MCP ownership needs redesign or explicit parent justification: ${childOwnedMcp.map((tool) => tool.name).join(", ")}. MCP tools on child agents are NOT invoked reliably through parent orchestration.`,
     );
   }
 
+  // --- Tool count per agent ---
   const toolCountByAgent = new Map<string, number>();
   for (const agent of agents) {
     toolCountByAgent.set(agent.name, 0);
@@ -2377,11 +2390,16 @@ function buildDocumentationComplianceSummary(
   for (const [agentName, count] of toolCountByAgent.entries()) {
     if (count > 30) {
       review.push(
-        `${agentName} exceeds the practical 25-30 tool limit. Split or simplify before build to preserve routing quality.`,
+        `${agentName} exceeds the practical 25-30 tool limit (${count} tools). Split or simplify before build to preserve routing quality.`,
+      );
+    } else if (count > 0) {
+      aligned.push(
+        `${agentName} is within the practical per-agent tool budget (${count} tool${count === 1 ? "" : "s"}).`,
       );
     }
   }
 
+  // --- Knowledge sources ---
   if (
     knowledgeSources.length > 0 ||
     agents.some((agent) => agent.knowledgeSources.length > 0)
@@ -2389,21 +2407,47 @@ function buildDocumentationComplianceSummary(
     aligned.push(
       "Knowledge sources are present; keep descriptions specific and validate that content shape and size match CPS retrieval constraints during build.",
     );
+
+    const sharePointSources = knowledgeSources.filter(isSharePointSource);
+    if (sharePointSources.length > 0) {
+      manualChecks.push(
+        "SharePoint knowledge sources detected. Verify: modern pages only (no classic ASPX), files under 7 MB without M365 Copilot license, and 4-6 hour sync delay.",
+      );
+    }
+
+    const totalKs =
+      knowledgeSources.length +
+      agents.reduce((sum, a) => sum + a.knowledgeSources.length, 0);
+    if (totalKs > 25) {
+      review.push(
+        `Total knowledge source count (${totalKs}) exceeds the 25-source threshold where description-driven filtering kicks in. Ensure every source has a specific description.`,
+      );
+    }
   }
 
+  // --- Power Automate flow identity ---
   if (tools.some(isFlowTool)) {
     manualChecks.push(
-      "Review every Power Automate flow for run-as-author implications, approvals, and least-privilege connection design.",
+      "Review every Power Automate flow for run-as-author implications, approvals, and least-privilege connection design. Flows run as the maker by default.",
     );
   }
 
+  // --- Content moderation ---
   if (
     !manualSteps.some((step) =>
       step.toLowerCase().includes("content moderation"),
     )
   ) {
     manualChecks.push(
-      "Add an explicit portal-only content moderation decision if the domain is likely to need a non-default setting.",
+      "Add an explicit portal-only content moderation decision if the domain is likely to need a non-default setting (portal-only — no YAML surface).",
+    );
+  }
+
+  // --- Settings coherence gaps ---
+  const hasToolFirstAgents = tools.length > 0;
+  if (hasToolFirstAgents) {
+    manualChecks.push(
+      "Validate settings coherence after portal setup: useModelKnowledge, webBrowsing, isSemanticSearchEnabled, and isFileAnalysisEnabled should match the architecture intent. Portal defaults are aggressive.",
     );
   }
 
@@ -2412,7 +2456,7 @@ function buildDocumentationComplianceSummary(
   if (aligned.length > 0) {
     lines.push("**Aligned With Repo Guidance**", "");
     for (const item of aligned) {
-      lines.push(`- ${item}`);
+      lines.push(`- ✅ ${item}`);
     }
     lines.push("");
   }
@@ -2420,7 +2464,7 @@ function buildDocumentationComplianceSummary(
   if (review.length > 0) {
     lines.push("**Needs Review Before Build**", "");
     for (const item of review) {
-      lines.push(`- ${item}`);
+      lines.push(`- ⚠️ ${item}`);
     }
     lines.push("");
   }
@@ -2428,7 +2472,7 @@ function buildDocumentationComplianceSummary(
   if (manualChecks.length > 0) {
     lines.push("**Manual CPS Checks Still Required**", "");
     for (const item of manualChecks) {
-      lines.push(`- ${item}`);
+      lines.push(`- 🔲 ${item}`);
     }
     lines.push("");
   }
@@ -2578,6 +2622,15 @@ export function composePreBuildReport(
     "> **Before each check**: Run **Copilot Studio → Get Changes** in VS Code to sync the latest portal state to local YAML files. This check compares your architecture against those files.",
     "",
   );
+
+  // ── Documentation Compliance Summary ──
+  const complianceSummary = buildDocumentationComplianceSummary(
+    agents,
+    tools,
+    knowledgeSources,
+    manualSteps,
+  );
+  sections.push(...complianceSummary);
 
   // ── Progress summary ──
   if (totalAuto > 0) {

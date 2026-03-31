@@ -10,6 +10,7 @@ import { reviewSolutionCommand } from "./commands/reviewSolution.js";
 import { reviewSolutionFileCommand } from "./commands/reviewSolutionFile.js";
 import { preBuildCommand } from "./commands/preBuild.js";
 import { scaffoldTopicsCommand } from "./commands/scaffoldTopics.js";
+import { buildDemoCommand } from "./commands/buildDemo.js";
 import { detectProjectState } from "./services/projectState.js";
 import { readConfig } from "./services/config.js";
 import { syncKnowledge, syncBestPractices } from "./services/knowledgeSync.js";
@@ -55,6 +56,9 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand("cpsAgentKit.scaffoldTopics", () =>
       scaffoldTopicsCommand(),
+    ),
+    vscode.commands.registerCommand("cpsAgentKit.buildDemo", () =>
+      buildDemoCommand(extensionPath),
     ),
     statusBar,
   );

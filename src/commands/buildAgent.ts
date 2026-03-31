@@ -251,6 +251,7 @@ function composeBuildPrompt(
           "Do not leave required sample data as a suggested next step.",
           "After the tables exist, update Dataverse action modelDescriptions with the real table names, real logical field names, and one valid OData example per use case.",
           "After the Dataverse MCP server confirms the live schema, align Dataverse action descriptions, OData examples, and topic logic to the exact live logical field names immediately.",
+          "For choice/option-set columns, the Dataverse MCP Server requires integer values — passing text labels (e.g. 'High') causes a FormatException. After table creation, inspect the choice definitions and include the integer mappings (e.g. High=100000002) in agent instructions and tool descriptions so the agent passes valid values.",
           "Do not leave live field-name alignment as a suggested next step.",
           "Do not ask the developer to create Dataverse tables manually when the Dataverse MCP task above is present.",
           "Do not report the build as complete, or move on to Dataverse connector descriptions, until the tables, columns, relationships, required sample data, and live field-name alignment are complete.",
