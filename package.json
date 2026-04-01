@@ -2,7 +2,7 @@
   "name": "cpsagentkit",
   "displayName": "Copilot Studio Agent Kit",
   "description": "Turns GitHub Copilot into a Copilot Studio expert — scaffolds CPS agent projects, syncs platform knowledge, and generates copilot-instructions.md for deep CPS awareness.",
-  "version": "0.7.1",
+  "version": "0.7.4",
   "publisher": "nicklj",
   "license": "MIT",
   "engines": {

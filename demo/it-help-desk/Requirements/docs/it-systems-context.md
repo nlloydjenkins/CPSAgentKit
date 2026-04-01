@@ -66,6 +66,7 @@ The Dataverse MCP Server requires integer values for choice columns — passing 
 - **Team:** IT Department
 - **Channel:** Support Requests
 - High and Critical priority tickets should also post a message to this channel with ticket details so the on-call analyst sees it immediately.
+- **Team creation:** Create the IT Department team and Support Requests channel manually in Microsoft Teams before building the agent. In a production environment these would already exist.
 
 ## Integration Points
 
@@ -90,6 +91,11 @@ The Dataverse MCP Server requires integer values for choice columns — passing 
 - **Agent auth:** Authenticate with Microsoft (Entra ID) — all employees have accounts
 - **Channel:** Microsoft Teams only
 - **Connector auth:** Office 365 Users, Teams, and Outlook connectors use invoker (end-user) authentication. Dataverse MCP uses the authenticated user's identity.
+
+### Teams Channel Setup
+
+- **Purpose:** The IT Department team and Support Requests channel must exist before the Notification Specialist can post to them.
+- **Setup:** Create the team and channel manually in Microsoft Teams. No CLI tooling is required.
 
 ## Constraints Specific to This Deployment
 

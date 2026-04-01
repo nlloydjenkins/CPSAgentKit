@@ -69,14 +69,24 @@ sample-data/
     wifi-setup.md
 ```
 
-### Step 3: Initialise the Project
+### Step 3: Create the IT Department Team
+
+Before building the agent, create a Team and channel in Microsoft Teams for the Notification Specialist to post to:
+
+1. Open **Microsoft Teams**
+2. Create a new team called **IT Department**
+3. Add a channel called **Support Requests**
+
+The Notification Specialist agent will post High/Critical ticket alerts to this channel.
+
+### Step 4: Initialise the Project
 
 1. Open Command Palette → **CPSAgentKit: Initialise CPS Project**
 2. Wait for knowledge sync to complete
 
 This creates `.cpsagentkit/`, `.github/copilot-instructions.md`, and template files.
 
-### Step 4: Generate Spec + Architecture (Autonomous)
+### Step 5: Generate Spec + Architecture (Autonomous)
 
 1. Open Command Palette → **CPSAgentKit: Create Specification**
 2. Select **"Generate from requirements docs"**
@@ -87,7 +97,7 @@ This creates `.cpsagentkit/`, `.github/copilot-instructions.md`, and template fi
 
 **Review (optional):** Open the generated files and check they reflect the multi-agent design with Dataverse MCP on the parent, Knowledge Specialist child, and Notification Specialist child.
 
-### Step 5: Run Pre-Build Validation
+### Step 6: Run Pre-Build Validation
 
 1. Open Command Palette → **CPSAgentKit: Run Pre-Build**
 2. Select the output format (checklist or gap report)
@@ -95,7 +105,7 @@ This creates `.cpsagentkit/`, `.github/copilot-instructions.md`, and template fi
 
 This flags what's ready, what needs portal work, and which CPS constraints apply.
 
-### Step 6: Manual Portal Steps (Required)
+### Step 7: Manual Portal Steps (Required)
 
 These steps cannot be automated — the CPS extension requires agents to be created in the portal first:
 
@@ -116,7 +126,7 @@ These steps cannot be automated — the CPS extension requires agents to be crea
 
 4. **Sync to local** — Use `Copilot Studio: Get Changes` to pull the agent YAML into the workspace
 
-### Step 7: Build Agent (Autonomous)
+### Step 8: Build Agent (Autonomous)
 
 1. Open Command Palette → **CPSAgentKit: Build Agent**
 2. Select **"Full build"**
@@ -125,7 +135,7 @@ These steps cannot be automated — the CPS extension requires agents to be crea
 5. Apply the generated changes to the YAML files
 6. Use `Copilot Studio: Apply Changes` to push to the portal
 
-### Step 8: Test
+### Step 9: Test
 
 1. Open the test pane in Copilot Studio portal
 2. Try the sample interactions from `Requirements/docs/sample-interactions.md`:
@@ -170,6 +180,7 @@ Pre-built ticket records covering all statuses:
 | Step                           | Manual | Autonomous           |
 | ------------------------------ | ------ | -------------------- |
 | Copy docs into workspace       | ✋     |                      |
+| Create Teams team/channel      |        | ✅ (via PnP MCP)     |
 | Initialise project             |        | ✅ (one command)     |
 | Generate spec + architecture   |        | ✅ (one Enter press) |
 | Run pre-build                  |        | ✅ (one command)     |
@@ -180,4 +191,4 @@ Pre-built ticket records covering all statuses:
 | Apply changes to portal        | ✋     |                      |
 | Test and iterate               | ✋     |                      |
 
-**6 autonomous steps, 4 manual portal steps.** The manual steps are CPS platform constraints — agents, tools, and connectors must be created in the portal first. Everything else runs through the extension.
+**7 autonomous steps, 4 manual portal steps.** The manual steps are CPS platform constraints — agents, tools, and connectors must be created in the portal first. Everything else runs through the extension or MCP servers.
