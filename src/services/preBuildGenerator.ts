@@ -1097,456 +1097,6 @@ export function composeDataverseChatPrompt(
   return lines.join("\n");
 }
 
-/** Compose the full pre-build checklist document */
-export function composePreBuildChecklist(
-  spec: string,
-  architecture: string,
-  requirementsDocs: Array<{ filename: string; content: string }>,
-  mcpStatus: DataverseMcpStatus,
-): string {
-  const agents = parseAgents(architecture);
-  const tools = parseTools(architecture);
-  const knowledgeSources = parseKnowledgeSources(architecture);
-  const manualSteps = parseManualSteps(architecture);
-
-  const now = new Date();
-  const timestamp = now
-    .toISOString()
-    .replace("T", " ")
-    .replace(/\.\d+Z$/, " UTC");
-
-  const sections: string[] = [];
-
-  // --- Header ---
-  sections.push(
-    "# Pre-Build Checklist",
-    "",
-    `**Generated**: ${timestamp}`,
-    `**CPSAgentKit version**: ${CURRENT_VERSION}`,
-    "",
-    "This checklist covers everything that needs to be created in the Copilot Studio portal (and related services) **before** building agent logic. Create these as scaffolds — blank agents, tools added but not configured, knowledge sources attached but not populated.",
-    "",
-    "Work through each section in order. Tick items off as you go.",
-    "",
-  );
-
-  // --- Documentation Compliance Summary ---
-  const complianceSummary = buildDocumentationComplianceSummary(
-    agents,
-    tools,
-    knowledgeSources,
-    manualSteps,
-  );
-  sections.push(...complianceSummary);
-
-  // --- Prerequisites ---
-  const hasDataverseTools = tools.some(isDataverseTool);
-  if (hasDataverseTools) {
-    sections.push("## 0. Prerequisites", "");
-    sections.push(
-      "Your architecture includes Dataverse tools. If Build will create tables through GitHub Copilot Agent mode, make sure Dataverse MCP is available before the Build phase.",
-      "",
-    );
-    if (mcpStatus.configured) {
-      sections.push(
-        `- [x] Dataverse MCP configured: **${mcpStatus.serverName}** → \`${mcpStatus.url}\``,
-        "",
-      );
-    } else {
-      sections.push(
-        "- [ ] **Connect Dataverse MCP to GitHub Copilot** — follow the guide in `.cpsagentkit/knowledge/dataverse-mcp-setup.md`",
-        "",
-        "  Quick summary:",
-        "  1. Create a **Managed Environment** with Dataverse at [make.powerapps.com](https://make.powerapps.com)",
-        "  2. Enable **Dataverse Model Context Protocol** in Power Platform admin center → Settings → Product → Features",
-        "  3. Allow the **GitHub Copilot** client in Advanced Settings → Active Allowed MCP Clients",
-        "  4. Get your **Instance URL** from make.powerapps.com → Settings → Session details",
-        "  5. In VS Code: **Cmd+Shift+P** → `MCP: Add Server` → HTTP → paste `https://<your-org>.crm.dynamics.com/api/mcp`",
-        "  6. Click **Start** in `.vscode/mcp.json` and authenticate",
-        "",
-      );
-    }
-  }
-
-  // --- 1. Agents ---
-  sections.push("## 1. Create Agents", "");
-  if (agents.length === 0) {
-    sections.push(
-      "No agents found in architecture.md. Create the architecture first.",
-      "",
-    );
-  } else {
-    sections.push(
-      "Create each agent in the Copilot Studio portal. Leave instructions blank for now — we'll generate those in the Build phase.",
-      "",
-    );
-
-    // Determine creation order: parent/router first, then children, then connected
-    const sorted = [...agents].sort((a, b) => {
-      const order: Record<string, number> = {
-        parent: 0,
-        "parent (router)": 0,
-        standalone: 1,
-        child: 2,
-        "child agent": 2,
-        connected: 3,
-        "connected agent": 3,
-      };
-      return (
-        (order[a.type.toLowerCase()] ?? 1) - (order[b.type.toLowerCase()] ?? 1)
-      );
-    });
-
-    for (const agent of sorted) {
-      const isParent = agent.type.toLowerCase().includes("parent");
-      const isChild = agent.type.toLowerCase().includes("child");
-      const isConnected = agent.type.toLowerCase().includes("connected");
-
-      sections.push(`### ${agent.name}`);
-      sections.push("");
-      sections.push(`- [ ] Create agent in portal`);
-      sections.push(`  - **Name**: ${agent.name}`);
-      sections.push(`  - **Type**: ${agent.type}`);
-      if (agent.role) {
-        sections.push(`  - **Description**: ${agent.role}`);
-      }
-      sections.push(`  - **Orchestration**: Generative`);
-      sections.push(
-        `  - **Instructions**: Leave blank (generated in Build phase)`,
-      );
-
-      if (isParent && agents.length > 1) {
-        const children = agents.filter(
-          (a) =>
-            a.type.toLowerCase().includes("child") ||
-            a.type.toLowerCase().includes("connected"),
-        );
-        if (children.length > 0) {
-          sections.push(
-            `- [ ] Add child/connected agents after they are created:`,
-          );
-          for (const child of children) {
-            sections.push(`  - ${child.name} (${child.type})`);
-          }
-        }
-      }
-
-      if (isChild) {
-        sections.push(
-          `- [ ] Attach as child to parent agent once parent exists`,
-        );
-      }
-      if (isConnected) {
-        sections.push(
-          `- [ ] Publish agent, then add as connected agent to parent`,
-        );
-      }
-
-      sections.push("");
-    }
-  }
-
-  // --- 2. Tools & Connectors ---
-  sections.push("## 2. Add Tools & Connectors", "");
-  if (tools.length === 0) {
-    sections.push("No tools found in architecture.md.", "");
-  } else {
-    sections.push(
-      "Add each tool to its owner agent. Configure connection references but leave descriptions for the Build phase.",
-      "",
-    );
-
-    const mcpTools = tools.filter(isMcpTool);
-    const flowTools = tools.filter(isFlowTool);
-    const dvTools = tools.filter(isDataverseTool);
-    const otherTools = tools.filter(
-      (t) => !isMcpTool(t) && !isFlowTool(t) && !isDataverseTool(t),
-    );
-
-    if (mcpTools.length > 0) {
-      sections.push("### MCP Tools", "");
-      for (const tool of mcpTools) {
-        sections.push(`- [ ] **${tool.name}** → ${tool.ownerAgent}`);
-        sections.push(`  - Purpose: ${tool.purpose}`);
-        sections.push(`  - Add MCP server connection in agent's Tools page`);
-        sections.push(`  - Set transport: Streamable HTTP`);
-        sections.push(
-          `  - Enter server URL (leave placeholder if not yet deployed)`,
-        );
-        sections.push("");
-      }
-      sections.push(
-        "> **Note**: MCP tools on child agents are NOT invoked via parent orchestration. If the parent needs MCP results, the parent should own the MCP tool.",
-        "",
-      );
-    }
-
-    if (flowTools.length > 0) {
-      sections.push("### Power Automate Flows", "");
-      for (const tool of flowTools) {
-        sections.push(`- [ ] **${tool.name}** → ${tool.ownerAgent}`);
-        sections.push(`  - Purpose: ${tool.purpose}`);
-        sections.push(`  - Create cloud flow in Power Automate`);
-        sections.push(`  - Add trigger: "Run a flow from Copilot"`);
-        sections.push(`  - Add "Return value(s) to Copilot Studio" step`);
-        sections.push(`  - Connect to agent via Tools page`);
-        sections.push("");
-      }
-    }
-
-    if (dvTools.length > 0) {
-      sections.push("### Dataverse Connectors", "");
-      sections.push(
-        "Use a minimal shared Dataverse CRUD scaffold instead of one connector per table or function:",
-      );
-      sections.push(
-        "- [ ] Add one generic **Read/List rows** action per agent that needs Dataverse",
-      );
-      sections.push(
-        "- [ ] Add one generic **Write** action per agent that needs Dataverse (create/update as appropriate)",
-      );
-      sections.push(
-        "- [ ] Add one generic **Delete** action only if the architecture genuinely needs destructive operations",
-      );
-      sections.push(
-        "- [ ] Reuse these shared actions across tables; do not create separate CRUD connectors for every table during pre-build",
-      );
-      sections.push(
-        "",
-        "Dataverse-backed capabilities called out in the architecture:",
-      );
-      for (const tool of dvTools) {
-        sections.push(`- ${tool.name} → ${tool.ownerAgent}: ${tool.purpose}`);
-      }
-      sections.push("");
-    }
-
-    if (otherTools.length > 0) {
-      sections.push("### Other Tools", "");
-      for (const tool of otherTools) {
-        sections.push(`- [ ] **${tool.name}** → ${tool.ownerAgent}`);
-        sections.push(`  - Purpose: ${tool.purpose}`);
-        if (tool.manualStep) {
-          sections.push(`  - ⚠️ Requires manual portal setup`);
-        }
-        sections.push("");
-      }
-    }
-  }
-
-  // --- 3. Knowledge Sources ---
-  sections.push("## 3. Attach Knowledge Sources", "");
-  if (knowledgeSources.length === 0) {
-    // Check agents for knowledge too
-    const agentKs = agents.flatMap((a) =>
-      a.knowledgeSources.map((ks) => ({ source: ks, agent: a.name })),
-    );
-    if (agentKs.length === 0) {
-      sections.push("No knowledge sources found in architecture.md.", "");
-    } else {
-      sections.push(
-        "Add each knowledge source to its agent. Content can be populated later.",
-        "",
-      );
-      for (const ks of agentKs) {
-        sections.push(`- [ ] **${ks.source}** → ${ks.agent}`);
-        sections.push("");
-      }
-    }
-  } else {
-    sections.push(
-      "Add each knowledge source to its agent. Content can be populated later.",
-      "",
-    );
-    for (const ks of knowledgeSources) {
-      sections.push(`- [ ] **${ks.source}** → ${ks.agent}`);
-      sections.push(`  - Type: ${ks.type}`);
-      sections.push(`  - ${ks.description}`);
-      if (isSharePointSource(ks)) {
-        sections.push(
-          `  - ⚠️ Ensure modern pages only, no classic ASPX. Check 7 MB limit without M365 Copilot license.`,
-        );
-      }
-      sections.push("");
-    }
-  }
-
-  // --- 4. Manual Portal Steps ---
-  sections.push("## 4. Manual Portal Steps", "");
-  if (manualSteps.length === 0) {
-    sections.push("No additional manual steps listed in architecture.md.", "");
-  } else {
-    sections.push(
-      "These steps were identified in the architecture as requiring manual portal work.",
-      "",
-    );
-    for (const step of manualSteps) {
-      sections.push(`- [ ] ${step}`);
-    }
-    sections.push("");
-  }
-
-  // --- 5. Automation Prompts ---
-  sections.push(
-    "---",
-    "",
-    "# Automation Prompts",
-    "",
-    "Use these prompts to automate parts of the scaffold. Each prompt targets the right tool for the job.",
-    "",
-  );
-
-  // 5a. GHCP prompts for things Copilot can help with
-  sections.push("### GitHub Copilot Chat Prompts", "");
-  sections.push(
-    "Paste these into GitHub Copilot Chat to generate configuration you can apply to your agents.",
-    "",
-  );
-
-  // Agent descriptions prompt
-  if (agents.length > 0) {
-    sections.push("#### Generate Agent Descriptions", "");
-    sections.push("```");
-    sections.push(
-      "Read Requirements/spec.md and Requirements/architecture.md.",
-    );
-    sections.push(
-      "For each agent listed in the architecture, write a one-paragraph agent description",
-    );
-    sections.push(
-      "suitable for pasting into the Copilot Studio portal Overview page.",
-    );
-    sections.push(
-      "The description should tell the orchestrator exactly when to route to this agent.",
-    );
-    sections.push(
-      "Follow the patterns in .cpsagentkit/knowledge/tool-descriptions.md.",
-    );
-    sections.push("```");
-    sections.push("");
-  }
-
-  // Topic scaffolding prompt
-  if (agents.length > 0) {
-    sections.push("#### Scaffold Topics", "");
-    sections.push("```");
-    sections.push(
-      "Read Requirements/spec.md and Requirements/architecture.md.",
-    );
-    sections.push(
-      "For each agent, list the topics that should be created and write a",
-    );
-    sections.push("trigger description for each topic. Topics should cover:");
-    sections.push("- The core capabilities listed in the spec");
-    sections.push("- A ConversationStart greeting topic");
-    sections.push("- An escalation/fallback topic");
-    sections.push(
-      "Format as a table: Agent | Topic Name | Trigger Description",
-    );
-    sections.push("```");
-    sections.push("");
-  }
-
-  // Connection references prompt
-  const toolsNeedingConnections = tools.filter(
-    (t) => isFlowTool(t) || isDataverseTool(t),
-  );
-  if (toolsNeedingConnections.length > 0) {
-    sections.push("#### Generate Connection References", "");
-    sections.push("```");
-    sections.push(
-      "Read Requirements/architecture.md and list all Power Platform",
-    );
-    sections.push("connection references needed for the tools and connectors.");
-    sections.push(
-      "For each, specify: connection name, connector type, and which agent uses it.",
-    );
-    sections.push("```");
-    sections.push("");
-  }
-
-  // --- 6. How-To Reference ---
-  sections.push(
-    "---",
-    "",
-    "# How-To Reference",
-    "",
-    "Quick instructions for each type of portal action above.",
-    "",
-  );
-
-  sections.push(
-    "## Creating an Agent",
-    "",
-    "1. Go to [Copilot Studio](https://copilotstudio.microsoft.com/)",
-    "2. Click **Create** → **New agent**",
-    "3. Set the name and description from the checklist above",
-    "4. Set orchestration to **Generative**",
-    "5. Leave instructions blank — these are generated in the Build phase",
-    "6. For child agents: create them first, then add to the parent via **Settings → Agent Transfers**",
-    "7. For connected agents: publish the agent first, then add to parent",
-    "",
-  );
-
-  sections.push(
-    "## Adding an MCP Tool",
-    "",
-    "1. Open the agent in Copilot Studio",
-    "2. Go to **Tools** → **Add a tool**",
-    "3. Select **MCP** → **Streamable HTTP**",
-    "4. Enter the MCP server URL",
-    "5. The agent will discover available tools from the server",
-    "6. Ensure the parent agent owns MCP tools if child agents need the results",
-    "",
-  );
-
-  sections.push(
-    "## Adding a Power Automate Flow",
-    "",
-    "1. Create the flow in [Power Automate](https://make.powerautomate.com/)",
-    '2. Use trigger: **"Run a flow from Copilot"**',
-    "3. Define input parameters the agent will provide",
-    '4. Add a **"Return value(s) to Copilot Studio"** step before the end',
-    "5. Place any slow/async work AFTER the return step (100s timeout)",
-    "6. In CPS: **Tools** → **Add a tool** → select the flow",
-    "",
-  );
-
-  sections.push(
-    "## Adding a Dataverse Connector",
-    "",
-    "1. Open the agent in Copilot Studio",
-    "2. Go to **Tools** → **Add a tool**",
-    "3. Search for the Dataverse connector action (e.g. List rows)",
-    "4. Select the table and configure the connection",
-    "5. Use exact schema-name fields in descriptions (e.g. `cr86a_fieldname`)",
-    "",
-  );
-
-  sections.push(
-    "## Adding Knowledge Sources",
-    "",
-    "1. Open the agent in Copilot Studio",
-    "2. Go to **Knowledge** → **Add knowledge**",
-    "3. Select the source type (SharePoint, files, Dataverse, etc.)",
-    "4. For SharePoint: use modern pages only, check the 7 MB limit",
-    "5. Write a clear description — at >25 sources, descriptions drive search filtering",
-    "6. Allow 5-30 minutes for indexing after enabling",
-    "",
-  );
-
-  sections.push(
-    "## Dataverse Tables",
-    "",
-    "Pre-Build defines the Dataverse schema only.",
-    "Build creates the actual tables via GitHub Copilot Agent mode or another approved Dataverse workflow.",
-    "Keep the design aligned to a minimal shared connector set: one generic read tool, one generic write tool, and one generic delete tool only where needed.",
-    "",
-  );
-
-  return sections.join("\n");
-}
-
 /** Read spec and architecture, returning their content or empty strings */
 export async function readRequirements(workspaceRoot: string): Promise<{
   spec: string;
@@ -2322,178 +1872,92 @@ function inferTopicConnectorRequirements(
   return buildNormalizedConnectorRequirements(matchedTools);
 }
 
-function buildDocumentationComplianceSummary(
-  agents: ArchAgent[],
-  tools: ArchTool[],
-  knowledgeSources: ArchKnowledge[],
-  manualSteps: string[],
-): string[] {
-  const aligned: string[] = [];
-  const review: string[] = [];
-  const manualChecks: string[] = [];
+/**
+ * Test whether a manual portal step is already covered by the structured
+ * sections (agents, tools, knowledge, settings) and should be suppressed
+ * to avoid duplication.  Also filters out Dataverse table creation —
+ * those are handled by the Build phase, not Pre-Build.
+ */
+function isManualStepCoveredOrDeferred(step: string): boolean {
+  const lower = step.toLowerCase();
 
-  // --- Agent shape ---
-  if (agents.length === 1) {
-    aligned.push(
-      "Single-agent shape matches the repo preference for the smallest viable architecture unless later requirements force decomposition.",
-    );
-  } else if (
-    agents.some((agent) => agent.type === "parent") &&
-    agents.some((agent) => agent.type === "child" || agent.type === "connected")
-  ) {
-    aligned.push(
-      "Multi-agent design includes an explicit parent-plus-specialist shape rather than an unmanaged cluster of overlapping agents.",
-    );
-  } else {
-    review.push(
-      "Multi-agent architecture should make the parent/child or parent/connected boundaries explicit before build.",
-    );
-  }
-
-  // --- Dataverse tooling ---
-  const dataverseTools = tools.filter(isDataverseTool);
-  if (dataverseTools.length > 0 && dataverseTools.length <= agents.length * 3) {
-    aligned.push(
-      "Dataverse tooling remains close to the preferred shared CRUD scaffold rather than a connector-per-table design.",
-    );
-  } else if (dataverseTools.length > agents.length * 3) {
-    review.push(
-      "Dataverse tooling looks granular for pre-build. Consolidate toward a shared read/write/delete pattern unless the architecture truly needs more specialized actions.",
-    );
-  }
-
-  // --- MCP on child agents ---
-  const childOwnedMcp = tools.filter((tool) => {
-    if (!isMcpTool(tool)) {
-      return false;
-    }
-    const owner = agents.find((agent) => agent.name === tool.ownerAgent);
-    return owner?.type === "child";
-  });
-  if (childOwnedMcp.length > 0) {
-    review.push(
-      `Child-agent MCP ownership needs redesign or explicit parent justification: ${childOwnedMcp.map((tool) => tool.name).join(", ")}. MCP tools on child agents are NOT invoked reliably through parent orchestration.`,
-    );
-  }
-
-  // --- Tool count per agent ---
-  const toolCountByAgent = new Map<string, number>();
-  for (const agent of agents) {
-    toolCountByAgent.set(agent.name, 0);
-  }
-  for (const tool of tools) {
-    toolCountByAgent.set(
-      tool.ownerAgent,
-      (toolCountByAgent.get(tool.ownerAgent) || 0) + 1,
-    );
-  }
-  for (const [agentName, count] of toolCountByAgent.entries()) {
-    if (count > 30) {
-      review.push(
-        `${agentName} exceeds the practical 25-30 tool limit (${count} tools). Split or simplify before build to preserve routing quality.`,
-      );
-    } else if (count > 0) {
-      aligned.push(
-        `${agentName} is within the practical per-agent tool budget (${count} tool${count === 1 ? "" : "s"}).`,
-      );
-    }
-  }
-
-  // --- Knowledge sources ---
+  // Dataverse table creation is handled by Build, not Pre-Build
   if (
-    knowledgeSources.length > 0 ||
-    agents.some((agent) => agent.knowledgeSources.length > 0)
+    (lower.includes("dataverse") || lower.includes("table")) &&
+    (lower.includes("create") ||
+      lower.includes("schema") ||
+      lower.includes("column") ||
+      lower.includes("seed"))
   ) {
-    aligned.push(
-      "Knowledge sources are present; keep descriptions specific and validate that content shape and size match CPS retrieval constraints during build.",
-    );
-
-    const sharePointSources = knowledgeSources.filter(isSharePointSource);
-    if (sharePointSources.length > 0) {
-      manualChecks.push(
-        "SharePoint knowledge sources detected. Verify: modern pages only (no classic ASPX), files under 7 MB without M365 Copilot license, and 4-6 hour sync delay.",
-      );
-    }
-
-    const totalKs =
-      knowledgeSources.length +
-      agents.reduce((sum, a) => sum + a.knowledgeSources.length, 0);
-    if (totalKs > 25) {
-      review.push(
-        `Total knowledge source count (${totalKs}) exceeds the 25-source threshold where description-driven filtering kicks in. Ensure every source has a specific description.`,
-      );
-    }
+    return true;
   }
 
-  // --- Power Automate flow identity ---
-  if (tools.some(isFlowTool)) {
-    manualChecks.push(
-      "Review every Power Automate flow for run-as-author implications, approvals, and least-privilege connection design. Flows run as the maker by default.",
-    );
-  }
-
-  // --- Content moderation ---
+  // Agent creation — covered by Step 1
   if (
-    !manualSteps.some((step) =>
-      step.toLowerCase().includes("content moderation"),
-    )
+    (lower.includes("create") || lower.includes("add")) &&
+    (lower.includes("agent") ||
+      lower.includes("child agent") ||
+      lower.includes("connected agent")) &&
+    !lower.includes("tool") &&
+    !lower.includes("knowledge")
   ) {
-    manualChecks.push(
-      "Add an explicit portal-only content moderation decision if the domain is likely to need a non-default setting (portal-only — no YAML surface).",
-    );
+    return true;
   }
 
-  // --- Settings coherence gaps ---
-  const hasToolFirstAgents = tools.length > 0;
-  if (hasToolFirstAgents) {
-    manualChecks.push(
-      "Validate settings coherence after portal setup: useModelKnowledge, webBrowsing, isSemanticSearchEnabled, and isFileAnalysisEnabled should match the architecture intent. Portal defaults are aggressive.",
-    );
-  }
-
-  const lines: string[] = ["## Documentation Compliance Summary", ""];
-
-  if (aligned.length > 0) {
-    lines.push("**Aligned With Repo Guidance**", "");
-    for (const item of aligned) {
-      lines.push(`- ✅ ${item}`);
-    }
-    lines.push("");
-  }
-
-  if (review.length > 0) {
-    lines.push("**Needs Review Before Build**", "");
-    for (const item of review) {
-      lines.push(`- ⚠️ ${item}`);
-    }
-    lines.push("");
-  }
-
-  if (manualChecks.length > 0) {
-    lines.push("**Manual CPS Checks Still Required**", "");
-    for (const item of manualChecks) {
-      lines.push(`- 🔲 ${item}`);
-    }
-    lines.push("");
-  }
-
+  // Tool/connector addition — covered by Step 3
   if (
-    aligned.length === 0 &&
-    review.length === 0 &&
-    manualChecks.length === 0
+    (lower.includes("add") ||
+      lower.includes("attach") ||
+      lower.includes("connect")) &&
+    (lower.includes("tool") ||
+      lower.includes("connector") ||
+      lower.includes("mcp") ||
+      lower.includes("flow") ||
+      lower.includes("power automate"))
   ) {
-    lines.push(
-      "- No architecture-level documentation compliance checks were triggered from the current draft.",
-      "",
-    );
+    return true;
   }
 
-  return lines;
+  // Knowledge sources — covered by Step 4
+  if (
+    (lower.includes("add") ||
+      lower.includes("attach") ||
+      lower.includes("upload")) &&
+    (lower.includes("knowledge") || lower.includes("sharepoint"))
+  ) {
+    return true;
+  }
+
+  // Settings — covered by Step 6
+  if (
+    lower.includes("general knowledge") ||
+    lower.includes("web browsing") ||
+    lower.includes("usemodelknowledge") ||
+    lower.includes("orchestration") ||
+    (lower.includes("set") && lower.includes("model"))
+  ) {
+    return true;
+  }
+
+  // Sync / Get Changes — covered by workflow steps
+  if (
+    lower.includes("get changes") ||
+    lower.includes("sync") ||
+    lower.includes("apply changes")
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
  * Compose a gap-focused pre-build report. Compares architecture expectations
  * against detected agent state and highlights only remaining work.
+ *
+ * The report is structured as a sequential workflow the developer follows
+ * in order. Each step groups related portal activities. Running the check
+ * again after completing a step will show it as done.
  */
 export function composePreBuildReport(
   spec: string,
@@ -2589,7 +2053,7 @@ export function composePreBuildReport(
   const remaining = totalAuto - foundAuto;
   const allAutoComplete = remaining === 0;
 
-  // Knowledge + MCP tools + manual steps are manual verification
+  // Knowledge + MCP tools are manual verification
   const agentKsList = agents.flatMap((a) =>
     a.knowledgeSources.map((ks) => ({ source: ks, agent: a.name })),
   );
@@ -2607,197 +2071,219 @@ export function composePreBuildReport(
       );
     },
   );
-  const ksManualCount = missingKnowledgeSources.length;
-  const totalManual = mcpTools.length + ksManualCount + manualSteps.length;
+
+  // Filter manual steps: remove items already covered by structured sections
+  // and items deferred to Build (e.g. Dataverse table creation)
+  const filteredManualSteps = manualSteps.filter(
+    (step) => !isManualStepCoveredOrDeferred(step),
+  );
 
   const sections: string[] = [];
 
   // ── Header ──
   sections.push(
-    "# Pre-Build Check",
+    "# Pre-Build Checklist",
     "",
     `**Generated**: ${timestamp}  `,
     `**CPSAgentKit version**: ${CURRENT_VERSION}`,
     "",
-    "> **Before each check**: Run **Copilot Studio → Get Changes** in VS Code to sync the latest portal state to local YAML files. This check compares your architecture against those files.",
+    "Work through each step in order. After completing a batch of steps, run **Copilot Studio → Get Changes** to sync, then run this check again to see remaining items.",
     "",
   );
-
-  // ── Documentation Compliance Summary ──
-  const complianceSummary = buildDocumentationComplianceSummary(
-    agents,
-    tools,
-    knowledgeSources,
-    manualSteps,
-  );
-  sections.push(...complianceSummary);
 
   // ── Progress summary ──
   if (totalAuto > 0) {
     const pct = Math.round((foundAuto / totalAuto) * 100);
     sections.push(
-      `**Auto-detected progress: ${foundAuto} / ${totalAuto} (${pct}%)**`,
+      `**Progress: ${foundAuto} / ${totalAuto} items detected (${pct}%)**`,
+      "",
     );
   }
-  if (totalManual > 0) {
-    sections.push(
-      `**Manual verification items: ${totalManual}** (MCP tools, knowledge, portal steps)`,
-    );
-  }
-  sections.push("");
 
   // ── All-clear shortcut ──
-  if (allAutoComplete && totalManual === 0) {
+  const hasRemainingKnowledge = missingKnowledgeSources.length > 0;
+  const hasRemainingManual = filteredManualSteps.length > 0;
+  const hasRemainingMcp = mcpTools.length > 0;
+
+  if (allAutoComplete && !hasRemainingKnowledge && !hasRemainingManual) {
     sections.push(
       "## ✅ All Clear — Ready for Build",
       "",
-      "All expected agents, topics, tools, and flows have been detected. Proceed to the **Build** phase.",
+      "All expected agents, tools, knowledge sources, and topics have been detected.",
+      "",
+      "**Next:** Run **CPSAgentKit: Build Agent** to generate instructions, descriptions, Dataverse tables, and settings.",
       "",
     );
     return sections.join("\n");
   }
 
-  if (allAutoComplete) {
+  // ══════════════════════════════════════════════════════════════════
+  // STEP 1: Create Agents
+  // ══════════════════════════════════════════════════════════════════
+  const missingAgents = agents.filter((a) => state.agents.get(a.name) === null);
+
+  sections.push("## Step 1 — Create Agents", "");
+
+  if (missingAgents.length === 0) {
+    sections.push("✅ All agents detected.", "");
+    for (const a of detectedAgents) {
+      sections.push(`- ✅ **${a.name}** (${a.type})`);
+    }
+  } else {
     sections.push(
-      "## ✅ Auto-Detection Complete",
-      "",
-      "All agents, topics, tools, and flows have been detected. Verify the manual items below, then proceed to **Build**.",
+      "Create each agent in Copilot Studio. Leave instructions blank — the Build phase generates them.",
       "",
     );
-  }
 
-  // ── 1. Agents ──
-  sections.push("## 1. Agents", "");
-  const missingAgents = agents.filter((a) => state.agents.get(a.name) === null);
-  if (missingAgents.length === 0) {
-    sections.push("All required agents are already present.", "");
-    for (const a of detectedAgents) {
-      sections.push(`- ✅ Agent ready: **${a.name}**`);
-    }
-    sections.push("");
-  } else {
-    for (const a of missingAgents) {
-      sections.push(`- [ ] Add agent: **${a.name}** (${a.type})`);
-    }
-    sections.push("");
-  }
-
-  // ── 2. Tools & Connectors ──
-  if (tools.length > 0) {
-    sections.push("## 2. Tools & Connectors", "");
-
-    // Connector tools (auto-detectable from actions/)
-    if (normalizedConnectorRequirements.length > 0) {
-      const missingConnectors = normalizedConnectorRequirements.filter(
-        (req) => !allActions.some((a) => toolMatchesAction(req.actionName, a)),
+    // Sort: parent first, then children, then connected
+    const sorted = [...agents].sort((a, b) => {
+      const order: Record<string, number> = {
+        parent: 0,
+        "parent (router)": 0,
+        standalone: 1,
+        child: 2,
+        "child agent": 2,
+        connected: 3,
+        "connected agent": 3,
+      };
+      return (
+        (order[a.type.toLowerCase()] ?? 1) - (order[b.type.toLowerCase()] ?? 1)
       );
-      if (missingConnectors.length === 0) {
-        sections.push(
-          "All required connector actions are already present.",
-          "",
-        );
+    });
+
+    for (const agent of sorted) {
+      const detected = state.agents.get(agent.name) !== null;
+      if (detected) {
+        sections.push(`- ✅ **${agent.name}** (${agent.type})`);
       } else {
-        sections.push("Add each connector action type shown below once.", "");
-        for (const req of missingConnectors) {
-          sections.push(...formatNormalizedConnectorRequirement(req));
-          sections.push("");
+        sections.push(`- [ ] Create **${agent.name}** (${agent.type})`);
+        if (agent.type.toLowerCase().includes("child")) {
+          sections.push(`  - Attach as child to the parent agent`);
+        }
+        if (agent.type.toLowerCase().includes("connected")) {
+          sections.push(
+            `  - Publish first, then add as connected agent to parent`,
+          );
         }
       }
     }
+  }
+  sections.push("");
 
-    // Flow tools (auto-detectable from workflows/)
-    if (flowTools.length > 0) {
-      const missingFlows = flowTools.filter(
-        (t) => !allDetectedWorkflows.has(normalizeForMatch(t.name)),
+  // ══════════════════════════════════════════════════════════════════
+  // STEP 2: Sync
+  // ══════════════════════════════════════════════════════════════════
+  sections.push(
+    "## Step 2 — Sync",
+    "",
+    "Run **Copilot Studio → Get Changes** to pull agent YAML into the workspace.",
+    "",
+  );
+
+  // ══════════════════════════════════════════════════════════════════
+  // STEP 3: Add Tools & Connectors
+  // ══════════════════════════════════════════════════════════════════
+  sections.push("## Step 3 — Add Tools & Connectors", "");
+
+  if (tools.length === 0) {
+    sections.push("No tools required by the architecture.", "");
+  } else {
+    const missingConnectors = normalizedConnectorRequirements.filter(
+      (req) => !allActions.some((a) => toolMatchesAction(req.actionName, a)),
+    );
+    const missingFlows = flowTools.filter(
+      (t) => !allDetectedWorkflows.has(normalizeForMatch(t.name)),
+    );
+    const allToolsFound =
+      missingConnectors.length === 0 &&
+      missingFlows.length === 0 &&
+      mcpTools.length === 0;
+
+    if (allToolsFound) {
+      sections.push("✅ All tools and connectors detected.", "");
+    } else {
+      sections.push(
+        "Add each tool to its owner agent in Copilot Studio. Leave descriptions for the Build phase.",
+        "",
       );
-      if (missingFlows.length === 0) {
-        sections.push("All required flow tools are already present.", "");
-      } else {
+
+      // Connectors
+      if (missingConnectors.length > 0) {
+        for (const req of missingConnectors) {
+          sections.push(...formatNormalizedConnectorRequirement(req));
+        }
+        sections.push("");
+      }
+      if (foundConnectorList.length > 0) {
+        for (const req of foundConnectorList) {
+          sections.push(`- ✅ **${req.connectorFamily} — ${req.actionName}**`);
+        }
+        sections.push("");
+      }
+
+      // Flows
+      if (missingFlows.length > 0) {
         for (const t of missingFlows) {
           sections.push(formatToolChecklistItem(t, "flow"));
         }
         sections.push("");
       }
-    }
-
-    // MCP tools (manual verification)
-    if (mcpTools.length > 0) {
-      sections.push("MCP tools are manual portal checks:", "");
-      for (const t of mcpTools) {
-        sections.push(formatToolChecklistItem(t, "MCP tool"));
+      if (foundFlowList.length > 0) {
+        for (const t of foundFlowList) {
+          sections.push(`- ✅ Flow: **${t.name}**`);
+        }
+        sections.push("");
       }
-      sections.push("");
+
+      // MCP tools (always manual verification)
+      if (mcpTools.length > 0) {
+        sections.push("**MCP tools** — verify manually in the portal:", "");
+        for (const t of mcpTools) {
+          sections.push(`- [ ] Verify: **${t.name}** → ${t.ownerAgent}`);
+          sections.push(`  - ${t.purpose}`);
+        }
+        sections.push("");
+      }
     }
   }
 
-  // ── 3. Topics ──
-  if (architectureTopics.length > 0) {
-    sections.push("## 3. Topics", "");
-
-    const missingTopics = architectureTopics.filter(
-      (topic) =>
-        !allTopics.some(
-          (detected) =>
-            detected.agentName === topic.agentName &&
-            topicMatchesDetectedTopic(topic, detected.topicName),
-        ),
-    );
-
-    if (missingTopics.length === 0) {
-      sections.push("All required topics are already present.", "");
-    } else {
-      for (const topic of missingTopics) {
-        sections.push(`- [ ] Create Topic ${topic.name}`);
-
-        const purposeParts = [topic.description, topic.keyBehaviour].filter(
-          Boolean,
-        );
-        if (purposeParts.length > 0) {
-          sections.push(`  - Purpose: ${purposeParts.join(" ")}`);
-        }
-
-        const topicConnectors = inferTopicConnectorRequirements(
-          topic,
-          tools,
-        ).filter(
-          (req) =>
-            !allActions.some((a) => toolMatchesAction(req.actionName, a)),
-        );
-
-        for (const req of topicConnectors) {
-          sections.push(`  - Add ${req.actionName} Tool to Topic`);
-        }
-      }
-      sections.push("");
-    }
-  }
-
-  // ── 4. Knowledge Sources ──
+  // ══════════════════════════════════════════════════════════════════
+  // STEP 4: Upload Knowledge
+  // ══════════════════════════════════════════════════════════════════
   const hasKs =
     knowledgeSources.length > 0 ||
     agents.some((a) => a.knowledgeSources.length > 0);
-  if (hasKs) {
-    sections.push("## 4. Knowledge Sources", "");
-    if (missingKnowledgeSources.length === 0) {
-      sections.push("All required knowledge sources are already present.", "");
-    } else {
-      for (const ks of missingKnowledgeSources) {
-        sections.push(formatKnowledgeSourceChecklistItem(ks));
-      }
-      sections.push("");
-    }
-  }
 
-  // ── 5. Manual Portal Steps ──
-  if (manualSteps.length > 0) {
-    sections.push("## 5. Manual Portal Steps", "");
-    for (const step of manualSteps) {
-      sections.push(`- [ ] ${normalizeManualPortalStep(step)}`);
+  sections.push("## Step 4 — Upload Knowledge", "");
+
+  if (!hasKs) {
+    sections.push("No knowledge sources required by the architecture.", "");
+  } else if (missingKnowledgeSources.length === 0) {
+    sections.push("✅ All knowledge sources detected.", "");
+  } else {
+    sections.push(
+      "Add each knowledge source to its agent in Copilot Studio.",
+      "",
+    );
+    for (const ks of missingKnowledgeSources) {
+      sections.push(formatKnowledgeSourceChecklistItem(ks));
     }
     sections.push("");
   }
 
-  // ── 6. Settings Coherence ──
+  // ══════════════════════════════════════════════════════════════════
+  // STEP 5: Sync Again
+  // ══════════════════════════════════════════════════════════════════
+  sections.push(
+    "## Step 5 — Sync",
+    "",
+    "Run **Copilot Studio → Get Changes** again to pull the updated YAML (tools, knowledge).",
+    "",
+  );
+
+  // ══════════════════════════════════════════════════════════════════
+  // STEP 6: Verify Settings
+  // ══════════════════════════════════════════════════════════════════
   const settingsChecks: string[] = [];
   for (const [agentName, agentState] of state.agents) {
     if (!agentState) {
@@ -2806,55 +2292,78 @@ export function composePreBuildReport(
     const s = agentState.settings;
     if (s.useModelKnowledge === true) {
       settingsChecks.push(
-        `- [ ] Review **${agentName}** setting: \`useModelKnowledge: true\``,
+        `- [ ] **${agentName}**: \`useModelKnowledge: true\` — disable if the agent should only use its own tools and knowledge`,
       );
     }
     if (s.webBrowsing === true) {
       settingsChecks.push(
-        `- [ ] Review **${agentName}** setting: \`webBrowsing: true\``,
+        `- [ ] **${agentName}**: \`webBrowsing: true\` — disable if the agent should not search the web`,
       );
     }
     if (s.isSemanticSearchEnabled === true && !s.hasKnowledgeSources) {
       settingsChecks.push(
-        `- [ ] Review **${agentName}** setting: \`isSemanticSearchEnabled: true\` with no detected knowledge sources`,
+        `- [ ] **${agentName}**: \`isSemanticSearchEnabled: true\` with no knowledge sources — either add knowledge or disable`,
       );
     }
     if (s.isFileAnalysisEnabled === true) {
       settingsChecks.push(
-        `- [ ] Review **${agentName}** setting: \`isFileAnalysisEnabled: true\``,
+        `- [ ] **${agentName}**: \`isFileAnalysisEnabled: true\` — disable if file upload is not part of the design`,
       );
     }
   }
-  if (settingsChecks.length > 0) {
+
+  sections.push("## Step 6 — Verify Settings", "");
+
+  if (settingsChecks.length === 0 && detectedAgents.length > 0) {
+    sections.push("✅ No settings issues detected.", "");
+  } else if (settingsChecks.length === 0) {
+    sections.push("Settings will be checked after agents are synced.", "");
+  } else {
     sections.push(
-      "## 6. Settings Coherence",
+      "Portal defaults are aggressive. Review these settings in each agent's `settings.mcs.yml`:",
       "",
       ...settingsChecks,
-      "",
-      "- [ ] Set the content moderation level in the Copilot Studio portal if the architecture requires a non-default setting",
       "",
     );
   }
 
-  // ── Next Steps ──
-  sections.push("---", "");
-  if (remaining > 0) {
+  // ══════════════════════════════════════════════════════════════════
+  // STEP 7: Additional Manual Steps (if any remain after filtering)
+  // ══════════════════════════════════════════════════════════════════
+  if (filteredManualSteps.length > 0) {
     sections.push(
-      "## Next Steps",
+      "## Step 7 — Additional Portal Steps",
       "",
-      "1. Add the missing scaffold items in Copilot Studio",
-      "2. Run **Copilot Studio → Get Changes** to sync local files",
-      "3. Run **CPSAgentKit: Run Pre-Build** again to re-check",
+      "These items from the architecture require manual portal work and are not covered by the steps above.",
+      "",
+    );
+    for (const step of filteredManualSteps) {
+      sections.push(`- [ ] ${normalizeManualPortalStep(step)}`);
+    }
+    sections.push("");
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // FINAL: Apply Changes
+  // ══════════════════════════════════════════════════════════════════
+  sections.push("---", "");
+
+  if (remaining > 0 || hasRemainingKnowledge || hasRemainingManual) {
+    sections.push(
+      "## What To Do Next",
+      "",
+      "1. Complete the unchecked items above in Copilot Studio",
+      "2. Run **Copilot Studio → Get Changes** to sync",
+      "3. Run **CPSAgentKit: Run Pre-Build** again to verify",
+      "",
+      "When all items are checked, proceed to the **Build** phase. Build will generate instructions, tool descriptions, Dataverse tables, and settings.",
       "",
     );
   } else {
     sections.push(
-      "## Next Steps",
+      "## Ready for Build",
       "",
-      "The manual pre-build checklist is complete.",
-      totalManual > 0
-        ? "Verify the manual items above, then run this check again if you make further portal changes."
-        : "Proceed when you are ready for the Build phase.",
+      "All pre-build items are complete. Run **CPSAgentKit: Build Agent** to generate instructions, descriptions, Dataverse tables, and settings.",
       "",
     );
   }
