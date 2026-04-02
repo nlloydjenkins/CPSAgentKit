@@ -254,6 +254,10 @@ Prompt tools are portal-first — create in Copilot Studio or AI Hub, then sync 
 
 For YAML syntax details including `InvokeAIBuilderModelAction` structure, output bindings, Power Fx expression patterns, and the `predictionOutput` parsing chain, see `yaml-syntax.md`.
 
+### Runtime Ownership
+
+When specialists are implemented as prompt tools, the prompt tool's instruction text in the CPS portal is the authoritative runtime configuration. If a specialist was previously a child agent and was migrated to a prompt tool, the child agent YAML becomes a reference artifact - not the running code. When debugging output quality issues, edit the prompt tool text in the portal (or via AI Hub), not the original agent YAML. Sync locally after changes to keep the workspace current.
+
 ## Disambiguation
 
 If overlapping tools/agents exist ("Check balance" tool + "Get balance" agent):

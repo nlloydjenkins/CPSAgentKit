@@ -1152,6 +1152,7 @@ Responsibilities:
 - **Cross-agent conflict detection** — Brand recommendation conflicts with Compliance requirement, or Clarity suggestion removes a necessary disclaimer
 - **Structural completeness** — all expected sections present, all required criteria assessed, no sections silently dropped
 - **Scope boundary compliance** — no agent has leaked into another's domain
+- **Summary-vs-detail accuracy** — when specialists produce dual-layer output (summary + detail), verify that each summary accurately represents the underlying detail. Summaries that omit findings or inflate scores relative to the detail block indicate compression or instruction drift in the specialist.
 
 The Evaluator's output must appear in the final report even if no issues are found (e.g., "Arithmetic verified. No conflicts. All outputs align."). An empty QC section undermines trust in the review.
 
@@ -1165,6 +1166,7 @@ The Reporter Agent is distinct from the orchestrator. The orchestrator coordinat
 - **Terminology normalisation** — standardise language across agents so the final report reads as one coherent document
 - **Deduplication** — remove overlapping findings that multiple specialists flagged
 - **Detail reproduction, not summarisation** — instruct the Reporter to reproduce specialist detail verbatim before adding any summary. The most persistent failure is the Reporter compressing specialist output into narrative.
+- **Summary-only variant** — for pipelines with many specialists, an alternative to detail reproduction: each specialist emits a compact structured summary alongside the full detail, and the Reporter receives only the validated summaries. This eliminates the token budget pressure that causes progressive compression of later sections. The full detail remains accessible through specialist-only topics for drill-down. Use this variant when the number of specialists makes full-detail reproduction impractical; use the detail-reproduction approach for simpler pipelines where full evidence in the report is desired.
 - **Final artifact suppression** — "The report is the final output. Do not append follow-up questions, offers, or conversational prompts."
 
 ### Versioning and Regression Detection
@@ -1176,6 +1178,28 @@ Stamp every agent with a version number in its instructions and require it in ou
 - **Structured test-evaluate-fix cycle** — define a scoring rubric for output quality before the first live test. After each test, produce a structured review comparing output against the rubric. Track a version history with scores to see trajectory and catch regressions early.
 
 Without version stamps and structured reviews, iteration is ad-hoc and regressions go unnoticed until users report them.
+
+### Specialist Summary/Detail Pattern
+
+For pipelines with many specialists feeding into a Reporter, a dual-layer output pattern prevents the progressive compression that occurs when full specialist outputs are passed through orchestration layers.
+
+Each specialist emits two distinct output layers:
+
+1. A structured summary block - compact, labeled, containing only scores, key findings, and top-level recommendations. This is the unit of downstream consumption.
+2. A detailed assessment block - full per-criterion evidence, all supporting reasoning, and complete analysis. This is the unit of validation.
+
+The pipeline flow is:
+
+1. Each specialist produces both layers in a single response, clearly separated by labels (e.g., `SUMMARY_START` / `SUMMARY_END`, `DETAIL_START` / `DETAIL_END`).
+2. The Evaluator receives both layers and validates summary accuracy against the detail (see summary-vs-detail accuracy under Evaluator responsibilities).
+3. The Reporter receives only the validated summary blocks and assembles the final report from them. Full detail is never passed to the Reporter.
+4. Specialist-only topics provide direct access to the full detailed output for any individual specialist, giving users a drill-down path from the summary report to the underlying evidence.
+
+This pattern solves a specific failure mode: when multiple specialists contribute full-detail outputs to a Reporter, later sections are progressively more compressed as earlier sections consume more of the token budget. By routing only compact summaries to the Reporter, that pressure is eliminated.
+
+Use this pattern when the pipeline has 4+ specialists and full-detail reproduction in the report is impractical. For simpler pipelines with 2-3 specialists, the standard Output Preservation Pattern with labeled blocks and detail reproduction is sufficient.
+
+When specialists are implemented as prompt tools rather than child agents, this pattern is especially effective - prompt tools eliminate the orchestration summarisation layer entirely, and the dual-layer output structure maps cleanly to the prompt tool's text-in/text-out interface.
 
 ## Agent Boundary Enforcement
 
@@ -1483,6 +1507,10 @@ A powerful pattern from production: specialist agent produces narrative output �
 Prompt tools are portal-first — create in Copilot Studio or AI Hub, then sync locally and refine. This is the supported workflow. They appear as `TaskDialog` with `InvokeAIBuilderModelTaskAction` in the YAML.
 
 For YAML syntax details including `InvokeAIBuilderModelAction` structure, output bindings, Power Fx expression patterns, and the `predictionOutput` parsing chain, see `yaml-syntax.md`.
+
+### Runtime Ownership
+
+When specialists are implemented as prompt tools, the prompt tool's instruction text in the CPS portal is the authoritative runtime configuration. If a specialist was previously a child agent and was migrated to a prompt tool, the child agent YAML becomes a reference artifact - not the running code. When debugging output quality issues, edit the prompt tool text in the portal (or via AI Hub), not the original agent YAML. Sync locally after changes to keep the workspace current.
 
 ## Disambiguation
 
