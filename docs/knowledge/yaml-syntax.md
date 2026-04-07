@@ -791,7 +791,7 @@ Workflows give you explicit control flow (sequential execution, `GotoAction` loo
 
 - `Topic.PredictionOutput` is typed as a Record in Power Fx, not Text. You cannot call `Text()` or `ParseJSON()` directly on it. You must serialize it first with `JSON()`.
 
-- Power Fx expressions in YAML are prefixed with `=`. Variable assignment targets (e.g. in output bindings) are NOT prefixed with `=`.
+- Power Fx expressions in YAML are prefixed with `=`. Variable assignment targets (e.g. in output bindings) are NOT prefixed with `=`. ManualTaskInput `value` fields also use plain `Topic.xxx` with NO `=` prefix — adding `=` causes `IdentifierNotRecognized` compile errors. The portal generates these without `=` and CPS resolves them at runtime.
 
 - Input binding parameter names must exactly match the parameter names defined in the prompt tool. If the prompt tool requires inputs, every topic that calls it must supply them - `input: {}` will produce compile errors.
 
@@ -804,3 +804,19 @@ Workflows give you explicit control flow (sequential execution, `GotoAction` loo
 - CPS compile errors appear in VS Code via the CPS extension's diagnostics. Always check errors after editing YAML - the error messages are generally accurate and point to the exact line.
 
 - The CPS YAML export is the source of truth for what field names and structures are valid. When in doubt, make changes in the portal, sync, and inspect the generated YAML to learn the correct syntax.
+
+- CPS Power Fx `Char()` only supports values 1–255 (ASCII range). `UniChar()` may exist for Unicode but needs verification before deploying in production expressions.
+
+## Dynamic Connector Actions
+
+Dynamic connectors (SendEmailV2, Dataverse Create/Update/List rows) don't declare their input schemas locally — the schema is resolved at runtime from the platform. Editing these in YAML produces "Input binding not found, refresh this flow" errors in the CPS extension.
+
+**Workaround:**
+
+1. Push a skeleton with `input: {}` via Apply Changes.
+2. Wire input bindings in the portal canvas.
+3. Get Changes to pull the portal-generated bindings into local YAML.
+
+**Corollary:** `item/cr85a_fieldname` syntax in `BeginDialog` for Dataverse Record-type inputs compiles locally but is flagged "not found" by the extension — same dynamic schema issue. Portal-bound `item.'cr85a_*'` ManualTaskInput entries work at runtime; hand-authored ones do not.
+
+This is a specific instance of the general scaffold-first rule: for connectors with dynamic schemas, always create or wire bindings in the portal first.

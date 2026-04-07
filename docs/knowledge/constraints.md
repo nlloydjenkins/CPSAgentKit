@@ -55,13 +55,29 @@
 
 ## Dataverse Choice/Option-Set Columns
 
-- The Dataverse MCP Server requires **integer values** for choice (option-set) columns. Passing text labels like "High" or "Open" causes a `FormatException`. Agent instructions and tool descriptions must include the integer mapping for every choice column (e.g. `Priority: Low=100000000, Medium=100000001, High=100000002, Critical=100000003`).
-- Standard Dataverse choice columns use integer values starting at `100000000` by default. Custom choices may differ — always inspect the live schema after table creation.
-- This applies to both creates and updates via MCP. Queries that filter on choice columns also need the integer value in OData filters.
+- Both the Dataverse MCP Server and connector actions (InvokeConnectorTaskAction) require **integer values** for choice (option-set) columns. Passing text labels like "High" or "Open" causes a `FormatException` with no useful error detail. Include the integer mapping in agent instructions, tool `modelDescription`, and connector action input descriptions.
+- Standard Dataverse choice columns use integer values starting at `100000000` by default. Custom choices may differ — always verify mappings against the live schema after table creation. A wrong mapping (e.g. swapping `100000001` for `100000002`) is invisible at the YAML level and produces silently incorrect behavior.
+- This applies to creates, updates, and OData filter queries via both MCP and connector actions.
+
+## Connector Action Input Modes
+
+The CPS portal exposes three input modes per connector action input:
+
+- **"Dynamically fill with AI"** (`AutomaticTaskInput` in YAML) — the orchestrator infers the value from context using the input's name and description.
+- **"Ask the user"** — the orchestrator prompts the user for the value.
+- **"Set as custom value"** (`ManualTaskInput` in YAML) — a fixed value (Power Fx expression or literal) used every time.
+
+For autonomous pipelines (no user to prompt), every input must be either "Dynamically fill with AI" with a complete description, or "Set as custom value". Leaving any input as "Ask the user" or as an undescribed dynamic input will cause the pipeline to break into interactive mode. See tool-descriptions.md → Connector Action Input Configuration.
+
+## Dataverse Column Length Limits
+
+- Dataverse text columns have configurable maximum lengths (e.g. 100, 200, 1000, 4000 characters). When the orchestrator passes a value that exceeds the column's max length, the connector returns an HTTP 400 validation error.
+- This is common when logging full email bodies or HTML content into preview/summary fields. Fix by increasing the column length in Dataverse or adding a truncation instruction to the input description.
 
 ## Connector Action Gotchas
 
 - **Office 365 Users — "Get user profile (V2)"** requires a UPN input parameter, making it unsuitable when you just want the current user's identity. Use **"Get my profile (V2)"** instead — it returns the logged-in user automatically with no input required.
+- **Outlook SendEmailV2 with `mode: Invoker`** sends email as the logged-in user, not a shared mailbox. Test tenant admin addresses may return HTTP 400 "invalid recipient" — use a real mailbox for testing.
 
 ## conversationStarters Format
 
@@ -81,6 +97,8 @@
 ## Agent Instructions
 
 - Hard limit: 8,000 characters. Quality and routing may degrade before the hard limit with dense or complex instructions — decompose into child agents or prompt tools rather than packing one instruction block.
+- **Curly braces are evaluated as Power Fx expressions.** CPS evaluates `{` and `}` in the `instructions` field as Power Fx interpolation. JSON examples in instructions (e.g. `{"key": "value"}`) will cause parse errors or unexpected behavior. Only `{System.Bot.Components...}` references are valid. Use `key=value` notation or prose descriptions instead of JSON examples.
+- **`modelDescription` hard limit: 1,024 characters.** CPS silently truncates or rejects descriptions exceeding this. Action descriptions for topic-owned tools can be shorter since the orchestrator doesn't route to them directly.
 - Temperature control only available in prompt actions, not at agent level.
 - Content filtering: no logging, no reason code, no diagnostic info when triggered.
 
@@ -137,6 +155,61 @@
 - Connectors in different DLP data groups (Business, Non-Business, Blocked) cannot be used together in the same agent.
 - Purview DLP (M365 Copilot layer): can block responses when prompts contain sensitive information types (SITs) or when grounded content has blocked sensitivity labels.
 - Agents published to M365 Copilot inherit Purview DLP controls — error messaging may not clearly explain why a response was blocked.
+
+## Dataverse Connector — Dynamic Schema Binding (Multi-Table Writes)
+
+- The generic "Add a new row to selected environment" connector action resolves its target table schema dynamically at runtime via the `entityName` input.
+- Per conversation, the connector binds to the first table schema it encounters. Subsequent calls targeting a **different** table fail with `UnresolvedDynamicType` — the connector cannot re-resolve its schema within the same conversation.
+- **Workaround:** Create separate, pre-bound connector actions — one per target table. Each action has `entityName` hardcoded as a `ManualTaskInput` with a fixed value (e.g., `cr85a_applications`, `cr85a_correspondences`). This removes the dynamic resolution and allows the agent to write to multiple tables in a single pipeline run.
+- The same pattern applies to "Update a row" if targeting multiple tables, though this is less commonly needed.
+- **Portal workflow:** Create each new action in the CPS portal (Tools → Add a tool → duplicate + pre-target), then sync locally via Get Changes. Edit only `modelDisplayName` and `modelDescription` locally. Do not hand-author the action YAML from scratch.
+- Give each pre-bound action a unique, descriptive `modelDisplayName` (e.g., "Create application record", "Log correspondence", "Log compliance check"). The orchestrator routes by tool name and description — generic names like "Add a new row 2" will misroute.
+- After creating the pre-bound tools, **disable or remove the generic "Add a new row" tool** from the agent. If it remains active, the orchestrator may prefer it over the targeted tools due to its broader description.
+
+## Agent Flow Input Declarations — Platform Behavior (Empirically Verified)
+
+The CPS orchestrator's handling of flow tool inputs depends on the input type declaration. These behaviors are platform-level and **cannot be overridden** by instructions, `modelDescription`, or input `description` fields:
+
+| Input Declaration           | Orchestrator Behavior                                                           | Can Orchestrator Override Default?                  | Notes                                                                                       |
+| --------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `AutomaticTaskInput`        | Orchestrator resolves value. **Prompts user if value is empty string or null.** | N/A (no default)                                    | "Never ask the user" in description has no effect on prompting behavior when value is empty |
+| `ManualTaskInput value: ""` | No prompting. Uses static default value.                                        | **No** — orchestrator's value is silently discarded | Data loss: values passed by the orchestrator never reach the flow                           |
+| Mixed Manual + Automatic    | **BadRequest error** — all values arrive as null                                | N/A                                                 | Mixing input types on a single tool is unsupported                                          |
+| No declarations at all      | **Prompts for everything**                                                      | N/A                                                 | Removing all input declarations makes every field interactive                               |
+
+### Key Insight
+
+The orchestrator treats any `AutomaticTaskInput` with an empty string or null value as "unresolved" and falls back to user prompting — regardless of how many "never ask" instructions exist. This is the root cause of autonomous pipelines breaking when optional fields (account number, DOB, contact number) are legitimately absent from inbound data.
+
+### The N/A Sentinel Pattern (Workaround)
+
+To prevent prompting for optional fields while preserving existing database values:
+
+1. **Extraction agent** returns `"N/A"` (literal string) for any field not found in the source data — never null, never empty string
+2. **Orchestrator** passes `"N/A"` through to the flow tool. CPS sees a non-empty string and does not prompt.
+3. **Power Automate flow** checks: `@if(or(empty(triggerBody()?['text_N']), equals(triggerBody()?['text_N'], 'N/A')), variables('existing_value'), triggerBody()?['text_N'])`
+4. The flow preserves existing database values when `"N/A"` is received, and updates with the new value otherwise.
+
+This pattern is essential for any autonomous pipeline where:
+
+- Some fields are optional and may not be present in every inbound message
+- The agent must not prompt the user (because there is no user — it's trigger-driven)
+- Existing database values must be preserved when new data is not provided (e.g., subsequent emails that only change one field)
+
+## Power Automate Workflow.json — Source of Truth
+
+Agent Flow `workflow.json` files are owned by Power Automate, not by Copilot Studio:
+
+- **Get Changes** from CPS pulls the portal's current flow definition, overwriting local edits
+- **Apply Changes** from VS Code pushes local YAML/JSON to the portal — this CAN update the flow
+- Local edits to workflow.json are valid for backup and version control, but the portal version is what executes at runtime
+- If local and portal versions diverge, the portal version wins at runtime regardless of what's in the workspace
+
+### Practical implications:
+
+- Always verify flow changes took effect by checking the PA designer after Apply Changes
+- Keep workflow.json in version control as a backup — it's the only way to recover from portal-side damage
+- When the portal breaks a flow (e.g., by replacing a connector with an empty For_each), the local backup is your recovery path
 
 ## Settings
 

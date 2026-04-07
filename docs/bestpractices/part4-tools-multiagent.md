@@ -11,7 +11,19 @@ How to connect agents to external systems and design multi-agent architectures.
 - **Each tool should have a clear, single-purpose interface.** Define input parameters with expected types, output variables, and error conditions. The orchestrator treats tools as reliable functions — make them behave that way.
 - **Test tools for deterministic behaviour.** Given the same inputs, a tool should produce the same outputs. Non-deterministic tools confuse the orchestrator's planning and make debugging much harder.
 - **Tool names matter more than descriptions.** The planner gives more weight to tool names when deciding what to invoke. Use active, descriptive names: `TranslateText`, `CheckOrderStatus`, `CreateSupportTicket`. Never `Flow1` or `Action_3`.
-- **Curate your toolkit.** Connect all useful actions, but remove or disable tools that are irrelevant or risky. A smaller set of high-quality choices is better than an exhaustive set with overlaps. Overlapping descriptions cause the agent to invoke multiple tools unnecessarily.
+- **Curate your toolkit.** Connect all useful actions, but remove or disable tools that are irrelevant or risky. A smaller set of high-quality choices is better than an exhaustive set with overlaps. Overlapping descriptions cause the agent to invoke multiple tools unnecessarily. When removing a tool from an autonomous pipeline, add it to an explicit "Do not call" list in the orchestrator instructions.
+
+### Connector Action Input Configuration
+
+For agents that use connector actions autonomously (no user to prompt), input configuration is as critical as tool-level descriptions.
+
+- **Every dynamic input needs a description.** Inputs set to "Dynamically fill with AI" without descriptions cause the orchestrator to prompt the user — even when it already holds the correct value. One missing description can poison all inputs on the tool.
+- **Descriptions must state the value source.** Not just the format — the orchestrator needs to know _where_ the value comes from: "from the trigger context", "from step 3 output", "the reference number created earlier". Add "never ask the user" for autonomous pipelines.
+- **Lock down system fields.** Import Sequence Number, Time Zone Rule Version Number, UTC Conversion Time Zone Code, Owner, Status Reason, Return Full Metadata — set to custom values or remove entirely.
+- **Primary keys need `GUID()`.** Dataverse "Add a new row" actions often expose the primary key as a dynamic input. Set to a custom value of `GUID()`.
+- **Choice columns need integer mappings in input descriptions.** Integer mappings in agent instructions alone are not sufficient — the orchestrator reads the input description when filling dynamic inputs.
+- **Watch text column length limits.** Values that exceed a column's max length cause HTTP 400. Add truncation instructions to the input description when the expected value may be long.
+- **Use display names consistently.** When the same schema name exists across multiple tables with different display names, always use the display name as shown in the specific connector action.
 
 ### Tool Count Guidance
 

@@ -18,13 +18,19 @@ Things that catch people out, behave unexpectedly, or aren't in the docs. For de
 - 128 tool hard limit, 25-30 practical limit — beyond 30, routing degrades. _(See constraints.md → Orchestration)_
 - Tool names must be exact in instructions — use `/` syntax. _(See tool-descriptions.md)_
 - Overlapping tool/agent names cause coin-flip routing — differentiate descriptions or restrict one to explicit invocation.
+- `modelDescription` hard limit: 1,024 characters — silently truncated if exceeded. _(See constraints.md → Agent Instructions)_
+- "Dynamically fill with AI" inputs without descriptions cause autonomous agents to prompt the user — always add a description with value source, format, and "never ask the user". _(See tool-descriptions.md → Connector Action Input Configuration)_
+- One missing input description poisons the whole tool — orchestrator may prompt for ALL fields.
+- System fields and primary keys on connector actions must be removed or set to custom values (e.g. `GUID()` for primary keys).
+- Phantom field references in `modelDescription` (fields not in the input list) cause the orchestrator to prompt unexpectedly. _(See tool-descriptions.md → Phantom Field References)_
+- Dynamic connectors (SendEmailV2, Dataverse Create/Update/List) can't be fully authored in YAML — wire bindings in portal, then Get Changes. _(See yaml-syntax.md → Dynamic Connector Actions)_
 
 ## Multi-Agent
 
 - No circular dependencies, no multi-level chaining. _(See constraints.md → Multi-Agent)_
 - Citations stripped in handoffs — by design, for security. No workaround.
 - MCP tools on child agents are NOT invoked via parent orchestration. _(See multi-agent-patterns.md → MCP Tools Through Orchestration)_
-- Ghost message: parent with no topics + "Don't respond" after child = unsolicited `explanation_of_tool_call` message.
+- Ghost message / `explanation_of_tool_call`: leaks broadly as a platform behavior, not just in the narrow parent-no-topics case. Minimise by keeping instructions action-oriented. _(See multi-agent-patterns.md → The Ghost Message)_
 - Child agent looping (post-Oct 2025): add explicit "end and return" instructions + track state variable. _(See multi-agent-patterns.md → Child Agent Looping)_
 - Specialist agents leak into each other's domains — add explicit prohibitions. _(See multi-agent-patterns.md → Agent Boundary Enforcement)_
 - Later pipeline stages compress earlier results — use labeled output blocks. _(See multi-agent-patterns.md → Output Preservation Pattern)_
@@ -46,9 +52,11 @@ Things that catch people out, behave unexpectedly, or aren't in the docs. For de
 - Follow-up questions require "Use general knowledge" enabled — silent failure otherwise.
 - Content filtering is a black box — no logging, no diagnostics. Set `contentModeration: Low` for specialist domains. _(See constraints.md → Content Moderation)_
 - 8,000-character instruction limit — quality may degrade before limit with dense instructions. _(See constraints.md → Agent Instructions)_
+- Curly braces `{` `}` in instructions are evaluated as Power Fx — JSON examples will break. Use key=value notation instead. _(See constraints.md → Agent Instructions)_
 - Instruction accumulation causes regressions — fix is structural, not textual. _(See prompt-engineering.md → The Instruction Accumulation Trap)_
 - Prose format descriptions are unreliable — use literal templates + examples. _(See prompt-engineering.md → Output Format Enforcement)_
 - Prompt tools provide code interpreter, temperature control, deterministic transforms. _(See prompt-engineering.md → Prompt Tools)_
+- Autonomous pipeline `SystemError` from verbose child outputs — compact to machine-oriented format. Escalate to CPS workflow if persistent. _(See multi-agent-patterns.md → Autonomous Pipeline Output Compaction)_
 
 ## Deployment & Channels
 
@@ -77,12 +85,37 @@ Things that catch people out, behave unexpectedly, or aren't in the docs. For de
 - Office 365 Users "Get user profile (V2)" needs a UPN input — use "Get my profile (V2)" for the current user. _(See constraints.md → Connector Action Gotchas)_
 - `conversationStarters` must use `title`/`text` object format — plain strings cause `MissingRequiredProperty` errors. _(See constraints.md → conversationStarters Format)_
 
+## Dataverse Connectors
+
+- Generic "Add a new row" connector binds to first table per conversation — second table fails with `UnresolvedDynamicType`. Use pre-bound actions per table. _(See constraints.md → Dataverse Connector — Dynamic Schema Binding)_
+- Agent hallucinates column names if not given exhaustive column lists in modelDescription. _(See tool-descriptions.md → Pre-Bound Connector Descriptions)_
+- `connectorRequestFailure` with no detail = likely invalid column name. _(See troubleshooting.md → connectorRequestFailure)_
+
+## Multi-Stage Pipelines
+
+- Generative orchestration stops after first child agent unless explicitly told not to. _(See anti-patterns.md → Pipeline Early Termination)_
+- Per-stage "do NOT show to user" instructions required — one top-level instruction is insufficient. _(See prompt-engineering.md → Multi-Stage Pipeline Orchestration)_
+- `AutomaticTaskInput` with empty/null value = prompts user, even in autonomous mode. N/A sentinel pattern required. _(See constraints.md → Agent Flow Input Declarations)_
+
+## Tool References
+
+- `/ToolName` referencing a tool that doesn't exist = silent skip, no error. _(See anti-patterns.md → Referencing Tools That Don't Exist)_
+- Always cross-check `/ToolName` against actual `modelDisplayName` in action YAML before publishing. _(See tool-descriptions.md)_
+
+## Flows
+
+- Removing an action in PA designer replaces it with empty `For_each` and placeholder values. _(See anti-patterns.md → Portal Flow Editing Damage)_
+- Power Automate owns workflow.json — CPS portal version is runtime source of truth. _(See constraints.md → PA Workflow.json)_
+
 ## YAML & Extension
 
 - External CPS reference library: use `reference-library.md` and `reference-patterns.md` for curated patterns from `skills-for-copilot-studio`, but treat them as reference-only.
 - **YAML kind mapping:** Top-level agent definitions use `kind: GptComponentMetadata`. Child agents use `kind: AgentDialog`. Topics use `kind: AdaptiveDialog`. Preserve these when editing — the platform expects them.
 - **Model hints in agent YAML:** Exported agent YAML may contain `aISettings.model.modelNameHint`. Preserve it during edits, but don't invent new values unless the workspace already uses that pattern. The documented model/temperature configuration path is through prompt tools.
 - **Prompt-level model/temperature:** Prompt tools let makers choose the model and temperature in the prompt editor. This is the supported configuration surface — use it for any capability that needs specific model settings.
+- **ManualTaskInput `value` uses plain `Topic.xxx`** — no `=` prefix. Adding `=` causes `IdentifierNotRecognized` compile errors.
+- **CPS extension "Apply Changes" can disappear** from Command Palette after rapid edits. Fix: Cmd+Shift+P → "Developer: Reload Window". _(See troubleshooting.md → CPS Extension Issues)_
+- **Power Fx `Char()` is ASCII-only (1–255).** `UniChar()` may exist for Unicode but needs verification.
 
 ### Action/Tool YAML Structure — Safe vs Untouchable Fields
 

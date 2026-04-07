@@ -258,6 +258,105 @@ For YAML syntax details including `InvokeAIBuilderModelAction` structure, output
 
 When specialists are implemented as prompt tools, the prompt tool's instruction text in the CPS portal is the authoritative runtime configuration. If a specialist was previously a child agent and was migrated to a prompt tool, the child agent YAML becomes a reference artifact - not the running code. When debugging output quality issues, edit the prompt tool text in the portal (or via AI Hub), not the original agent YAML. Sync locally after changes to keep the workspace current.
 
+## Multi-Stage Pipeline Orchestration
+
+When the parent agent must execute a strict sequence of child agents (e.g., interpret → assess → draft → compliance check → format → send), generative orchestration requires explicit stage-by-stage control.
+
+### The Pipeline Control Pattern
+
+1. **CRITICAL header:** State upfront that every trigger MUST progress through ALL stages. Name the stages.
+2. **Per-stage suppression:** After each child agent invocation, explicitly state "Do NOT show this output to the user — immediately proceed to stage N." The orchestrator needs this at every stage — a single top-level instruction is insufficient.
+3. **Final-stage-only output:** Only the last stage should produce user-visible output. For autonomous agents, this is typically an internal summary ("Pipeline complete for [ref]. Email sent to [email].").
+4. **Numbered stages:** Number every stage and reference them by number. "Proceed to stage 3" is more reliable than "proceed to the next step."
+5. **Context minimisation:** At each stage handoff, specify what to pass and what NOT to pass. "Pass ONLY the draft text to Compliance Evaluator — do NOT include extracted fields, Dataverse results, or prior stage outputs."
+
+### Tool Sequencing Within a Pipeline
+
+When tool calls must happen in a specific order (e.g., create record BEFORE logging correspondence):
+
+- Number the tool calls in the workflow stages
+- State the dependency explicitly: "Log correspondence (stage 8) — this requires the application reference number from stage 1"
+- Do NOT assume the orchestrator will infer ordering from context
+
+### Revision Loops
+
+For compliance-check-and-revise loops:
+
+- State the maximum iteration count explicitly: "Maximum 2 revision cycles"
+- Define the escalation path: "On third failure, escalate to Teams"
+- The loop should be self-contained within the numbered stages, not an implicit behaviour
+
+## Specialist Output Shape for Autonomous Pipelines
+
+In autonomous multi-agent pipelines, child agents should return **compact machine-oriented outputs**, not polished human-readable prose. Even when the parent is well constrained, verbose child outputs increase token usage and make the orchestrator more likely to treat them as user-facing responses.
+
+### Preferred Pattern
+
+- **Interpreter / classifier agents:** return short labeled fields only
+- **Decision agents:** return compact verdict blocks
+- **Compliance agents:** return verdict + failing rules + one revision instruction
+- **Formatter agents:** return only the final transformed artifact, with no notes or commentary
+
+### Example Shapes
+
+```text
+VERDICT: REQUEST_INFO
+MISSING: effective_date, other_parties
+AMBIGUOUS: change_type
+CONTRADICTIONS: None
+REASON: Required fields for change of tenancy are incomplete.
+```
+
+```text
+VERDICT: FAIL
+FAILING_RULES: rule_2, rule_5
+REVISION: Remove the processing timescale and replace it with a neutral review statement.
+NOTES: Internal jargon still present.
+```
+
+### Rules
+
+- Tell specialist agents to return **no prose introduction** and **no conversational wrap-up**.
+- Keep outputs under a fixed line budget where possible (for example: 6-12 lines).
+- If the child agent produces the final artifact (for example, the accessible email body), require it to return **only** that artifact.
+- The parent should treat child outputs as hidden pipeline state, not as conversation content.
+
+## Record Creation Order in Trigger-Driven Pipelines
+
+For trigger-driven pipelines, do not create the primary Dataverse record until after the first extraction/classification stage has produced the minimum required fields.
+
+### Correct order
+
+1. Query for existing record using trigger metadata (for example: thread id, sender email)
+2. Run extraction/classification child agent
+3. If no record exists, create the Dataverse row using trigger metadata plus extracted fields
+
+### Why
+
+- If the create step comes before extraction, the planner treats required columns like `applicant_email` and `applicant_name` as missing interactive inputs
+- This often causes the autonomous agent to ask the user a question instead of continuing the pipeline
+- Trigger metadata such as sender email should be treated as pipeline context, not user input
+
+## Cross-Agent Rule Embedding for Drafter-Evaluator Pairs
+
+When an agent pipeline includes both a content drafter and a compliance evaluator:
+
+1. **The evaluator owns the full rule set** — detailed rule descriptions, examples of pass/fail, revision instruction templates. These live in a knowledge source attached to the evaluator.
+2. **The drafter owns the actionable output requirements** — the specific disclosures, permitted phrasings, and prohibited content that the evaluator will check. These are embedded directly in the drafter's instructions (not a knowledge source, because they must always be in context).
+3. **The two must stay in sync.** When a new compliance rule is added, update the drafter's "Required disclosures" or "Prohibited content" section in the same change. A mismatch guarantees first-pass failure.
+
+### What goes where
+
+| Content                                           | Where                                   | Why                                         |
+| ------------------------------------------------- | --------------------------------------- | ------------------------------------------- |
+| Full rule definitions with rationale and examples | Evaluator knowledge source              | Only needed during evaluation, not drafting |
+| Required disclosure text and templates            | Drafter instructions                    | Must always be in context during drafting   |
+| Permitted phrasing ("aim to" not "will")          | Drafter instructions                    | Prevents unauthorised commitments at source |
+| Prohibited content categories                     | Both drafter and evaluator instructions | Drafter avoids it; evaluator catches it     |
+| Revision instruction templates                    | Evaluator knowledge source              | Only used when generating revision feedback |
+
+This pattern eliminates the most common cause of compliance retry loops: the drafter simply didn't know what the evaluator would check.
+
 ## Disambiguation
 
 If overlapping tools/agents exist ("Check balance" tool + "Get balance" agent):

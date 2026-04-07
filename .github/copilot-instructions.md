@@ -252,7 +252,7 @@ The following sections contain the CPS platform knowledge base used to maintain 
 
 ## Dataverse Connector Query Anti-Patterns
 
-**Passing text labels for choice/option-set columns.** The Dataverse MCP Server requires integer values for choice columns. Passing text like "High" or "Open" causes a `FormatException` with no useful error detail. Always include the integer mappings in agent instructions and tool descriptions (e.g. `Priority: Low=100000000, High=100000002`).
+**Passing text labels for choice/option-set columns.** The Dataverse MCP Server and connector actions both require integer values for choice columns. Passing text like "High" or "Open" causes a `FormatException` with no useful error detail. Always include the integer mappings in agent instructions, tool descriptions, and connector action input descriptions (e.g. `Priority: Low=100000000, High=100000002`).
 
 **Using "Get user profile (V2)" when you need the current user.** This Office 365 Users action requires a UPN input parameter. Use "Get my profile (V2)" instead — it returns the logged-in user automatically with no input.
 
@@ -273,6 +273,111 @@ Common causes when a working agent suddenly breaks:
 3. Rate limits hit (accumulated conversation history pushing token limits)
 4. Model version changed (GPT version updates can change behaviour)
 5. Environment-level DLP policy changes
+
+## Dataverse Multi-Table Write Anti-Patterns
+
+**Using the generic "Add a new row" connector for multiple tables.** The connector binds to the first table's schema per conversation. The second call targeting a different table fails with `UnresolvedDynamicType`. Create separate pre-bound actions per table instead. See constraints.md → Dataverse Connector — Dynamic Schema Binding.
+
+**Leaving the generic "Add a new row" tool active alongside targeted tools.** The orchestrator may prefer the generic tool over targeted tools because its broader description matches more intents. If you've created targeted tools, disable or remove the generic one.
+
+**Renaming a generic tool's `modelDisplayName` but not removing it.** Even after renaming the generic "Add a new row" to something specific like "Create application record", the portal Activity Map may still show the old name. The orchestrator may still treat it as the generic tool. Pre-bound actions (created as new tools with hardcoded `entityName`) are more reliable than renaming the generic one.
+
+## Pipeline Early Termination in Generative Orchestration
+
+**Assuming the orchestrator will automatically chain all stages.** Generative orchestration treats child agent outputs as potential final answers. After a child returns, the orchestrator may display the output and stop — even if instructions describe further stages. This is the single most common failure mode for multi-stage autonomous pipelines.
+
+**Fix:** Add explicit anti-termination instructions at two levels:
+
+1. A **CRITICAL header** above the workflow stages: "Every inbound trigger MUST progress through ALL stages. Do NOT stop after [first child]. Do NOT display child agent outputs to the user — they are internal pipeline data."
+2. **Per-stage suppression:** After each child agent call, add "Do NOT show this output to the user — immediately proceed to stage N."
+
+These instructions must be emphatic and repeated per stage. A single top-level "follow all stages" instruction is insufficient — the orchestrator needs stage-level reinforcement.
+
+## Using Empty Strings for Missing Optional Fields in Flow Inputs
+
+**Passing empty strings for optional fields via AutomaticTaskInput.** CPS treats empty string as "unresolved" and prompts the user for the value — even in autonomous pipelines where there is no user. This is the single most common cause of autonomous agents breaking into interactive mode mid-pipeline.
+
+**What doesn't work:**
+
+- Setting `AutomaticTaskInput` value to `""` — prompts the user
+- Returning null/undefined from child agents — prompts the user
+- Adding "never ask the user" to the input description — ignored by the platform
+- Adding "pass empty string for missing fields" to parent instructions — CPS overrides this
+
+**What works:** The N/A sentinel pattern. Return `"N/A"` (a non-empty string) for missing fields. The flow checks for `"N/A"` and treats it as empty. See constraints.md → Agent Flow Input Declarations.
+
+## Connector Action Input Anti-Patterns
+
+**Leaving inputs at default "Dynamically fill with AI" without descriptions.** An undescribed dynamic input causes the orchestrator to prompt the user — even when the orchestrator already holds the correct value. One missing description can poison all inputs on the tool. Every `AutomaticTaskInput` must have a description stating the value source, format, and "never ask the user" for autonomous pipelines.
+
+**Exposing system fields as dynamic inputs.** Import Sequence Number, Time Zone Rule Version Number, UTC Conversion Time Zone Code, Owner, Status Reason, and Return Full Metadata must never be "Dynamically fill with AI". Remove them or set to custom values.
+
+**Exposing primary key columns as dynamic inputs.** The orchestrator cannot generate a valid GUID and will prompt the user. Set primary key inputs to a custom value of `GUID()`.
+
+**Referencing fields in modelDescription that don't exist as inputs.** If `modelDescription` mentions a field name that has no corresponding `AutomaticTaskInput` or `ManualTaskInput`, the orchestrator gets confused and falls back to prompting for other fields. Audit `modelDescription` against actual inputs after every change.
+
+**Using schema names in orchestrator prompts when connector actions use display names.** If the orchestrator prompt says `cr85a_name` but the connector action input is labelled "Application Reference Number", the orchestrator may fail to map the value. Always use display names as they appear in the connector action.
+
+**Putting choice column integer mappings only in agent instructions.** The orchestrator reads the input description when filling dynamic inputs — agent instructions alone are not sufficient. Include the full integer mapping in the input description: `"Direction: Inbound=100000000, Outbound=100000001"`.
+
+**Not verifying integer mappings against the live Dataverse schema.** A wrong mapping (e.g. swapping `100000001` for `100000002`) is invisible at the YAML level. After creating Dataverse tables, verify all choice column integer values against the live schema — standard defaults start at `100000000` but custom choices may differ.
+
+## Referencing Tools That Don't Exist in the Agent
+
+**Instructing the agent to use a tool that isn't configured.** If instructions reference `/Send an email from a shared mailbox (V2)` but the actual configured tool is `/Send an email (V2)`, the orchestrator silently skips that step. The pipeline completes all child agent processing but fails to execute the tool call — no error, no diagnostic, just incomplete execution.
+
+**Prevention:** During the Build phase, cross-reference every `/ToolName` in instructions against the actual `modelDisplayName` values in the workspace's action YAML files. Read the files before writing references. This is especially important for email tools — "Send an email (V2)", "Send an email from a shared mailbox (V2)", and "Send an email (V4)" are all different tools with different capabilities and names.
+
+## Drafter-Evaluator Knowledge Mismatch
+
+**Designing a compliance evaluator that checks rules the drafter doesn't know about.** If the evaluator enforces "required disclosures must be present" but the drafter's instructions and knowledge sources don't list those disclosures, every draft will fail compliance on the first attempt. Adding a revision loop doesn't fix this — it just burns extra turns before the same failure.
+
+**Fix:** Embed the actionable requirements from your compliance rules directly into the drafter's instructions. The drafter doesn't need the full rule set — it needs the **output requirements** that the evaluator will check:
+
+- Required disclosure text (data handling statement, org contact details, consequence statements)
+- Permitted phrasing constraints ("aim to" not "will" for timescales)
+- Prohibited content categories (internal system names, confidence scores, other applicants)
+
+**Design principle:** Every rule the evaluator checks must have a corresponding requirement the drafter knows about. If you add a new compliance rule, update the drafter's instructions in the same change.
+
+## Retry Loop Token Inflation
+
+**Adding retry/revision loops that duplicate full tool references.** Each `{System.Bot.Components.Agents.'...'.DisplayName}` reference is ~80-100 characters. A retry loop that re-calls a drafter + evaluator pair adds ~200 chars of tool references alone, plus conditional logic and failure paths. In a pipeline that is already near the token budget, this can push the agent into `SystemError` from turn 1 — even though the retry logic never executes.
+
+**Key insight:** The orchestrator's token budget includes the full instruction text at every turn, not just the stages that execute. A retry loop that would only fire on compliance failure still costs tokens on every turn.
+
+**Fix options (pick one):**
+
+1. **Rely on first-pass compliance.** Embed compliance requirements into the drafter so drafts pass on the first attempt. Remove the retry loop entirely. This is the most token-efficient approach.
+2. **Compress the retry reference.** Instead of duplicating full tool references, write: "If FAIL: repeat Stage 6 then Stage 7 once more with revision instructions. On second failure, escalate." This relies on the orchestrator resolving stage numbers back to tool references — less explicit but saves ~300 chars.
+3. **Move to a CPS workflow.** If the pipeline genuinely needs retry logic with multiple child agents, a workflow YAML (`kind: workflow`) with `GotoAction` loops is more token-efficient than encoding loops in instruction text.
+
+**Budget rule of thumb:** If parent instructions exceed ~5,500 characters (including all tool references and stage definitions), test for `SystemError` on simple inputs before adding any retry logic.
+
+## Verbose Specialist Outputs in Autonomous Pipelines
+
+**Letting specialist child agents return polished narrative responses.** In autonomous pipelines, verbose outputs from child agents are expensive in two ways: they consume context budget and they encourage the orchestrator to surface the output to the user or transcript as if it were final. This is a common cause of `SystemError` and repeated early termination.
+
+**Fix:** Make specialist outputs machine-oriented and compact. Use short labeled blocks for interpretation, verdicts, and revision instructions. Only the final presentation specialist should return full user-facing text — and even then, return the artifact only, with no notes.
+
+## Removing and Re-Adding Connector Actions in Power Automate Designer
+
+**Deleting a connector action (e.g., "Add a new row") in the Power Automate designer and re-adding it.** The portal does not cleanly remove the action — it replaces it with an empty `For_each` loop and sets downstream variable references to placeholder values (e.g., `"hello"` instead of the actual output reference). All `runAfter` dependencies on the deleted action are repointed to the `For_each` loop.
+
+**Symptoms after re-adding:**
+
+- Flow compiles but produces wrong data (placeholder values instead of actual record IDs)
+- Downstream SetVariable actions reference a `For_each` that iterates over nothing
+- The new connector action may have different field mappings than the original
+
+**Prevention:**
+
+1. **Export/backup workflow.json before editing flows in the portal.** Use Get Changes to pull the current state locally.
+2. If you must remove a connector, note all field mappings, `runAfter` dependencies, and downstream variable references before deleting.
+3. After re-adding, verify every downstream action's `runAfter` and value references manually.
+4. Prefer editing the flow in VS Code and using Apply Changes to push to the portal — this preserves the exact structure.
+
+**Recovery:** If portal editing has damaged the flow, restore from the local workflow.json backup. The local file can be the correct version — but Power Automate is the source of truth for flows, so you must re-apply the fix either through Apply Changes or by manually recreating the correct structure in the PA designer.
 
 
 <!-- Knowledge: cheat sheet -->
@@ -296,13 +401,19 @@ Things that catch people out, behave unexpectedly, or aren't in the docs. For de
 - 128 tool hard limit, 25-30 practical limit — beyond 30, routing degrades. _(See constraints.md → Orchestration)_
 - Tool names must be exact in instructions — use `/` syntax. _(See tool-descriptions.md)_
 - Overlapping tool/agent names cause coin-flip routing — differentiate descriptions or restrict one to explicit invocation.
+- `modelDescription` hard limit: 1,024 characters — silently truncated if exceeded. _(See constraints.md → Agent Instructions)_
+- "Dynamically fill with AI" inputs without descriptions cause autonomous agents to prompt the user — always add a description with value source, format, and "never ask the user". _(See tool-descriptions.md → Connector Action Input Configuration)_
+- One missing input description poisons the whole tool — orchestrator may prompt for ALL fields.
+- System fields and primary keys on connector actions must be removed or set to custom values (e.g. `GUID()` for primary keys).
+- Phantom field references in `modelDescription` (fields not in the input list) cause the orchestrator to prompt unexpectedly. _(See tool-descriptions.md → Phantom Field References)_
+- Dynamic connectors (SendEmailV2, Dataverse Create/Update/List) can't be fully authored in YAML — wire bindings in portal, then Get Changes. _(See yaml-syntax.md → Dynamic Connector Actions)_
 
 ## Multi-Agent
 
 - No circular dependencies, no multi-level chaining. _(See constraints.md → Multi-Agent)_
 - Citations stripped in handoffs — by design, for security. No workaround.
 - MCP tools on child agents are NOT invoked via parent orchestration. _(See multi-agent-patterns.md → MCP Tools Through Orchestration)_
-- Ghost message: parent with no topics + "Don't respond" after child = unsolicited `explanation_of_tool_call` message.
+- Ghost message / `explanation_of_tool_call`: leaks broadly as a platform behavior, not just in the narrow parent-no-topics case. Minimise by keeping instructions action-oriented. _(See multi-agent-patterns.md → The Ghost Message)_
 - Child agent looping (post-Oct 2025): add explicit "end and return" instructions + track state variable. _(See multi-agent-patterns.md → Child Agent Looping)_
 - Specialist agents leak into each other's domains — add explicit prohibitions. _(See multi-agent-patterns.md → Agent Boundary Enforcement)_
 - Later pipeline stages compress earlier results — use labeled output blocks. _(See multi-agent-patterns.md → Output Preservation Pattern)_
@@ -324,9 +435,11 @@ Things that catch people out, behave unexpectedly, or aren't in the docs. For de
 - Follow-up questions require "Use general knowledge" enabled — silent failure otherwise.
 - Content filtering is a black box — no logging, no diagnostics. Set `contentModeration: Low` for specialist domains. _(See constraints.md → Content Moderation)_
 - 8,000-character instruction limit — quality may degrade before limit with dense instructions. _(See constraints.md → Agent Instructions)_
+- Curly braces `{` `}` in instructions are evaluated as Power Fx — JSON examples will break. Use key=value notation instead. _(See constraints.md → Agent Instructions)_
 - Instruction accumulation causes regressions — fix is structural, not textual. _(See prompt-engineering.md → The Instruction Accumulation Trap)_
 - Prose format descriptions are unreliable — use literal templates + examples. _(See prompt-engineering.md → Output Format Enforcement)_
 - Prompt tools provide code interpreter, temperature control, deterministic transforms. _(See prompt-engineering.md → Prompt Tools)_
+- Autonomous pipeline `SystemError` from verbose child outputs — compact to machine-oriented format. Escalate to CPS workflow if persistent. _(See multi-agent-patterns.md → Autonomous Pipeline Output Compaction)_
 
 ## Deployment & Channels
 
@@ -355,12 +468,37 @@ Things that catch people out, behave unexpectedly, or aren't in the docs. For de
 - Office 365 Users "Get user profile (V2)" needs a UPN input — use "Get my profile (V2)" for the current user. _(See constraints.md → Connector Action Gotchas)_
 - `conversationStarters` must use `title`/`text` object format — plain strings cause `MissingRequiredProperty` errors. _(See constraints.md → conversationStarters Format)_
 
+## Dataverse Connectors
+
+- Generic "Add a new row" connector binds to first table per conversation — second table fails with `UnresolvedDynamicType`. Use pre-bound actions per table. _(See constraints.md → Dataverse Connector — Dynamic Schema Binding)_
+- Agent hallucinates column names if not given exhaustive column lists in modelDescription. _(See tool-descriptions.md → Pre-Bound Connector Descriptions)_
+- `connectorRequestFailure` with no detail = likely invalid column name. _(See troubleshooting.md → connectorRequestFailure)_
+
+## Multi-Stage Pipelines
+
+- Generative orchestration stops after first child agent unless explicitly told not to. _(See anti-patterns.md → Pipeline Early Termination)_
+- Per-stage "do NOT show to user" instructions required — one top-level instruction is insufficient. _(See prompt-engineering.md → Multi-Stage Pipeline Orchestration)_
+- `AutomaticTaskInput` with empty/null value = prompts user, even in autonomous mode. N/A sentinel pattern required. _(See constraints.md → Agent Flow Input Declarations)_
+
+## Tool References
+
+- `/ToolName` referencing a tool that doesn't exist = silent skip, no error. _(See anti-patterns.md → Referencing Tools That Don't Exist)_
+- Always cross-check `/ToolName` against actual `modelDisplayName` in action YAML before publishing. _(See tool-descriptions.md)_
+
+## Flows
+
+- Removing an action in PA designer replaces it with empty `For_each` and placeholder values. _(See anti-patterns.md → Portal Flow Editing Damage)_
+- Power Automate owns workflow.json — CPS portal version is runtime source of truth. _(See constraints.md → PA Workflow.json)_
+
 ## YAML & Extension
 
 - External CPS reference library: use `reference-library.md` and `reference-patterns.md` for curated patterns from `skills-for-copilot-studio`, but treat them as reference-only.
 - **YAML kind mapping:** Top-level agent definitions use `kind: GptComponentMetadata`. Child agents use `kind: AgentDialog`. Topics use `kind: AdaptiveDialog`. Preserve these when editing — the platform expects them.
 - **Model hints in agent YAML:** Exported agent YAML may contain `aISettings.model.modelNameHint`. Preserve it during edits, but don't invent new values unless the workspace already uses that pattern. The documented model/temperature configuration path is through prompt tools.
 - **Prompt-level model/temperature:** Prompt tools let makers choose the model and temperature in the prompt editor. This is the supported configuration surface — use it for any capability that needs specific model settings.
+- **ManualTaskInput `value` uses plain `Topic.xxx`** — no `=` prefix. Adding `=` causes `IdentifierNotRecognized` compile errors.
+- **CPS extension "Apply Changes" can disappear** from Command Palette after rapid edits. Fix: Cmd+Shift+P → "Developer: Reload Window". _(See troubleshooting.md → CPS Extension Issues)_
+- **Power Fx `Char()` is ASCII-only (1–255).** `UniChar()` may exist for Unicode but needs verification.
 
 ### Action/Tool YAML Structure — Safe vs Untouchable Fields
 
@@ -511,13 +649,29 @@ _Last updated: March 2026. The platform changes fast — validate against your e
 
 ## Dataverse Choice/Option-Set Columns
 
-- The Dataverse MCP Server requires **integer values** for choice (option-set) columns. Passing text labels like "High" or "Open" causes a `FormatException`. Agent instructions and tool descriptions must include the integer mapping for every choice column (e.g. `Priority: Low=100000000, Medium=100000001, High=100000002, Critical=100000003`).
-- Standard Dataverse choice columns use integer values starting at `100000000` by default. Custom choices may differ — always inspect the live schema after table creation.
-- This applies to both creates and updates via MCP. Queries that filter on choice columns also need the integer value in OData filters.
+- Both the Dataverse MCP Server and connector actions (InvokeConnectorTaskAction) require **integer values** for choice (option-set) columns. Passing text labels like "High" or "Open" causes a `FormatException` with no useful error detail. Include the integer mapping in agent instructions, tool `modelDescription`, and connector action input descriptions.
+- Standard Dataverse choice columns use integer values starting at `100000000` by default. Custom choices may differ — always verify mappings against the live schema after table creation. A wrong mapping (e.g. swapping `100000001` for `100000002`) is invisible at the YAML level and produces silently incorrect behavior.
+- This applies to creates, updates, and OData filter queries via both MCP and connector actions.
+
+## Connector Action Input Modes
+
+The CPS portal exposes three input modes per connector action input:
+
+- **"Dynamically fill with AI"** (`AutomaticTaskInput` in YAML) — the orchestrator infers the value from context using the input's name and description.
+- **"Ask the user"** — the orchestrator prompts the user for the value.
+- **"Set as custom value"** (`ManualTaskInput` in YAML) — a fixed value (Power Fx expression or literal) used every time.
+
+For autonomous pipelines (no user to prompt), every input must be either "Dynamically fill with AI" with a complete description, or "Set as custom value". Leaving any input as "Ask the user" or as an undescribed dynamic input will cause the pipeline to break into interactive mode. See tool-descriptions.md → Connector Action Input Configuration.
+
+## Dataverse Column Length Limits
+
+- Dataverse text columns have configurable maximum lengths (e.g. 100, 200, 1000, 4000 characters). When the orchestrator passes a value that exceeds the column's max length, the connector returns an HTTP 400 validation error.
+- This is common when logging full email bodies or HTML content into preview/summary fields. Fix by increasing the column length in Dataverse or adding a truncation instruction to the input description.
 
 ## Connector Action Gotchas
 
 - **Office 365 Users — "Get user profile (V2)"** requires a UPN input parameter, making it unsuitable when you just want the current user's identity. Use **"Get my profile (V2)"** instead — it returns the logged-in user automatically with no input required.
+- **Outlook SendEmailV2 with `mode: Invoker`** sends email as the logged-in user, not a shared mailbox. Test tenant admin addresses may return HTTP 400 "invalid recipient" — use a real mailbox for testing.
 
 ## conversationStarters Format
 
@@ -537,6 +691,8 @@ _Last updated: March 2026. The platform changes fast — validate against your e
 ## Agent Instructions
 
 - Hard limit: 8,000 characters. Quality and routing may degrade before the hard limit with dense or complex instructions — decompose into child agents or prompt tools rather than packing one instruction block.
+- **Curly braces are evaluated as Power Fx expressions.** CPS evaluates `{` and `}` in the `instructions` field as Power Fx interpolation. JSON examples in instructions (e.g. `{"key": "value"}`) will cause parse errors or unexpected behavior. Only `{System.Bot.Components...}` references are valid. Use `key=value` notation or prose descriptions instead of JSON examples.
+- **`modelDescription` hard limit: 1,024 characters.** CPS silently truncates or rejects descriptions exceeding this. Action descriptions for topic-owned tools can be shorter since the orchestrator doesn't route to them directly.
 - Temperature control only available in prompt actions, not at agent level.
 - Content filtering: no logging, no reason code, no diagnostic info when triggered.
 
@@ -593,6 +749,61 @@ _Last updated: March 2026. The platform changes fast — validate against your e
 - Connectors in different DLP data groups (Business, Non-Business, Blocked) cannot be used together in the same agent.
 - Purview DLP (M365 Copilot layer): can block responses when prompts contain sensitive information types (SITs) or when grounded content has blocked sensitivity labels.
 - Agents published to M365 Copilot inherit Purview DLP controls — error messaging may not clearly explain why a response was blocked.
+
+## Dataverse Connector — Dynamic Schema Binding (Multi-Table Writes)
+
+- The generic "Add a new row to selected environment" connector action resolves its target table schema dynamically at runtime via the `entityName` input.
+- Per conversation, the connector binds to the first table schema it encounters. Subsequent calls targeting a **different** table fail with `UnresolvedDynamicType` — the connector cannot re-resolve its schema within the same conversation.
+- **Workaround:** Create separate, pre-bound connector actions — one per target table. Each action has `entityName` hardcoded as a `ManualTaskInput` with a fixed value (e.g., `cr85a_applications`, `cr85a_correspondences`). This removes the dynamic resolution and allows the agent to write to multiple tables in a single pipeline run.
+- The same pattern applies to "Update a row" if targeting multiple tables, though this is less commonly needed.
+- **Portal workflow:** Create each new action in the CPS portal (Tools → Add a tool → duplicate + pre-target), then sync locally via Get Changes. Edit only `modelDisplayName` and `modelDescription` locally. Do not hand-author the action YAML from scratch.
+- Give each pre-bound action a unique, descriptive `modelDisplayName` (e.g., "Create application record", "Log correspondence", "Log compliance check"). The orchestrator routes by tool name and description — generic names like "Add a new row 2" will misroute.
+- After creating the pre-bound tools, **disable or remove the generic "Add a new row" tool** from the agent. If it remains active, the orchestrator may prefer it over the targeted tools due to its broader description.
+
+## Agent Flow Input Declarations — Platform Behavior (Empirically Verified)
+
+The CPS orchestrator's handling of flow tool inputs depends on the input type declaration. These behaviors are platform-level and **cannot be overridden** by instructions, `modelDescription`, or input `description` fields:
+
+| Input Declaration           | Orchestrator Behavior                                                           | Can Orchestrator Override Default?                  | Notes                                                                                       |
+| --------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `AutomaticTaskInput`        | Orchestrator resolves value. **Prompts user if value is empty string or null.** | N/A (no default)                                    | "Never ask the user" in description has no effect on prompting behavior when value is empty |
+| `ManualTaskInput value: ""` | No prompting. Uses static default value.                                        | **No** — orchestrator's value is silently discarded | Data loss: values passed by the orchestrator never reach the flow                           |
+| Mixed Manual + Automatic    | **BadRequest error** — all values arrive as null                                | N/A                                                 | Mixing input types on a single tool is unsupported                                          |
+| No declarations at all      | **Prompts for everything**                                                      | N/A                                                 | Removing all input declarations makes every field interactive                               |
+
+### Key Insight
+
+The orchestrator treats any `AutomaticTaskInput` with an empty string or null value as "unresolved" and falls back to user prompting — regardless of how many "never ask" instructions exist. This is the root cause of autonomous pipelines breaking when optional fields (account number, DOB, contact number) are legitimately absent from inbound data.
+
+### The N/A Sentinel Pattern (Workaround)
+
+To prevent prompting for optional fields while preserving existing database values:
+
+1. **Extraction agent** returns `"N/A"` (literal string) for any field not found in the source data — never null, never empty string
+2. **Orchestrator** passes `"N/A"` through to the flow tool. CPS sees a non-empty string and does not prompt.
+3. **Power Automate flow** checks: `@if(or(empty(triggerBody()?['text_N']), equals(triggerBody()?['text_N'], 'N/A')), variables('existing_value'), triggerBody()?['text_N'])`
+4. The flow preserves existing database values when `"N/A"` is received, and updates with the new value otherwise.
+
+This pattern is essential for any autonomous pipeline where:
+
+- Some fields are optional and may not be present in every inbound message
+- The agent must not prompt the user (because there is no user — it's trigger-driven)
+- Existing database values must be preserved when new data is not provided (e.g., subsequent emails that only change one field)
+
+## Power Automate Workflow.json — Source of Truth
+
+Agent Flow `workflow.json` files are owned by Power Automate, not by Copilot Studio:
+
+- **Get Changes** from CPS pulls the portal's current flow definition, overwriting local edits
+- **Apply Changes** from VS Code pushes local YAML/JSON to the portal — this CAN update the flow
+- Local edits to workflow.json are valid for backup and version control, but the portal version is what executes at runtime
+- If local and portal versions diverge, the portal version wins at runtime regardless of what's in the workspace
+
+### Practical implications:
+
+- Always verify flow changes took effect by checking the PA designer after Apply Changes
+- Keep workflow.json in version control as a backup — it's the only way to recover from portal-side damage
+- When the portal breaks a flow (e.g., by replacing a connector with an empty For_each), the local backup is your recovery path
 
 ## Settings
 
@@ -1110,9 +1321,11 @@ Agent A → Agent B → Agent A is blocked. Use hub-and-spoke.
 
 Parent → child → child's child is blocked. Flatten, or use child agents within connected agents.
 
-### The Ghost Message
+### The Ghost Message / explanation_of_tool_call Leaking
 
-Parent with no topics/knowledge + "Don't respond" after child = platform sends unsolicited `explanation_of_tool_call` message from the orchestration runtime.
+Generative orchestration "thinking" messages (`explanation_of_tool_call`) leak through to the user as a general platform behavior. This is not limited to the narrow case of "parent with no topics + 'Don't respond' after child" — it happens broadly even with explicit "NEVER display reasoning" instructions.
+
+**Mitigation:** Keep instructions action-oriented ("EXECUTE step 1", not "plan step 1"). Avoid instructions that describe reasoning processes. This reduces but does not eliminate the leaking — it is a platform behavior, not an instruction failure.
 
 ## Data Handoff
 
@@ -1249,6 +1462,56 @@ Triggers are vulnerable to injection attacks. Instructions should include:
 - Limit which tools the agent can invoke from triggers
 - Limit parameters (e.g., "only email to @contoso.com addresses")
 - "Only email information after checking a knowledge source for context"
+
+## Autonomous Pipeline Output Compaction
+
+In autonomous multi-agent pipelines, verbose/narrative child agent outputs cause `SystemError` at later pipeline stages as accumulated context exceeds the orchestrator's processing capacity. This is distinct from `OpenAIMaxTokenLengthExceeded` — it manifests as a generic `SystemError` with no useful diagnostic detail.
+
+**Pattern:** Child agents in autonomous pipelines must produce compact, machine-oriented output:
+
+- Key-value pairs or structured data instead of narrative prose
+- Labeled blocks (e.g. `RESULT: reference=APP-001, status=Ready for Processing, email_type=Initial Application`)
+- Only the data the next pipeline step needs — no explanatory text, no conversational wrap-up
+
+**Escalation path when SystemError persists:**
+
+1. Reduce parent orchestrator prompt length
+2. Compact all child agent outputs to machine-oriented format
+3. If still failing → switch to a CPS workflow (deterministic orchestration) rather than adding more prompt text
+
+The workflow approach removes the token overhead of generative orchestration planning and gives explicit control flow.
+
+## Autonomous Pipeline Pattern (Trigger-Driven)
+
+When an agent is triggered by an event (email, scheduled run) rather than user conversation, the pipeline must execute end-to-end without user interaction. This creates unique challenges versus interactive agents.
+
+### Key Differences from Interactive Agents
+
+1. **No user to clarify ambiguity mid-pipeline.** Every decision point must have a programmatic path — the agent cannot ask the user. Use verdict-based routing (PROCEED / REQUEST_INFO / ESCALATE) rather than open-ended questions.
+2. **Early termination is silent.** In interactive mode, stopping early at least shows the user something. In autonomous mode, stopping early means the trigger was consumed but no action was taken — invisible failure.
+3. **Context accumulates rapidly.** Each pipeline stage adds to the conversation context. Five child agents with detailed outputs can exceed token limits. Context summarisation between stages is not optional — it's required.
+4. **Tool ordering is critical.** The orchestrator must create the parent record (application) before logging child records (correspondence, compliance). State dependencies explicitly.
+
+### Instruction Template for Autonomous Pipelines
+
+```
+## Workflow stages — follow in order, do NOT stop early
+
+CRITICAL: Every inbound [trigger] MUST progress through ALL stages below.
+Do NOT stop after [first child]. Do NOT display child agent outputs to
+the user — they are internal pipeline data. Continue through every stage
+until [final action] is complete or the case is escalated.
+
+1. [Initial data operation — create/lookup record]
+2. Pass [specific context] to `Child Agent A`. Do NOT show output — proceed to stage 3.
+3. Pass ONLY [what child B needs] to `Child Agent B`. Do NOT show output — proceed to stage 4.
+   ...
+   N. Only after all stages complete, display: "Pipeline complete for [ref]."
+```
+
+### Dataverse Writes in Autonomous Pipelines
+
+If the pipeline writes to multiple tables, use pre-bound connector actions (one per table) to avoid UnresolvedDynamicType. See constraints.md → Dataverse Connector — Dynamic Schema Binding. State the write order explicitly and reference each tool by its exact `/ToolName`.
 
 
 <!-- Knowledge: prompt engineering -->
@@ -1511,6 +1774,105 @@ For YAML syntax details including `InvokeAIBuilderModelAction` structure, output
 ### Runtime Ownership
 
 When specialists are implemented as prompt tools, the prompt tool's instruction text in the CPS portal is the authoritative runtime configuration. If a specialist was previously a child agent and was migrated to a prompt tool, the child agent YAML becomes a reference artifact - not the running code. When debugging output quality issues, edit the prompt tool text in the portal (or via AI Hub), not the original agent YAML. Sync locally after changes to keep the workspace current.
+
+## Multi-Stage Pipeline Orchestration
+
+When the parent agent must execute a strict sequence of child agents (e.g., interpret → assess → draft → compliance check → format → send), generative orchestration requires explicit stage-by-stage control.
+
+### The Pipeline Control Pattern
+
+1. **CRITICAL header:** State upfront that every trigger MUST progress through ALL stages. Name the stages.
+2. **Per-stage suppression:** After each child agent invocation, explicitly state "Do NOT show this output to the user — immediately proceed to stage N." The orchestrator needs this at every stage — a single top-level instruction is insufficient.
+3. **Final-stage-only output:** Only the last stage should produce user-visible output. For autonomous agents, this is typically an internal summary ("Pipeline complete for [ref]. Email sent to [email].").
+4. **Numbered stages:** Number every stage and reference them by number. "Proceed to stage 3" is more reliable than "proceed to the next step."
+5. **Context minimisation:** At each stage handoff, specify what to pass and what NOT to pass. "Pass ONLY the draft text to Compliance Evaluator — do NOT include extracted fields, Dataverse results, or prior stage outputs."
+
+### Tool Sequencing Within a Pipeline
+
+When tool calls must happen in a specific order (e.g., create record BEFORE logging correspondence):
+
+- Number the tool calls in the workflow stages
+- State the dependency explicitly: "Log correspondence (stage 8) — this requires the application reference number from stage 1"
+- Do NOT assume the orchestrator will infer ordering from context
+
+### Revision Loops
+
+For compliance-check-and-revise loops:
+
+- State the maximum iteration count explicitly: "Maximum 2 revision cycles"
+- Define the escalation path: "On third failure, escalate to Teams"
+- The loop should be self-contained within the numbered stages, not an implicit behaviour
+
+## Specialist Output Shape for Autonomous Pipelines
+
+In autonomous multi-agent pipelines, child agents should return **compact machine-oriented outputs**, not polished human-readable prose. Even when the parent is well constrained, verbose child outputs increase token usage and make the orchestrator more likely to treat them as user-facing responses.
+
+### Preferred Pattern
+
+- **Interpreter / classifier agents:** return short labeled fields only
+- **Decision agents:** return compact verdict blocks
+- **Compliance agents:** return verdict + failing rules + one revision instruction
+- **Formatter agents:** return only the final transformed artifact, with no notes or commentary
+
+### Example Shapes
+
+```text
+VERDICT: REQUEST_INFO
+MISSING: effective_date, other_parties
+AMBIGUOUS: change_type
+CONTRADICTIONS: None
+REASON: Required fields for change of tenancy are incomplete.
+```
+
+```text
+VERDICT: FAIL
+FAILING_RULES: rule_2, rule_5
+REVISION: Remove the processing timescale and replace it with a neutral review statement.
+NOTES: Internal jargon still present.
+```
+
+### Rules
+
+- Tell specialist agents to return **no prose introduction** and **no conversational wrap-up**.
+- Keep outputs under a fixed line budget where possible (for example: 6-12 lines).
+- If the child agent produces the final artifact (for example, the accessible email body), require it to return **only** that artifact.
+- The parent should treat child outputs as hidden pipeline state, not as conversation content.
+
+## Record Creation Order in Trigger-Driven Pipelines
+
+For trigger-driven pipelines, do not create the primary Dataverse record until after the first extraction/classification stage has produced the minimum required fields.
+
+### Correct order
+
+1. Query for existing record using trigger metadata (for example: thread id, sender email)
+2. Run extraction/classification child agent
+3. If no record exists, create the Dataverse row using trigger metadata plus extracted fields
+
+### Why
+
+- If the create step comes before extraction, the planner treats required columns like `applicant_email` and `applicant_name` as missing interactive inputs
+- This often causes the autonomous agent to ask the user a question instead of continuing the pipeline
+- Trigger metadata such as sender email should be treated as pipeline context, not user input
+
+## Cross-Agent Rule Embedding for Drafter-Evaluator Pairs
+
+When an agent pipeline includes both a content drafter and a compliance evaluator:
+
+1. **The evaluator owns the full rule set** — detailed rule descriptions, examples of pass/fail, revision instruction templates. These live in a knowledge source attached to the evaluator.
+2. **The drafter owns the actionable output requirements** — the specific disclosures, permitted phrasings, and prohibited content that the evaluator will check. These are embedded directly in the drafter's instructions (not a knowledge source, because they must always be in context).
+3. **The two must stay in sync.** When a new compliance rule is added, update the drafter's "Required disclosures" or "Prohibited content" section in the same change. A mismatch guarantees first-pass failure.
+
+### What goes where
+
+| Content                                           | Where                                   | Why                                         |
+| ------------------------------------------------- | --------------------------------------- | ------------------------------------------- |
+| Full rule definitions with rationale and examples | Evaluator knowledge source              | Only needed during evaluation, not drafting |
+| Required disclosure text and templates            | Drafter instructions                    | Must always be in context during drafting   |
+| Permitted phrasing ("aim to" not "will")          | Drafter instructions                    | Prevents unauthorised commitments at source |
+| Prohibited content categories                     | Both drafter and evaluator instructions | Drafter avoids it; evaluator catches it     |
+| Revision instruction templates                    | Evaluator knowledge source              | Only used when generating revision feedback |
+
+This pattern eliminates the most common cause of compliance retry loops: the drafter simply didn't know what the evaluator would check.
 
 ## Disambiguation
 
@@ -1906,11 +2268,100 @@ The architecture document should contain a § Tool Descriptions (or § Dataverse
 
 ### Critical Rules
 
+- `modelDescription` has a **hard limit of 1,024 characters**. CPS silently truncates or rejects descriptions exceeding this. Action descriptions for topic-owned tools can be shorter since the orchestrator doesn't route to them directly.
 - `modelDescription` in action YAML is the **only safe field to edit** (along with `modelDisplayName`). All other fields are platform-generated.
 - NEVER use `>-` or `|` block scalar syntax for modelDescription — block scalars break tools in CPS. Always use plain inline strings.
 - Child agent tool copies have a ` 1` suffix on `modelDisplayName`. Their `modelDescription` should be scoped to the child agent's operations only (not a copy of the parent's description).
 - For Dataverse connectors shared across multiple tables: include which tables are valid, per-table purpose, key filterable columns with schema names, and OData filter examples.
 - For email connectors: include shared mailbox address, when to call, what to include, logging requirements.
+
+## Connector Action Input Configuration
+
+**Input descriptions are as important as tool-level `modelDescription` for correct autonomous execution.** An undescribed input set to "Dynamically fill with AI" causes the orchestrator to prompt the user for a value — even when it already holds the correct value in its reasoning context. This is the single most common cause of autonomous pipelines breaking into interactive mode.
+
+### Input Modes
+
+The CPS portal exposes three input modes per connector action input:
+
+- **"Dynamically fill with AI"** (`AutomaticTaskInput` in YAML) — the orchestrator infers the value from context using the input's name and description.
+- **"Ask the user"** — the orchestrator prompts the user for the value.
+- **"Set as custom value"** (`ManualTaskInput` in YAML) — a fixed value (Power Fx expression or literal) used every time.
+
+### Rules for Dynamic Inputs
+
+Every input set to "Dynamically fill with AI" must have a description that tells the orchestrator:
+
+1. **What value to use** — the expected data type, format, and constraints.
+2. **Where to get it** — "from the trigger context", "from the Interpret and Assess output", "the reference number created in step 3 or step 4".
+3. **"Never ask the user"** — for autonomous pipelines, explicitly state this. Without it, the orchestrator may fall back to prompting.
+
+If ANY `AutomaticTaskInput` on a tool lacks a description, the orchestrator may prompt the user for ALL fields on that tool — even ones that do have descriptions. One missing description poisons the whole tool.
+
+### System Fields Must Be Locked Down
+
+Fields like Import Sequence Number, Owner, Status Reason, Time Zone Rule Version Number, UTC Conversion Time Zone Code, and Return Full Metadata must never be "Dynamically fill with AI". Remove them from the connector action or set to custom values. If any remain as dynamic inputs, the orchestrator asks the user for values it cannot possibly know.
+
+### Primary Key / Unique Identifier
+
+Dataverse "Add a new row" actions often expose the table's primary key as a required dynamic input. The orchestrator cannot generate a valid GUID and will prompt the user. Set the primary key input to a custom value of `GUID()`. Do not confuse with the primary name column (human-readable label) which should remain dynamic.
+
+### Choice Column Mappings in Input Descriptions
+
+Choice (option-set) columns require integer values in input descriptions — not just in agent instructions or `modelDescription`. The input description is what the orchestrator reads when filling dynamic inputs. Always include the full mapping: `"Direction: Inbound=100000000, Outbound=100000001"`.
+
+### Text Column Length Limits
+
+When the orchestrator passes a value exceeding a Dataverse text column's max length, the connector returns HTTP 400. Common when logging email bodies or HTML content. Add truncation instructions to the input description: `"First 900 characters of the email body only. Truncate if longer."` Or increase the column length in Dataverse.
+
+### Display Name Consistency
+
+When the same schema column name (e.g. `cr85a_name`) exists on multiple tables with different display names, the orchestrator confuses them at the input level. Always use the display name as shown in the specific connector action — never schema names. Orchestrator instructions should reference "Application Reference Number", not `cr85a_name`.
+
+### Phantom Field References in modelDescription
+
+If `modelDescription` references a field name that doesn't exist as an `AutomaticTaskInput` or `ManualTaskInput` on the action, the orchestrator gets confused and falls back to prompting the user for other fields. Audit `modelDescription` text against the actual input list after every change. Every field name in `modelDescription` must correspond to a real input on the action.
+
+### Connector Action Input Audit Checklist
+
+Before publishing any agent that uses connector actions autonomously:
+
+1. **Is this input needed by the orchestrator?** If no → remove it or set to custom value.
+2. **Is this a choice/option-set column?** If yes → add integer mappings to the input description.
+3. **Is this a primary key / unique identifier?** If yes → set to custom value `GUID()`.
+4. **Is this a text column with a length limit?** If yes → check expected values fit, or add truncation instructions.
+5. **Is the display name unambiguous?** If the same schema name exists on other tables → use the exact display name from this action.
+6. **Does the description tell the orchestrator where to get the value?** If no → add source and "never ask the user" for autonomous pipelines.
+
+## Pre-Bound (Table-Targeted) Dataverse Connector Descriptions
+
+When using separate connector actions pre-bound to specific tables (to avoid UnresolvedDynamicType — see constraints.md), each tool's `modelDescription` must include:
+
+1. **The target table's purpose:** "Creates a new application record in cr85a_applications to track an inbound case."
+2. **Complete column list:** Every writable column by schema name. The model will hallucinate columns if the list is incomplete.
+3. **Choice/option-set mappings inline:** "cr85a_status: New=100000000, In Progress=100000001, Awaiting Applicant=100000002, Escalated=100000003"
+4. **"Do NOT invent column names":** Explicit prohibition — the model defaults to plausible-sounding names that don't exist.
+5. **Lookup column format:** "cr85a_application (Lookup): use the GUID of the parent cr85a_applications row."
+6. **What this tool does NOT do:** "Do NOT use for correspondence records — use /Log correspondence instead."
+
+### Example
+
+"Creates a new application record in cr85a_applications. Use ONLY these columns: cr85a_name (text, required — set to the reference number), cr85a_reference_number, cr85a_applicant_name, cr85a_applicant_email, cr85a_status (choice: New=100000000, In Progress=100000001, Awaiting Applicant=100000002, Escalated=100000003), cr85a_application_type (choice: Change of Tenancy=100000000, ...), cr85a_account_number, cr85a_assigned_queue, cr85a_overall_confidence. Do NOT invent column names not listed above. Do NOT use for correspondences, compliance checks, or extracted fields — use the dedicated tools for those tables."
+
+### Naming Convention
+
+Use descriptive action names, not table names:
+
+- Good: "Create application record", "Log correspondence", "Log compliance check"
+- Bad: "Add cr85a_applications row", "Add row 2", "Add row 3"
+
+## Tool Count Management
+
+When approaching the 25-30 tool limit:
+
+- Group related capabilities into child agents (each gets own tool limit)
+- Use topics for simple logic that doesn't need a separate tool
+- Disable tools that aren't needed for every conversation
+- When removing a tool from an autonomous pipeline, also add it to an explicit "Do not call: [tool X], [tool Y]" list in the orchestrator instructions — this prevents the orchestrator from re-discovering disabled tools via description matching
 
 ## External Connector Reference Library
 
@@ -1970,6 +2421,17 @@ For curated external YAML examples and schema references, see `reference-library
 4. Limit knowledge base context retrieval.
 5. Consider resetting conversations after a threshold.
 
+## SystemError in Autonomous Multi-Agent Pipelines
+
+Distinct from `OpenAIMaxTokenLengthExceeded`. In autonomous multi-agent pipelines, verbose/narrative child agent outputs cause a generic `SystemError` at later pipeline stages as accumulated context exceeds the orchestrator's processing capacity.
+
+1. **Compact child outputs first.** Child agents must produce machine-oriented output (key-value pairs, structured data, labeled blocks) not narrative prose. This is the highest-impact fix.
+2. **Reduce parent prompt length.** Shorter orchestrator instructions leave more token budget for tool outputs.
+3. **If still failing after compaction + reduction:** The next structural step is switching to a CPS workflow (deterministic orchestration) — not more prompt text. Workflows give explicit control flow without the token overhead of generative orchestration planning.
+4. Use the Transcript view in the CPS test pane as the primary diagnostic — Activity Map IDs are not queryable via the Dataverse API.
+
+**Escalation path:** Reduce prompts → compact child outputs → if still failing → CPS workflow.
+
 ## Child Agent Loops
 
 1. Add explicit closing instruction: "End conversation and return to parent after completing the task."
@@ -2010,6 +2472,36 @@ When a prompt tool's output schema changes, existing `InvokeAIBuilderModelAction
 
 See `yaml-syntax.md` for the full `InvokeAIBuilderModelAction` YAML structure and Power Fx parsing patterns.
 
+## Autonomous Pipeline Breaks into Interactive Mode
+
+Symptom: the orchestrator prompts the user for values it should already know (e.g. "Could you please specify the direction of the correspondence?").
+
+1. **Most common cause:** Missing input descriptions on "Dynamically fill with AI" inputs. Check every `AutomaticTaskInput` on the failing connector action — if any lacks a description, the orchestrator may prompt for ALL fields.
+2. **System fields exposed as dynamic inputs.** Check for Import Sequence Number, Time Zone Rule Version Number, UTC Conversion Time Zone Code, Owner, Status Reason. Remove or set to custom values.
+3. **Primary key exposed as dynamic input.** The orchestrator cannot generate a GUID. Set to custom value `GUID()`.
+4. **Missing choice column integer mappings in input descriptions.** The orchestrator passes text labels instead of integers.
+5. **Phantom field references in modelDescription.** If `modelDescription` mentions a field that doesn't exist as an input, the orchestrator gets confused and prompts for other fields. Audit modelDescription against actual inputs.
+
+**Diagnostic:** Check the orchestrator's reasoning trace (Transcript view). If it shows the correct value but still prompts the user, the problem is at the input configuration layer, not the prompt.
+
+## Dynamic Connector YAML — "Input Binding Not Found"
+
+Dynamic connectors (SendEmailV2, Dataverse Create/Update/List rows) produce "Input binding not found, refresh this flow" errors in the CPS extension when edited in YAML. These connectors don't declare input schemas locally — the schema is resolved at runtime from the platform.
+
+1. Push a skeleton with `input: {}` via Apply Changes.
+2. Wire input bindings in the portal canvas.
+3. Get Changes to pull the portal-generated bindings into local YAML.
+
+**Corollary:** `item/cr85a_fieldname` syntax in `BeginDialog` for Dataverse Record-type inputs compiles locally but is flagged "not found" by the extension — same dynamic schema issue. Portal-bound `item.'cr85a_*'` ManualTaskInput entries work at runtime; hand-authored ones do not.
+
+## CPS Extension Issues
+
+**"Apply Changes" disappears from Command Palette.** After multiple rapid edits or failed applies, the command may vanish. Fix: `Cmd+Shift+P` → "Developer: Reload Window" to reinitialize the extension. A trivial edit to any `.mcs.yml` file may also kick the diff detection back.
+
+## Conversation Transcripts in Dev/Test Environments
+
+The Dataverse `conversationtranscripts` table exists in dev environments but may have 0 rows even for non-M365-Copilot agents. Activity Map conversation IDs are not queryable via the Dataverse API. Prefer the Transcript view in the CPS test pane as the primary diagnostic tool. See also: M365 Copilot agents do not write Dataverse transcripts at all.
+
 ## Inconsistent Responses to Identical Queries
 
 1. LLM non-determinism is normal — identical queries won't always give identical responses.
@@ -2017,6 +2509,125 @@ See `yaml-syntax.md` for the full `InvokeAIBuilderModelAction` YAML structure an
 3. Check if different users have different access permissions.
 4. Check conversation context — previous turns influence routing and response.
 5. Check if the agent is near rate limits.
+
+## UnresolvedDynamicType on Dataverse "Add a new row" Connector
+
+The agent creates a row in one Dataverse table successfully, but the second "Add a new row" call targeting a different table fails. The Activity Map shows the tool was invoked but the connector returned an error. The orchestrator may ask the user for input parameters instead of populating them from context.
+
+**Root cause:** The generic "Add a new row to selected environment" connector resolves its schema dynamically from the `entityName` input. Within a single conversation, it binds to the first table's schema and cannot re-resolve for a different table. The second call fails with `UnresolvedDynamicType` because the connector expects columns from the first table.
+
+**Symptoms:**
+
+- First Add row succeeds; second fails silently or with a connector error
+- Agent asks the user for column values (e.g., "What is the Correspondence Name?") instead of populating them from pipeline context
+- Activity Map shows the generic "Add a new row" tool being called instead of targeted tools
+
+**Fix:**
+
+1. In the CPS portal, create separate "Add a new row" actions — one per target table. For each, set the `entityName` input to a fixed value (not dynamic).
+2. Sync locally via Get Changes. Update `modelDisplayName` and `modelDescription` to be table-specific.
+3. **Disable or remove the generic "Add a new row" tool.** If it remains active, the orchestrator prefers it over targeted tools.
+4. Update parent instructions to reference the new targeted tool names (e.g., `/Create application record`, `/Log correspondence`).
+5. Republish and test.
+
+**Key detail:** Simply renaming the generic tool's `modelDisplayName` is insufficient. The orchestrator may still select it. Pre-bound actions with hardcoded `entityName` are the reliable fix.
+
+## Pipeline Stops After First Child Agent (Autonomous/Trigger-Driven)
+
+The agent is triggered (e.g., by an email), invokes the first child agent successfully, then displays the child's output as the final response. Subsequent stages (other child agents, tool calls) never execute.
+
+**Root cause:** Generative orchestration treats each child agent's response as a potential final answer. Without explicit instructions to suppress display and continue, the orchestrator considers the plan complete after the first meaningful response.
+
+**Symptoms:**
+
+- Activity Map shows only 1-2 child agents invoked out of 5+
+- The first child's detailed output is displayed verbatim as the agent's response
+- No outbound email sent, no Dataverse logging completed
+
+**Fix:**
+
+1. Add a CRITICAL header above the workflow stages in parent instructions: "Do NOT stop after [first child]. Do NOT display child agent outputs to the user."
+2. After each child agent stage, add: "Do NOT show this to the user — immediately proceed to stage N."
+3. The final stage should be the only one that produces user-visible output.
+4. Republish and test. This fix typically requires emphatic, per-stage repetition — a single top-level instruction is not sufficient.
+
+## connectorRequestFailure When Creating/Updating Dataverse Rows
+
+The agent attempts to add or update a Dataverse row and the connector returns `connectorRequestFailure` with no useful detail about which column caused the error.
+
+**Root cause:** The agent used a column name that doesn't exist in the target table. Common patterns:
+
+- Hallucinated columns (e.g., `cr85a_body` when the actual column is `cr85a_email_body_preview`)
+- Generic column names without the schema prefix (e.g., `name` instead of `cr85a_name`)
+- Columns from a different table (mixed up which columns belong where)
+
+**Fix:**
+
+1. Include the **exact, exhaustive column list** for every target table in the tool's `modelDescription`. Format: "Columns: cr85a_name, cr85a_status, cr85a_reference_number, ..."
+2. Add to the description: "Do NOT invent column names. Use ONLY the columns listed above."
+3. Include choice/option-set integer mappings inline: "cr85a_status: New=100000000, In Progress=100000001, Escalated=100000003"
+4. If you have multiple tables, put each table's column list in the **corresponding targeted tool's** description — not in the parent instructions (saves instruction character budget).
+
+**Prevention:** The Architecture phase should define per-table column lists. The Build phase should copy these verbatim into each tool's `modelDescription`.
+
+## Autonomous Agent Prompts for Optional Fields Mid-Pipeline
+
+The agent is trigger-driven (email, scheduled) and should run end-to-end without interaction. Instead, it stops mid-pipeline and asks: "Could you please provide the contact number?" or "What is the account number?"
+
+**Root cause:** The flow tool uses `AutomaticTaskInput` for optional fields. The extraction agent returned empty string or null for fields not found in the source data. CPS treats empty/null `AutomaticTaskInput` values as "unresolved" and falls back to user prompting — this is platform behavior that cannot be overridden by instructions.
+
+**Debugging steps:**
+
+1. Check the Activity Map — look for the orchestrator generating a user-facing question instead of calling the flow tool
+2. Check the extraction agent's output — are missing fields returned as `""`, `null`, or not present?
+3. If missing fields are empty/null, implement the N/A sentinel pattern
+
+**Fix:** See constraints.md → Agent Flow Input Declarations → The N/A Sentinel Pattern:
+
+1. Extraction agent returns `"N/A"` for missing fields (not empty, not null)
+2. Flow checks `or(empty(...), equals(..., 'N/A'))` and preserves existing DB values when N/A
+3. CPS receives non-empty strings and never prompts
+
+**Testing:** Send a follow-up email that changes only one field (e.g., DOB update). Verify:
+
+- No prompting occurs
+- The changed field updates in the database
+- Existing values (account number, contact, address) are preserved
+- The response email acknowledges only the change, doesn't request additional information
+
+## Autonomous Agent Asks for Required Create-Record Fields
+
+The pipeline fails very early and asks a question such as "What is the applicant's email address?" or "What is the applicant's name?" immediately after the first Dataverse create-record step.
+
+**Root cause:** The workflow tries to create the Dataverse record before the extraction/classification stage has populated the required fields. Even though the trigger contains metadata like sender email, the planner treats the create action as an interactive data-entry step.
+
+**Fix:**
+
+1. Reorder the pipeline: query existing record first, then run extraction, then create the Dataverse row.
+2. In the create tool's `modelDescription`, explicitly state where required values come from. Example: "For inbound email triggers, set `applicant_email` to the sender email from the trigger. Do not ask the user for it."
+3. Republish and retest.
+
+## SystemError Even After Parent Prompt Reduction
+
+The parent instructions have been shortened, `$select`/`$filter` are in use, and full Dataverse result sets are no longer being passed — but the agent still throws `SystemError`, often around the 3rd or 4th specialist stage.
+
+**Likely cause:** The child agents are still returning long, human-readable responses with headings, explanations, and narrative detail. The parent carries these forward as hidden context, so the token budget still grows rapidly even though the parent prompt is shorter.
+
+**Symptoms:**
+
+- The failure point moves later in the pipeline but remains a `SystemError`
+- The Activity Map shows the planner restating workflow stages or prior child outputs in the reasoning pane
+- The pipeline reaches Correspondence Drafter or Accessibility Presenter, then fails without a connector-specific error
+
+**Fix:**
+
+1. Change specialist agents to emit compact machine-oriented blocks rather than prose.
+2. Add explicit parent instruction: "Child-agent outputs are hidden working notes, not user-visible messages."
+3. Add explicit parent rule: "Never quote or repeat a child-agent response to the conversation transcript."
+4. For final-stage formatter agents, require: "Return ONLY the final artifact. No notes, no explanation, no commentary."
+5. Republish and retest.
+
+**Escalation path:** If the pipeline still fails after both parent reduction and child-output compaction, the architecture is exceeding what generative orchestration can reliably handle. Move the pipeline into an explicit CPS workflow or deterministic topic/action sequence.
 
 ## OnError Topic Best Practices
 
@@ -2860,7 +3471,7 @@ Workflows give you explicit control flow (sequential execution, `GotoAction` loo
 
 - `Topic.PredictionOutput` is typed as a Record in Power Fx, not Text. You cannot call `Text()` or `ParseJSON()` directly on it. You must serialize it first with `JSON()`.
 
-- Power Fx expressions in YAML are prefixed with `=`. Variable assignment targets (e.g. in output bindings) are NOT prefixed with `=`.
+- Power Fx expressions in YAML are prefixed with `=`. Variable assignment targets (e.g. in output bindings) are NOT prefixed with `=`. ManualTaskInput `value` fields also use plain `Topic.xxx` with NO `=` prefix — adding `=` causes `IdentifierNotRecognized` compile errors. The portal generates these without `=` and CPS resolves them at runtime.
 
 - Input binding parameter names must exactly match the parameter names defined in the prompt tool. If the prompt tool requires inputs, every topic that calls it must supply them - `input: {}` will produce compile errors.
 
@@ -2873,6 +3484,22 @@ Workflows give you explicit control flow (sequential execution, `GotoAction` loo
 - CPS compile errors appear in VS Code via the CPS extension's diagnostics. Always check errors after editing YAML - the error messages are generally accurate and point to the exact line.
 
 - The CPS YAML export is the source of truth for what field names and structures are valid. When in doubt, make changes in the portal, sync, and inspect the generated YAML to learn the correct syntax.
+
+- CPS Power Fx `Char()` only supports values 1–255 (ASCII range). `UniChar()` may exist for Unicode but needs verification before deploying in production expressions.
+
+## Dynamic Connector Actions
+
+Dynamic connectors (SendEmailV2, Dataverse Create/Update/List rows) don't declare their input schemas locally — the schema is resolved at runtime from the platform. Editing these in YAML produces "Input binding not found, refresh this flow" errors in the CPS extension.
+
+**Workaround:**
+
+1. Push a skeleton with `input: {}` via Apply Changes.
+2. Wire input bindings in the portal canvas.
+3. Get Changes to pull the portal-generated bindings into local YAML.
+
+**Corollary:** `item/cr85a_fieldname` syntax in `BeginDialog` for Dataverse Record-type inputs compiles locally but is flagged "not found" by the extension — same dynamic schema issue. Portal-bound `item.'cr85a_*'` ManualTaskInput entries work at runtime; hand-authored ones do not.
+
+This is a specific instance of the general scaffold-first rule: for connectors with dynamic schemas, always create or wire bindings in the portal first.
 
 
 ---
@@ -3718,7 +4345,19 @@ How to connect agents to external systems and design multi-agent architectures.
 - **Each tool should have a clear, single-purpose interface.** Define input parameters with expected types, output variables, and error conditions. The orchestrator treats tools as reliable functions — make them behave that way.
 - **Test tools for deterministic behaviour.** Given the same inputs, a tool should produce the same outputs. Non-deterministic tools confuse the orchestrator's planning and make debugging much harder.
 - **Tool names matter more than descriptions.** The planner gives more weight to tool names when deciding what to invoke. Use active, descriptive names: `TranslateText`, `CheckOrderStatus`, `CreateSupportTicket`. Never `Flow1` or `Action_3`.
-- **Curate your toolkit.** Connect all useful actions, but remove or disable tools that are irrelevant or risky. A smaller set of high-quality choices is better than an exhaustive set with overlaps. Overlapping descriptions cause the agent to invoke multiple tools unnecessarily.
+- **Curate your toolkit.** Connect all useful actions, but remove or disable tools that are irrelevant or risky. A smaller set of high-quality choices is better than an exhaustive set with overlaps. Overlapping descriptions cause the agent to invoke multiple tools unnecessarily. When removing a tool from an autonomous pipeline, add it to an explicit "Do not call" list in the orchestrator instructions.
+
+### Connector Action Input Configuration
+
+For agents that use connector actions autonomously (no user to prompt), input configuration is as critical as tool-level descriptions.
+
+- **Every dynamic input needs a description.** Inputs set to "Dynamically fill with AI" without descriptions cause the orchestrator to prompt the user — even when it already holds the correct value. One missing description can poison all inputs on the tool.
+- **Descriptions must state the value source.** Not just the format — the orchestrator needs to know _where_ the value comes from: "from the trigger context", "from step 3 output", "the reference number created earlier". Add "never ask the user" for autonomous pipelines.
+- **Lock down system fields.** Import Sequence Number, Time Zone Rule Version Number, UTC Conversion Time Zone Code, Owner, Status Reason, Return Full Metadata — set to custom values or remove entirely.
+- **Primary keys need `GUID()`.** Dataverse "Add a new row" actions often expose the primary key as a dynamic input. Set to a custom value of `GUID()`.
+- **Choice columns need integer mappings in input descriptions.** Integer mappings in agent instructions alone are not sufficient — the orchestrator reads the input description when filling dynamic inputs.
+- **Watch text column length limits.** Values that exceed a column's max length cause HTTP 400. Add truncation instructions to the input description when the expected value may be long.
+- **Use display names consistently.** When the same schema name exists across multiple tables with different display names, always use the display name as shown in the specific connector action.
 
 ### Tool Count Guidance
 

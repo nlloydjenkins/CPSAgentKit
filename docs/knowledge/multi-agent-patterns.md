@@ -88,9 +88,11 @@ Agent A → Agent B → Agent A is blocked. Use hub-and-spoke.
 
 Parent → child → child's child is blocked. Flatten, or use child agents within connected agents.
 
-### The Ghost Message
+### The Ghost Message / explanation_of_tool_call Leaking
 
-Parent with no topics/knowledge + "Don't respond" after child = platform sends unsolicited `explanation_of_tool_call` message from the orchestration runtime.
+Generative orchestration "thinking" messages (`explanation_of_tool_call`) leak through to the user as a general platform behavior. This is not limited to the narrow case of "parent with no topics + 'Don't respond' after child" — it happens broadly even with explicit "NEVER display reasoning" instructions.
+
+**Mitigation:** Keep instructions action-oriented ("EXECUTE step 1", not "plan step 1"). Avoid instructions that describe reasoning processes. This reduces but does not eliminate the leaking — it is a platform behavior, not an instruction failure.
 
 ## Data Handoff
 
@@ -227,3 +229,53 @@ Triggers are vulnerable to injection attacks. Instructions should include:
 - Limit which tools the agent can invoke from triggers
 - Limit parameters (e.g., "only email to @contoso.com addresses")
 - "Only email information after checking a knowledge source for context"
+
+## Autonomous Pipeline Output Compaction
+
+In autonomous multi-agent pipelines, verbose/narrative child agent outputs cause `SystemError` at later pipeline stages as accumulated context exceeds the orchestrator's processing capacity. This is distinct from `OpenAIMaxTokenLengthExceeded` — it manifests as a generic `SystemError` with no useful diagnostic detail.
+
+**Pattern:** Child agents in autonomous pipelines must produce compact, machine-oriented output:
+
+- Key-value pairs or structured data instead of narrative prose
+- Labeled blocks (e.g. `RESULT: reference=APP-001, status=Ready for Processing, email_type=Initial Application`)
+- Only the data the next pipeline step needs — no explanatory text, no conversational wrap-up
+
+**Escalation path when SystemError persists:**
+
+1. Reduce parent orchestrator prompt length
+2. Compact all child agent outputs to machine-oriented format
+3. If still failing → switch to a CPS workflow (deterministic orchestration) rather than adding more prompt text
+
+The workflow approach removes the token overhead of generative orchestration planning and gives explicit control flow.
+
+## Autonomous Pipeline Pattern (Trigger-Driven)
+
+When an agent is triggered by an event (email, scheduled run) rather than user conversation, the pipeline must execute end-to-end without user interaction. This creates unique challenges versus interactive agents.
+
+### Key Differences from Interactive Agents
+
+1. **No user to clarify ambiguity mid-pipeline.** Every decision point must have a programmatic path — the agent cannot ask the user. Use verdict-based routing (PROCEED / REQUEST_INFO / ESCALATE) rather than open-ended questions.
+2. **Early termination is silent.** In interactive mode, stopping early at least shows the user something. In autonomous mode, stopping early means the trigger was consumed but no action was taken — invisible failure.
+3. **Context accumulates rapidly.** Each pipeline stage adds to the conversation context. Five child agents with detailed outputs can exceed token limits. Context summarisation between stages is not optional — it's required.
+4. **Tool ordering is critical.** The orchestrator must create the parent record (application) before logging child records (correspondence, compliance). State dependencies explicitly.
+
+### Instruction Template for Autonomous Pipelines
+
+```
+## Workflow stages — follow in order, do NOT stop early
+
+CRITICAL: Every inbound [trigger] MUST progress through ALL stages below.
+Do NOT stop after [first child]. Do NOT display child agent outputs to
+the user — they are internal pipeline data. Continue through every stage
+until [final action] is complete or the case is escalated.
+
+1. [Initial data operation — create/lookup record]
+2. Pass [specific context] to `Child Agent A`. Do NOT show output — proceed to stage 3.
+3. Pass ONLY [what child B needs] to `Child Agent B`. Do NOT show output — proceed to stage 4.
+   ...
+   N. Only after all stages complete, display: "Pipeline complete for [ref]."
+```
+
+### Dataverse Writes in Autonomous Pipelines
+
+If the pipeline writes to multiple tables, use pre-bound connector actions (one per table) to avoid UnresolvedDynamicType. See constraints.md → Dataverse Connector — Dynamic Schema Binding. State the write order explicitly and reference each tool by its exact `/ToolName`.
