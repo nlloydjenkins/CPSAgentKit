@@ -161,15 +161,14 @@ The `.cpsagentkit/knowledge/` folder contains detailed platform knowledge. Key f
 - Generative orchestration is English-only
 - Agent instructions are treated like code — debug by removing all and adding back one at a time
 
-
 ---
 
 # CPS Platform Knowledge Reference
 
 The following sections contain the CPS platform knowledge base used to maintain this repository. Reference these when changing prompts, review logic, architecture guidance, or build automation.
 
-
 <!-- Knowledge: anti patterns -->
+
 # CPS Anti-Patterns
 
 ## Tool/Action Connection Anti-Patterns
@@ -379,8 +378,8 @@ These instructions must be emphatic and repeated per stage. A single top-level "
 
 **Recovery:** If portal editing has damaged the flow, restore from the local workflow.json backup. The local file can be the correct version — but Power Automate is the source of truth for flows, so you must re-apply the fix either through Apply Changes or by manually recreating the correct structure in the PA designer.
 
-
 <!-- Knowledge: cheat sheet -->
+
 # Copilot Studio Cheat Sheet — Gotchas & Idiosyncrasies
 
 Things that catch people out, behave unexpectedly, or aren't in the docs. For detailed guidance, see the referenced files.
@@ -590,8 +589,8 @@ The `description` in `mcs.metadata` is critical at scale — beyond 25 knowledge
 
 _Last updated: March 2026. The platform changes fast — validate against your environment._
 
-
 <!-- Knowledge: constraints -->
+
 # CPS Platform Constraints
 
 ## Orchestration
@@ -823,8 +822,8 @@ Settings flags in `settings.mcs.yml` and capabilities in `agent.mcs.yml` must be
 - When reviewing an agent, check that every enabled capability (`webBrowsing`, `codeInterpreter`, `isFileAnalysisEnabled`, `isSemanticSearchEnabled`) has a corresponding implementation. An enabled feature with no backing configuration is dead config at best, a grounding leak at worst.
 - **Portal defaults are aggressive:** New agents arrive from the portal with `useModelKnowledge: true`, `webBrowsing: true`, `isSemanticSearchEnabled: true`, `isFileAnalysisEnabled: true`. The Build phase MUST validate these against the architecture specification and fix mismatches. For internal enterprise agents, most of these should typically be `false`.
 
-
 <!-- Knowledge: dataverse mcp setup -->
+
 # Connecting Dataverse MCP Server to GitHub Copilot in VS Code
 
 **Last verified:** 27 March 2026
@@ -971,8 +970,8 @@ For a global configuration, edit `~/.copilot/mcp-config.json` instead.
 
 Dataverse MCP tools are charged when accessed by AI agents outside of Copilot Studio (includes GitHub Copilot). Exempt with Dynamics 365 Premium licences or Microsoft 365 Copilot User Subscription Licence. Otherwise: 1 Copilot Credit per 10 tool calls.
 
-
 <!-- Knowledge: declarative agents -->
+
 # CPS Declarative Agents for M365 Copilot
 
 Declarative agents customise M365 Copilot for specific business scenarios via custom instructions, knowledge sources, and actions.
@@ -1012,8 +1011,8 @@ Agents published to M365 Copilot inherit Purview DLP controls:
 - **Sensitivity label protection (GA):** Block Copilot from processing or summarising files and emails with specific sensitivity labels.
 - Error messaging may not clearly explain why a response was blocked, particularly in Word, Excel, and PowerPoint.
 
-
 <!-- Knowledge: direct line api -->
+
 # CPS Direct Line API Access
 
 How to connect to a Copilot Studio agent programmatically via the Direct Line API (Dataverse-backed, authenticated).
@@ -1141,8 +1140,8 @@ This API enables programmatic testing of CPS agents outside the portal test pane
 - CI/CD integration: validate agent behaviour after `Apply Changes`
 - Batch evaluation: run a suite of test cases and produce a pass/fail report
 
-
 <!-- Knowledge: knowledge sources -->
+
 # CPS Knowledge Source Design
 
 ## How Retrieval Works
@@ -1229,8 +1228,8 @@ This pattern ensures agents always have the latest authoritative content when av
 - Declarative agents fail silently without M365 Copilot license (generic "Sorry" message)
 - Azure AI Search connector: indexes must be vectorised, payloads can exceed CPS limits, no metadata filtering
 
-
 <!-- Knowledge: multi agent patterns -->
+
 # CPS Multi-Agent Patterns
 
 ## When to Use Multiple Agents
@@ -1513,8 +1512,8 @@ until [final action] is complete or the case is escalated.
 
 If the pipeline writes to multiple tables, use pre-bound connector actions (one per table) to avoid UnresolvedDynamicType. See constraints.md → Dataverse Connector — Dynamic Schema Binding. State the write order explicitly and reference each tool by its exact `/ToolName`.
 
-
 <!-- Knowledge: prompt engineering -->
+
 # CPS Prompt Engineering
 
 ## The Prompt Architecture
@@ -1881,8 +1880,8 @@ If overlapping tools/agents exist ("Check balance" tool + "Get balance" agent):
 - Differentiate descriptions clearly, OR
 - Restrict one to explicit invocation only (clear "Allow agent to decide dynamically")
 
-
 <!-- Knowledge: reference library -->
+
 # External CPS Reference Library
 
 Curated reference guidance based on the `microsoft/skills-for-copilot-studio` repository.
@@ -2034,8 +2033,8 @@ This library exists to improve:
 
 It does **not** replace the CPSAgentKit architecture-driven workflow, local review logic, or real exported YAML as the primary build baseline.
 
-
 <!-- Knowledge: reference patterns -->
+
 # External YAML Pattern Library
 
 Practical patterns distilled from `microsoft/skills-for-copilot-studio` and adapted for CPSAgentKit.
@@ -2188,8 +2187,8 @@ These are the highest-value assets from the external repo for CPSAgentKit refere
 - `templates/knowledge/sharepoint.knowledge.mcs.yml`
 - `templates/variables/global-variable.variable.mcs.yml`
 
-
 <!-- Knowledge: tool descriptions -->
+
 # CPS Tool Description Patterns
 
 ## Why Descriptions Matter
@@ -2373,8 +2372,8 @@ The `skills-for-copilot-studio` repo includes connector metadata files under `re
 
 Do not generate production action YAML directly from those files. Keep using portal-created actions plus local edits to `modelDisplayName` and `modelDescription` only.
 
-
 <!-- Knowledge: troubleshooting -->
+
 # CPS Troubleshooting
 
 For curated external YAML examples and schema references, see `reference-library.md` and `reference-patterns.md`. Use them to recognize patterns faster, but validate changes against real exported YAML from your environment.
@@ -2676,8 +2675,8 @@ The Copilot Studio MCP client record doesn't exist in your environment's allowed
 
 **After saving:** Return to Copilot Studio and re-add the Dataverse MCP Server tool. The 403 should be resolved.
 
-
 <!-- Knowledge: yaml syntax -->
+
 # Copilot Studio YAML Syntax Reference
 
 Verified syntax patterns from hands-on editing of exported CPS agent components.
@@ -3501,15 +3500,14 @@ Dynamic connectors (SendEmailV2, Dataverse Create/Update/List rows) don't declar
 
 This is a specific instance of the general scaffold-first rule: for connectors with dynamic schemas, always create or wire bindings in the portal first.
 
-
 ---
 
 # CPS Best Practices
 
 The following sections contain best practice guidance for Copilot Studio solutions. Apply these when designing, building, and reviewing agents.
 
-
 <!-- Best Practice: part1 platform -->
+
 # Copilot Studio Assessment Guide — Part 1: Platform (Quotas, Limits & Boundaries)
 
 Everything that constrains what your agent can do before you even start building it.
@@ -3672,8 +3670,8 @@ Copilot Studio requires connectivity to several domains. If any are blocked, age
 
 Also configure all required services for Power Automate if using flows with your agents.
 
-
 <!-- Best Practice: part2 alm governance security -->
+
 # Copilot Studio Assessment Guide — Part 2: ALM, Governance & Security
 
 How to manage agent lifecycle, protect data, and maintain control at scale.
@@ -4009,8 +4007,8 @@ These are things you'd expect to be able to do but currently can't:
 - **Limited visibility** into which agents are being used and by whom (analytics are improving but still basic)
 - **No centralised agent inventory** that gives admins a single view of all agents across all environments with their status, usage, and compliance posture
 
-
 <!-- Best Practice: part3 agent design -->
+
 # Copilot Studio Assessment Guide — Part 3: Agent Design (Instructions, Knowledge & Orchestration)
 
 How to configure agents that behave predictably and answer accurately.
@@ -4330,8 +4328,8 @@ A concise set of design heuristics distilled from enterprise deployments. Refer 
 14. **Monitor before you scale.** Set up Application Insights, conversation transcripts, and Purview audit logs before expanding to additional user groups. Silent failures are common and invisible without monitoring.
 15. **Re-evaluate after model upgrades.** When Microsoft updates the default model (e.g. GPT-4.1 mini → GPT-5), re-run your test suite. Model changes can alter orchestration behaviour, response quality, and tool selection patterns.
 
-
 <!-- Best Practice: part4 tools multiagent -->
+
 # Copilot Studio Assessment Guide — Part 4: Tools, Actions & Multi-Agent Patterns
 
 How to connect agents to external systems and design multi-agent architectures.
@@ -4541,8 +4539,8 @@ The channel description provides instruction for intent recognition between doma
 - Generated content is in the currently active language
 - **Generative orchestration is currently English-only for the orchestration layer** — the planning and decision-making happens in English even if the agent responds in another language
 
-
 <!-- Best Practice: part5 gotchas bugs -->
+
 # Copilot Studio Assessment Guide — Part 5: Gotchas, Bugs & Known Issues
 
 The stuff that will catch you out. Gathered from official known issues, community reports, and practitioner experience as of March 2026.
@@ -4692,7 +4690,6 @@ These apply when building API plugins for declarative agents in M365 Copilot:
 - **Features marketed as GA that are still in preview.** This has happened multiple times and erodes trust. Always check the release notes and feature documentation for actual status before making commitments to customers.
 - **YouTube tutorials frame product limitations as user error.** Common in the community, but many issues that look like bad agent design are actually platform-level limitations. Validate against known issues before blaming your configuration.
 - **Documentation doesn't keep pace with feature changes.** Microsoft's Learn docs are frequently eclipsed by new functionality. Cross-reference documentation dates, release notes, and community posts when something doesn't match your experience.
-
 
 ---
 
