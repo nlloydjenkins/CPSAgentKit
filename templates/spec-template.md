@@ -27,6 +27,16 @@
 
 -
 
+## Users & Channel
+
+<!-- Who uses this agent and how they access it -->
+
+- **Primary users:**
+- **User auth state:** Authenticated (Entra ID) / Anonymous / Mixed
+- **Target channel(s):** Teams / M365 Copilot / Web chat / Custom app
+- **M365 Copilot license available:** Yes / No
+- **Data sensitivity:** Public / Internal / Confidential / Highly confidential
+
 ## Domain knowledge
 
 <!-- List the documents, data sources, or systems the agent needs access to -->

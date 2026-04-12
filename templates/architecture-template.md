@@ -20,6 +20,17 @@
 - **Knowledge sources:**
 - **Key instructions:**
 
+## Channel & Authentication
+
+<!-- State target channel(s), auth method, and identity model.
+     Channel determines what auth is possible — verify before designing flows.
+     CONSTRAINT: Teams full delegated auth; anonymous webchat = no delegation; autonomous agents = maker/service only. -->
+
+- **Target channel(s):**
+- **Authentication method:** Authenticate with Microsoft / Manual OAuth / No auth
+- **Identity model:** End-user delegated / Maker service account / Mixed per-connection
+- **M365 Copilot license available:** Yes / No (affects SharePoint 7 MB limit, graph grounding)
+
 ## Routing Logic
 
 <!-- How the parent decides which agent to invoke -->
@@ -30,10 +41,13 @@
 <!-- Use standard connector action names where applicable, e.g. 'Microsoft Dataverse - List rows from selected environment'. -->
 <!-- Do NOT rename standard connector actions to business-specific labels such as 'Get Incident Status'. -->
 <!-- For architectures with 5+ columns (e.g. Run As Identity, Target Tables), include all columns from the spec -->
+<!-- Run As Identity: "End User" for delegated user identity (requires authenticated channel + OAuth connector).
+     "Maker" for service account / flow author identity (default for PA flows, autonomous agents).
+     "Mixed" if individual connections override identity per-connection. See best practices Part 2 § Auth Identity. -->
 
-| Tool | Owner Agent | Purpose | Manual Portal Step Required |
-| ---- | ----------- | ------- | --------------------------- |
-|      |             |         |                             |
+| Tool | Owner Agent | Purpose | Run As (End User / Maker / Mixed) | Manual Portal Step Required |
+| ---- | ----------- | ------- | --------------------------------- | --------------------------- |
+|      |             |         |                                   |                             |
 
 ## Tool Descriptions
 
@@ -88,6 +102,16 @@
 
 -
 
+## Governance & DLP
+
+<!-- Record DLP policy constraints that affect this solution.
+     CONSTRAINT: DLP enforcement is mandatory. Connectors in different data groups cannot coexist.
+     Flag any auth blocks, channel restrictions, or connector group conflicts. -->
+
+- **DLP data groups verified:** Yes / No / TBD
+- **Rate limit tier:** Trial (10 RPM) / Prepaid packs 1-10 (50 RPM) / Prepaid 11-50 (80 RPM) / PAYG (100 RPM) / M365 Copilot (100 RPM)
+- **Knowledge source re-processing after import required:** Yes (flag in deployment runbook)
+
 ## General Knowledge Stance
 
 <!-- State whether general knowledge is enabled, disabled, or fallback-only, and why. -->
@@ -135,6 +159,15 @@
 | Document | How It Influenced the Architecture |
 | -------- | ---------------------------------- |
 |          |                                    |
+
+## Deployment & ALM
+
+<!-- Record deployment strategy. Knowledge sources require manual re-processing after solution import. -->
+
+- **Solution packaging:** Managed / Unmanaged / Not using solutions
+- **Environment strategy:** Dev / Test / Prod or Single environment
+- **Knowledge source re-processing documented:** Yes / No
+- **Version control strategy:**
 
 ## Build State
 

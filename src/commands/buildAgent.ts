@@ -307,15 +307,68 @@ function composeBuildPrompt(
     "- If the parent needs deterministic status lookup or a one-question clarification loop, implement that through one or more parent Topics rather than inventing a workflow concept.",
     '- Write tool descriptions following this pattern: "[What it does]. Call when [specific intents]. Requires [inputs]. Do NOT use for [exclusions]."',
     "- Topic descriptions must tell the orchestrator exactly when to invoke them and when NOT to",
-    "- Keep agent instructions under ~2000 characters",
+    "- Agent instructions have an 8,000-character hard limit. Quality may degrade with dense instructions before this limit. For autonomous pipelines with retry logic, keep instructions under ~5,500 characters. If instructions exceed ~3,000 characters, consider decomposing into child agents, prompt tools, or knowledge files.",
     "- If something needs manual portal creation, list the exact steps and settings",
+    "- When generating modelDescription values, validate that no description exceeds 1,024 characters. CPS silently truncates longer descriptions.",
+    "- If an agent has more than 25 action YAML files (tools), warn that orchestrator routing quality degrades beyond 25-30 tools. Consider splitting into child agents to partition the tool set.",
+    "- When generating agent instructions containing single curly braces { } that are not Power Fx {System.Bot.Components...} references and not doubled {{ }} escape sequences, warn that CPS evaluates single curly braces as Power Fx expressions. Use {{ }} for literal braces or key=value notation for examples.",
+    "- ⚠️ Tools prohibited by instruction text (e.g. 'Do not call /ToolName') should be disabled in the CPS portal instead. Instruction-level prohibition is not reliable — the orchestrator may still select them based on description matching. Flag any tools that are listed in instructions as prohibited but remain active.",
     "",
   ].join("\n");
+
+  // Detect multi-agent architecture and inject additional generation rules
+  const hasMultipleAgents =
+    /###\s+\S.*\n[\s\S]*?-\s*\*\*Type:\*\*\s*(child|connected)/i.test(
+      architecture,
+    );
+  const multiAgentRules = hasMultipleAgents
+    ? [
+        "",
+        "### Multi-Agent Generation Rules (Architecture Has Multiple Agents)",
+        "",
+        "When generating instructions for specialist child agents:",
+        "",
+        '1. **Agent boundary enforcement**: Each specialist\'s instructions MUST include explicit prohibitions stating what it must NOT assess. Positive scope alone is insufficient. Template: "You handle [domain] ONLY. Do NOT assess: [sibling domains]. These belong to other specialists."',
+        '2. **Output shape for autonomous pipelines**: If the architecture uses event triggers or autonomous execution, child agents must return compact machine-oriented output (key-value pairs, labeled blocks), NOT narrative prose. Instruct: "Return ONLY structured data. No prose introduction. No conversational wrap-up."',
+        '3. **Version stamping**: Every agent\'s instructions must include a version stamp at the top. Format: "[Agent Name] V1.0". Require this in output.',
+        "4. **Output preservation**: When a parent passes one child's output to another step, instruct the parent to preserve the output as a labeled block (e.g., RESULT_LABEL: content) rather than paraphrasing it.",
+        '5. **Per-stage anti-termination** (autonomous pipelines only): After each child agent invocation, include "Do NOT show this output to the user — immediately proceed to stage N." A single top-level instruction is insufficient.',
+        "6. **Record creation ordering**: In trigger-driven pipelines, instruct that the primary Dataverse record must be created AFTER the extraction/classification stage, not before. If the create step precedes extraction, the planner treats required columns as missing interactive inputs and prompts the user.",
+        "7. **Drafter-evaluator knowledge sync**: When the architecture has a drafter + compliance evaluator pair, the build must embed the evaluator's actionable output requirements into the drafter's instructions. Every rule the evaluator checks must have a corresponding requirement the drafter knows about.",
+        "8. **Retry loop budget warning**: If the architecture includes compliance retry loops, warn that duplicating full tool references in retry instructions adds ~200+ characters per loop iteration. For orchestrators near the ~5,500-character budget, this can cause SystemError. Prefer stage-number references over full tool references in retry logic.",
+        "",
+      ].join("\n")
+    : "";
+
+  // Detect autonomous pipeline (event triggers in architecture)
+  const hasAutonomousTriggers =
+    /\|\s*\w+-\d+\s*\|/i.test(architecture) &&
+    /## Autonomous Triggers/i.test(architecture);
+  const autonomousPipelineRules = hasAutonomousTriggers
+    ? [
+        "",
+        "### Autonomous Pipeline Rules (Architecture Has Event Triggers)",
+        "",
+        "This architecture uses event triggers. Additional requirements apply:",
+        "",
+        '1. Parent agent instructions MUST include a CRITICAL header: "Every inbound trigger MUST progress through ALL stages. Do NOT stop after [first stage]."',
+        '2. After each child agent stage, add: "Do NOT show this output to the user — immediately proceed to stage N."',
+        "3. Only the final stage produces user-visible output.",
+        "4. Number all stages explicitly with dependencies.",
+        '5. For optional fields that may not be present in trigger data, use the N/A sentinel pattern: return "N/A" (not empty string, not null) for missing fields. The flow checks for "N/A" and preserves existing database values.',
+        "6. Child agents must return compact machine-oriented output, not polished prose.",
+        "7. Create the primary Dataverse record AFTER the extraction/classification stage. If the create step comes before extraction, the planner treats required columns as missing interactive inputs and asks the user.",
+        "8. If the pipeline includes a compliance revision loop, keep the retry instruction compact — do not duplicate full tool references. Reference stages by number instead. If parent instructions exceed ~5,500 characters including retry logic, test for SystemError on simple inputs before publishing.",
+        "",
+      ].join("\n")
+    : "";
 
   switch (scope) {
     case "full":
       return (
         base +
+        multiAgentRules +
+        autonomousPipelineRules +
         [
           "## Task: Full Build",
           "Generate ALL of the following for each agent in the architecture:",
@@ -337,10 +390,12 @@ function composeBuildPrompt(
           "   Do not add suggested prompts to child-agent YAML unless that file shape already supports them.",
           "3. **Topic descriptions** — for each custom topic, the description that drives orchestrator routing",
           "4. **Tool/action modelDescriptions** — for EVERY action YAML, generate a detailed modelDescription from the architecture's tool description specs (§ Dataverse Connector Tool Descriptions or equivalent). Include table routing logic, valid tables, filterable columns, and explicit exclusions. Generic platform defaults MUST be replaced.",
+          "4a. **Connector action input descriptions** — for every action with AutomaticTaskInput entries, generate per-input descriptions with value source, expected format, and 'Never ask the user' for autonomous pipelines. Include choice column integer mappings. Flag dynamic schema connectors (zero declared inputs) for portal wiring. Flag system fields and primary keys that should not be dynamic.",
           "5. **System topic customisation** — ConversationStart (greeting listing agent capabilities from architecture), Fallback (domain-specific re-prompting with capability guidance), Escalation (helpdesk contact + escalation logging from architecture), OnError (timestamp, test/prod branching, telemetry, CancelAllDialogs)",
           "6. **Trigger descriptions** — for each autonomous trigger in the architecture's trigger table, replace the generic description with the architecture-specific trigger definition (e.g. AT-001 Daily Operations Scan)",
           "7. **Settings coherence** — validate settings.mcs.yml against architecture: useModelKnowledge, webBrowsing, isSemanticSearchEnabled, content moderation level. Flag any mismatches.",
           "8. **Manual portal steps** — anything that must be configured in the CPS portal UI. Explicitly flag content moderation as portal-only (no YAML surface).",
+          "9. **Settings coherence (mandatory)** — After generating all agent config, validate settings.mcs.yml against the architecture spec. Check: useModelKnowledge, webBrowsing, isSemanticSearchEnabled, isFileAnalysisEnabled, optInUseLatestModels vs modelNameHint, authenticationMode, GenerativeActionsEnabled. Flag portal defaults that contradict the architecture. If useModelKnowledge is false, note that follow-up clarifying questions are disabled.",
           "",
           "If CPS agent YAML files exist in the workspace, modify them directly and report the file changes you made. Only provide portal-ready text when there are no local CPS YAML files to edit.",
           dataverseBuildPrompt
@@ -357,6 +412,8 @@ function composeBuildPrompt(
     case "instructions":
       return (
         base +
+        multiAgentRules +
+        autonomousPipelineRules +
         [
           "## Task: Agent Instructions",
           "For each agent in the architecture, generate or update the agent instructions.",
@@ -401,6 +458,8 @@ function composeBuildPrompt(
     case "tools":
       return (
         base +
+        multiAgentRules +
+        autonomousPipelineRules +
         [
           "## Task: Tool Descriptions",
           "",
@@ -422,6 +481,20 @@ function composeBuildPrompt(
           "### Safety",
           "Update ONLY the modelDescription field in action YAML. Do not modify any other fields — mcs.metadata, kind, inputs, outputs, action, connectionReference, connectionProperties, operationId, dynamicOutputSchema are all platform-generated and will break the agent if altered.",
           "NEVER use >- or | block scalar syntax for modelDescription — block scalars break tools in CPS. Always use plain inline strings.",
+          "",
+          "### Connector Action Input Descriptions",
+          "",
+          "For every action YAML with `AutomaticTaskInput` entries, generate or improve the input description for each dynamic input:",
+          "",
+          '1. State the **value source**: "from the extraction agent output", "from the trigger context", "the reference number created in step N"',
+          '2. State the **expected format**: "text", "integer — see choice mappings below", "GUID"',
+          '3. For autonomous pipelines, append: "Never ask the user for this value."',
+          '4. For choice/option-set columns, include integer mappings: "Status: New=100000000, In Progress=100000001"',
+          '5. For text columns with length limits, add truncation guidance: "First 900 characters only. Truncate if longer."',
+          "6. Flag any actions with zero AutomaticTaskInput/ManualTaskInput entries (beyond organization/entityName) — these are dynamic schema connectors that require portal-side input wiring.",
+          "",
+          "System fields (Import Sequence Number, Owner, Status Reason, Time Zone Rule Version, UTC Conversion, Return Full Metadata) must never be dynamic inputs. Flag or set to custom values.",
+          "Primary key / unique identifier fields must use `GUID()` as a custom value, not dynamic input.",
         ].join("\n")
       );
 

@@ -19,6 +19,14 @@ There is no single "system prompt" in CPS. Behaviour is shaped by multiple layer
 - **Use action verbs:** Get, Use (for retrieval); From, With (for acting on results); When, If (for conditions).
 - **Structure as: constraints + response format + guidance.**
 
+### Instruction Length Guidelines
+
+- **Simple single-purpose agents:** 500–2,000 characters is typical and healthy
+- **Multi-tool agents with routing logic:** 2,000–4,000 characters
+- **Autonomous pipeline orchestrators:** up to 5,500 characters (budget for tool references)
+- **Hard limit:** 8,000 characters — quality may degrade before this with dense content
+- **Decomposition signal:** If instructions exceed ~3,000 characters for a specialist or ~5,500 for an orchestrator, the fix is structural (child agents, prompt tools, knowledge files) not more text
+
 ## Agent Instructions — What Doesn't Work
 
 - Negative constraints as primary control ("never mention competitors" — will be violated)

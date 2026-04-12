@@ -92,6 +92,10 @@
 
 **Unfiltered startup queries.** Fetching an entire table on `OnConversationStart` means every new conversation pays the full query cost — even if the user never needs that data. Defer data loading to the topic that actually uses it, or filter to the minimum required (e.g. distinct break names instead of all rows).
 
+## Build-Review Inconsistency Anti-Pattern
+
+**Generating agent configuration with the Build command, then discovering problems with the Review command.** If the build process doesn't enforce the same rules the review checks, the user is caught in a frustrating generate-review-fix cycle. Every best-practice rule checked by the review should either be (a) enforced during build generation, or (b) explicitly flagged as a known build gap that will be caught during review.
+
 ## The "It Worked Yesterday" Pattern
 
 Common causes when a working agent suddenly breaks:

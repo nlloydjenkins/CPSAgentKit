@@ -86,6 +86,16 @@ const WORKING_RULES = [
   "If a customer requirement implies a CPS-risky pattern, state the constraint and propose the compliant alternative instead of silently carrying the risk forward.",
   "Prompt tools are preferable to child agents for single-purpose AI calls, format enforcement, temperature control, or code interpreter access.",
   "Settings coherence matters: useModelKnowledge, webBrowsing, isSemanticSearchEnabled, and isFileAnalysisEnabled must all match the architecture intent. Portal defaults are aggressive — validate each.",
+  "When the architecture defines multiple agents, generate explicit prohibitions in each specialist's instructions (not just positive scope). Positive scope alone causes domain leakage.",
+  "When generating modelDescription values, validate that no description exceeds 1,024 characters. CPS silently truncates longer descriptions.",
+  "When generating agent instructions, scan for single curly braces {} that are not Power Fx {System.Bot.Components...} references and not {{ }} escape sequences. CPS evaluates single curly braces as Power Fx expressions. Use {{ }} for literal braces in JSON schemas.",
+  "For autonomous pipelines, instruct child agents to return compact machine-oriented output (key-value pairs, labeled blocks) not narrative. Verbose outputs cause SystemError from context overflow.",
+  "For autonomous pipelines, include per-stage anti-termination instructions after each child agent call. A single top-level 'complete all stages' instruction is insufficient.",
+  "When the architecture shows event triggers, validate that triggers are only on parent agents and that the N/A sentinel pattern is documented for optional fields.",
+  "For trigger-driven pipelines, instruct record creation AFTER the extraction/classification stage. Creating records before extraction causes the planner to treat required columns as interactive inputs.",
+  "When the architecture has a drafter-evaluator pair, ensure the drafter's instructions embed the evaluator's checkable output requirements. A drafter without evaluator rules guarantees first-pass failure.",
+  "When generating connector action inputs during build, generate per-input descriptions with value source, format, and 'never ask the user' for autonomous pipelines.",
+  "When building autonomous agents with event triggers, count active tools vs instruction-referenced tools. Flag any active tools not referenced in instructions as governance surface area that should be disabled.",
 ];
 
 function extractEvidenceSnippet(content: string, maxLines = 16): string[] {

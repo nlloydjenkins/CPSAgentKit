@@ -595,6 +595,39 @@ export function composeReviewPrompt(
     );
   }
 
+  // --- Connector action input audit (all scopes) ---
+  sections.push(
+    "## Connector Action Input Audit",
+    "",
+    "For every action with `AutomaticTaskInput` entries, check:",
+    "",
+    "1. Does every dynamic input have a description? (Missing description = user prompting in autonomous pipelines)",
+    "2. Are any system fields (Import Sequence Number, Owner, Status Reason, Time Zone Rule Version, UTC Conversion, Return Full Metadata) set to dynamic? (Must be removed or custom value)",
+    "3. Are any primary key / unique identifier fields set to dynamic? (Must be `GUID()`)",
+    "4. Do any choice column inputs lack integer mappings in their description?",
+    "5. Does `modelDescription` reference any field that doesn't exist as an input? (Phantom field check)",
+    "6. Are display names consistent across actions targeting the same schema column?",
+    "7. Does this action have zero AutomaticTaskInput/ManualTaskInput entries beyond the standard organization/entityName? If so, flag as a dynamic schema connector that requires portal-side input wiring.",
+    "8. Are any active tools explicitly prohibited in the agent's instructions? If so, flag for disabling in the CPS portal — instruction-level prohibition is unreliable.",
+    "",
+  );
+
+  // --- Build state compliance (all scopes) ---
+  if (!archBlank) {
+    sections.push(
+      "## Build Process Compliance",
+      "",
+      "If architecture.md exists, verify build completion:",
+      "",
+      "1. Is the Build State checklist complete? List any incomplete steps.",
+      "2. Are Tool Descriptions from the architecture applied to action YAML files? (Compare architecture § Tool Descriptions against actual modelDescription values)",
+      "3. Do settings.mcs.yml flags match the architecture's General Knowledge Stance?",
+      "4. Were Platform Constraint Validation gates checked? (Flag if architecture still has unchecked gates)",
+      "5. Count active tools vs instruction-referenced tools — flag governance surface area from unreferenced active tools.",
+      "",
+    );
+  }
+
   // --- Supporting docs analysis ---
   sections.push(
     "## Pre-Analysis: Supporting Document Scan",
