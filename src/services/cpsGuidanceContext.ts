@@ -1,5 +1,6 @@
 import * as fs from "fs/promises";
 import * as path from "path";
+import { getExtensionRoot } from "./paths.js";
 
 interface GuidanceSource {
   label: string;
@@ -137,7 +138,7 @@ function extractEvidenceSnippet(content: string, maxLines = 16): string[] {
 }
 
 export async function buildCpsGuidancePack(): Promise<string> {
-  const repoRoot = path.dirname(path.dirname(__dirname));
+  const repoRoot = getExtensionRoot();
   const loadedSources = await Promise.all(
     GUIDANCE_SOURCES.map(async (source) => {
       const filePath = path.join(repoRoot, source.relativePath);

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Robot head -->
+  <rect x="4" y="4" width="16" height="12" rx="2" ry="2"/>
+  <!-- Eyes -->
+  <circle cx="9" cy="10" r="1.5" fill="currentColor" stroke="none"/>
+  <circle cx="15" cy="10" r="1.5" fill="currentColor" stroke="none"/>
+  <!-- Antenna -->
+  <line x1="12" y1="4" x2="12" y2="1"/>
+  <circle cx="12" cy="1" r="1" fill="currentColor" stroke="none"/>
+  <!-- Mouth / smile -->
+  <path d="M9 13 Q12 15 15 13" fill="none"/>
+  <!-- Body connectors -->
+  <line x1="8" y1="16" x2="8" y2="19"/>
+  <line x1="16" y1="16" x2="16" y2="19"/>
+  <!-- Base -->
+  <line x1="5" y1="19" x2="19" y2="19"/>
+  <!-- Gear indicator -->
+  <circle cx="20" cy="4" r="2" stroke-width="1"/>
+  <line x1="20" y1="2" x2="20" y2="1.5"/>
+  <line x1="20" y1="6" x2="20" y2="6.5"/>
+  <line x1="18" y1="4" x2="17.5" y2="4"/>
+  <line x1="22" y1="4" x2="22.5" y2="4"/>
+</svg>

@@ -4,6 +4,7 @@ import * as path from "path";
 import { buildCpsGuidancePack } from "../services/cpsGuidanceContext.js";
 import { readMarkdownFiles, findImageFiles } from "../services/fileUtils.js";
 import { createArchitectureGuided } from "./createArchitecture.js";
+import { getExtensionRoot } from "../services/paths.js";
 import {
   requireWorkspaceRoot,
   collectList,
@@ -334,12 +335,12 @@ async function createSpecificationFromDocs(
   const imageFiles = await findImageFiles(docsDir);
 
   const specTemplatePath = path.join(
-    path.dirname(path.dirname(__dirname)),
+    getExtensionRoot(),
     "templates",
     "spec-template.md",
   );
   const architectureTemplatePath = path.join(
-    path.dirname(path.dirname(__dirname)),
+    getExtensionRoot(),
     "templates",
     "architecture-template.md",
   );

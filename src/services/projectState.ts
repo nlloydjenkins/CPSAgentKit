@@ -1,3 +1,4 @@
+import * as fs from "fs/promises";
 import * as path from "path";
 import { fileExists, findCpsAgentFolders } from "./fileUtils.js";
 
@@ -17,6 +18,37 @@ const CPS_ARCHITECT_DIR = ".cpsagentkit";
 const KNOWLEDGE_DIR = "knowledge";
 const REQUIREMENTS_DIR = "Requirements";
 
+/**
+ * Check if a file exists and has content that differs from the scaffolded template.
+ * Returns true only if the file exists AND is not identical to the template.
+ */
+async function isCustomised(
+  filePath: string,
+  templatePath: string,
+): Promise<boolean> {
+  try {
+    const [content, template] = await Promise.all([
+      fs.readFile(filePath, "utf-8"),
+      fs.readFile(templatePath, "utf-8"),
+    ]);
+    return content.trim() !== template.trim();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if a directory exists and contains at least one user file.
+ */
+async function dirHasFiles(dir: string): Promise<boolean> {
+  try {
+    const entries = await fs.readdir(dir);
+    return entries.filter((e) => !e.startsWith(".")).length > 0;
+  } catch {
+    return false;
+  }
+}
+
 /** Scan the workspace and return the current project state */
 export async function detectProjectState(
   workspaceRoot: string,
@@ -31,6 +63,17 @@ export async function detectProjectState(
     "bestpractices",
   );
 
+  // Locate templates — check both workspace-local and extension-bundled locations
+  const localTemplateDir = path.join(workspaceRoot, "templates");
+  const specTemplatePath = path.join(localTemplateDir, "spec-template.md");
+  const archTemplatePath = path.join(
+    localTemplateDir,
+    "architecture-template.md",
+  );
+
+  const specPath = path.join(requirementsDir, "spec.md");
+  const archPath = path.join(requirementsDir, "architecture.md");
+
   const [
     isInitialised,
     hasSpec,
@@ -41,10 +84,10 @@ export async function detectProjectState(
     agentFolders,
   ] = await Promise.all([
     fileExists(architectDir),
-    fileExists(path.join(requirementsDir, "spec.md")),
-    fileExists(path.join(requirementsDir, "architecture.md")),
+    isCustomised(specPath, specTemplatePath),
+    isCustomised(archPath, archTemplatePath),
     fileExists(knowledgeDir),
-    fileExists(requirementsDocsDir),
+    dirHasFiles(requirementsDocsDir),
     fileExists(bestPracticesDir),
     findCpsAgentFolders(workspaceRoot),
   ]);

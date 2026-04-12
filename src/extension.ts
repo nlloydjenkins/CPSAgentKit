@@ -11,29 +11,49 @@ import { reviewSolutionFileCommand } from "./commands/reviewSolutionFile.js";
 import { preBuildCommand } from "./commands/preBuild.js";
 import { scaffoldTopicsCommand } from "./commands/scaffoldTopics.js";
 import { buildDemoCommand } from "./commands/buildDemo.js";
+import { createArchitectureGuided } from "./commands/createArchitecture.js";
 import { detectProjectState } from "./services/projectState.js";
 import { readConfig } from "./services/config.js";
-import { syncKnowledge, syncBestPractices } from "./services/knowledgeSync.js";
+import {
+  syncKnowledge,
+  syncBestPractices,
+  syncTemplates,
+} from "./services/knowledgeSync.js";
 import { generateInstructions } from "./services/instructionsGenerator.js";
 import { StatusBar } from "./ui/statusBar.js";
+import { SidebarProvider } from "./ui/sidebarProvider.js";
+import { requireWorkspaceRoot } from "./ui/uiUtils.js";
 
 let statusBar: StatusBar;
+let sidebarProvider: SidebarProvider;
 
 export function activate(context: vscode.ExtensionContext): void {
   const extensionPath = context.extensionPath;
   statusBar = new StatusBar();
 
+  // Sidebar tree view
+  sidebarProvider = new SidebarProvider();
+  const treeView = vscode.window.createTreeView("cpsAgentKit.sidebar", {
+    treeDataProvider: sidebarProvider,
+    showCollapseAll: false,
+  });
+
   // Register commands
   context.subscriptions.push(
-    vscode.commands.registerCommand("cpsAgentKit.init", () =>
-      initCommand(extensionPath),
-    ),
-    vscode.commands.registerCommand("cpsAgentKit.syncKnowledge", () =>
-      syncKnowledgeCommand(extensionPath, statusBar),
-    ),
-    vscode.commands.registerCommand("cpsAgentKit.createSpec", () =>
-      createSpecCommand(),
-    ),
+    treeView,
+    sidebarProvider,
+    vscode.commands.registerCommand("cpsAgentKit.init", async () => {
+      await initCommand(extensionPath);
+      sidebarProvider.refreshState();
+    }),
+    vscode.commands.registerCommand("cpsAgentKit.syncKnowledge", async () => {
+      await syncKnowledgeCommand(extensionPath, statusBar);
+      sidebarProvider.refreshState();
+    }),
+    vscode.commands.registerCommand("cpsAgentKit.createSpec", async () => {
+      await createSpecCommand();
+      sidebarProvider.refreshState();
+    }),
     vscode.commands.registerCommand("cpsAgentKit.build", () => buildCommand()),
     vscode.commands.registerCommand("cpsAgentKit.buildAgent", () =>
       buildAgentCommand(),
@@ -59,6 +79,19 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand("cpsAgentKit.buildDemo", () =>
       buildDemoCommand(extensionPath),
+    ),
+    vscode.commands.registerCommand(
+      "cpsAgentKit.createArchitecture",
+      async () => {
+        const root = requireWorkspaceRoot();
+        if (root) {
+          await createArchitectureGuided(root);
+          sidebarProvider.refreshState();
+        }
+      },
+    ),
+    vscode.commands.registerCommand("cpsAgentKit.refreshSidebar", () =>
+      sidebarProvider.refreshState(),
     ),
     statusBar,
   );
@@ -101,6 +134,7 @@ async function autoSyncOnOpen(extensionPath: string): Promise<void> {
     const config = await readConfig(root);
     await syncKnowledge(root, config);
     await syncBestPractices(root, config);
+    await syncTemplates(root, config);
 
     // Regenerate instructions with fresh state
     const freshState = await detectProjectState(root);

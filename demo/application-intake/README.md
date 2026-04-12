@@ -1,6 +1,6 @@
 # Application Intake Agent Demo — CPSAgentKit Walkthrough
 
-A self-contained demo that takes a set of requirement documents through the full CPSAgentKit pipeline. This demo builds an **autonomous, trigger-driven multi-agent system** — unlike the IT Help Desk demo (interactive Teams chat), this agent runs without user interaction, processing inbound emails from a shared mailbox.
+A self-contained demo that takes a set of requirement documents through the full CPSAgentKit pipeline with minimal manual intervention. The manual steps are creating agent shells and connections in the Copilot Studio portal — the extension generates all instructions, descriptions, tool configurations, and settings. This demo builds an **autonomous, trigger-driven multi-agent system** — unlike the IT Help Desk demo (interactive Teams chat), this agent runs without user interaction, processing inbound emails from a shared mailbox.
 
 ## What This Demo Builds
 
@@ -132,47 +132,43 @@ This flags what's ready, what needs portal work, and which CPS constraints apply
 
 ### Step 8: Manual Portal Steps (Required)
 
-These steps cannot be automated — the CPS extension requires agents to be created in the portal first:
+These steps cannot be automated — the CPS extension requires agents to be created in the portal first. You only need to create the shells and connections here — the **Build Agent** command (Step 9) generates all instructions, descriptions, and tool configurations.
 
 1. **Create the parent agent** (Application Intake Orchestrator) in Copilot Studio
    - Set auth to "Authenticate with Microsoft"
    - Enable generative orchestration
    - Set the model to **GPT-5** (Settings → Generative AI)
-   - Disable "Use general knowledge" and "Web browsing"
    - Set content moderation to **Low** (Settings → Generative AI)
 
-2. **Add parent tools (in the CPS portal):**
-   - **Microsoft Dataverse — List rows from selected environment** (for reading applications, correspondences, compliance checks)
+2. **Add tools to the parent** (connections only — descriptions come from the build step):
+   - **Microsoft Dataverse — List rows from selected environment**
    - **Microsoft Dataverse — Add a new row to selected environment** — create **3 separate pre-bound actions**, one per target table:
      - "Create application record" → entity = `cr85a_applications`
      - "Log correspondence" → entity = `cr85a_correspondences`
      - "Log compliance check" → entity = `cr85a_compliancechecks`
-   - **Microsoft Dataverse — Update a row in selected environment** (for status updates)
-   - **Office 365 Outlook — Get email (V3)** (for retrieving inbound messages)
-   - **Office 365 Outlook — Send an email from a shared mailbox (V2)** (for outbound correspondence)
-   - **Microsoft Teams — Post adaptive card and wait for a response** (for escalation)
+   - **Microsoft Dataverse — Update a row in selected environment**
+   - **Office 365 Outlook — Get email (V3)**
+   - **Office 365 Outlook — Send an email from a shared mailbox (V2)**
+   - **Microsoft Teams — Post adaptive card and wait for a response**
    - Disable the generic "Add a new row" tool after creating the pre-bound versions
 
 3. **Create the Attachment Preprocessor prompt tool** in Copilot Studio or AI Hub
    - Enable code interpreter
    - Input: attachment content + case context
    - Output: normalised text/Markdown
-   - Sync locally after creation
 
-4. **Create 5 child agents** in the portal:
-   - **Email Interpreter** — add Application Type Definitions knowledge source (upload from `sample-data/knowledge-sources/application-type-definitions.md`)
-   - **Completeness Assessor** — add Application Type Definitions knowledge source
-   - **Correspondence Drafter** — add Application Type Definitions knowledge source
-   - **Compliance Evaluator** — add Compliance Rules knowledge source (upload from `sample-data/knowledge-sources/compliance-rules.md`)
-   - **Accessibility Presenter** — add Accessibility Standards knowledge source (upload from `sample-data/knowledge-sources/accessibility-standards.md`)
+4. **Create 5 child agents** (just names + knowledge — instructions and descriptions come from the build step):
+   - **Email Interpreter** — upload `application-type-definitions.md` as knowledge
+   - **Completeness Assessor** — upload `application-type-definitions.md` as knowledge
+   - **Correspondence Drafter** — upload `application-type-definitions.md` as knowledge
+   - **Compliance Evaluator** — upload `compliance-rules.md` as knowledge
+   - **Accessibility Presenter** — upload `accessibility-standards.md` as knowledge
 
-5. **Create Dataverse tables** — create `cr85a_applications`, `cr85a_correspondences`, and `cr85a_compliancechecks` with the schemas in `Requirements/docs/systems-context.md`
+5. **Create Dataverse tables** — `cr85a_applications`, `cr85a_correspondences`, and `cr85a_compliancechecks` with the schemas in `Requirements/docs/systems-context.md`
 
-6. **Configure the autonomous trigger:**
-   - Add a mailbox event trigger on the parent agent
-   - Point it at the shared mailbox
+6. **Configure the autonomous trigger** — add a mailbox event trigger on the parent, pointing at the shared mailbox
 
-7. **Sync to local** — Use `Copilot Studio: Get Changes` to pull the agent YAML into the workspace
+7. **Sync to local** — `Copilot Studio: Get Changes` to pull the agent YAML into the workspace
 
 ### Step 9: Build Agent (Autonomous)
 
@@ -248,24 +244,19 @@ Pre-built records covering all key statuses:
 | Step                              | Manual | Autonomous           |
 | --------------------------------- | ------ | -------------------- |
 | Copy docs into workspace          | ✋     |                      |
-| Create Teams team/channel         | ✋     |                      |
-| Set up shared mailbox permissions | ✋     |                      |
+| Create Teams channel + mailbox    | ✋     |                      |
 | Initialise project                |        | ✅ (one command)     |
 | Generate spec + architecture      |        | ✅ (one Enter press) |
 | Run pre-build                     |        | ✅ (one command)     |
-| Create agents in portal           | ✋     |                      |
-| Add tools/connectors in portal    | ✋     |                      |
-| Create prompt tool in portal      | ✋     |                      |
-| Create Dataverse tables           | ✋     |                      |
-| Upload knowledge sources          | ✋     |                      |
-| Configure mailbox trigger         | ✋     |                      |
+| Create agent shells in portal     | ✋     |                      |
+| Add tools/connectors/knowledge    | ✋     |                      |
+| Create Dataverse tables + trigger | ✋     |                      |
 | Sync YAML locally                 | ✋     |                      |
 | Build agent config                |        | ✅ (one Enter press) |
-| Seed Dataverse data               | ✋     |                      |
 | Apply changes to portal           | ✋     |                      |
-| Test and iterate                  | ✋     |                      |
+| Seed data + test                  | ✋     |                      |
 
-**4 autonomous steps, 10 manual portal/setup steps.** This demo has more manual steps than the IT Help Desk because it exercises autonomous triggers, pre-bound connector actions, prompt tools, and multi-table Dataverse writes — all of which require portal-first configuration. The autonomous steps (spec generation, architecture generation, pre-build validation, full build) produce the bulk of the agent configuration.
+**4 autonomous steps, 8 manual steps.** The manual steps are CPS platform constraints — agents, tools, connectors, and triggers must be created in the portal first. The build step generates the bulk of the configuration: all agent instructions, descriptions, tool `modelDescription` values, connector input descriptions, and settings validation.
 
 ## Comparison with IT Help Desk Demo
 

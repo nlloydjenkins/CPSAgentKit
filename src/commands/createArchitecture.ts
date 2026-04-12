@@ -3,6 +3,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { buildCpsGuidancePack } from "../services/cpsGuidanceContext.js";
 import { readMarkdownFiles, findImageFiles } from "../services/fileUtils.js";
+import { getExtensionRoot } from "../services/paths.js";
 import {
   CURATED_CONNECTOR_CATALOG,
   resolveCuratedConnectorRequirement,
@@ -12,6 +13,27 @@ import {
   collectList,
   writePromptAndOpenChat,
 } from "../ui/uiUtils.js";
+import {
+  LABEL_SPEC_COMPLETE,
+  LABEL_ARCHITECTURE_APPROVED,
+  LABEL_PLATFORM_CONSTRAINT_VALIDATION,
+  LABEL_AGENTS_CREATED,
+  LABEL_TOOLS_CONFIGURED,
+  LABEL_AUTONOMOUS_TRIGGERS,
+  LABEL_KNOWLEDGE_SOURCES,
+  LABEL_DATAVERSE_TABLES,
+  LABEL_DATAVERSE_SAMPLE_DATA,
+  LABEL_AGENT_INSTRUCTIONS,
+  LABEL_TOOL_DESCRIPTIONS,
+  LABEL_TOPIC_DESCRIPTIONS,
+  LABEL_SYSTEM_TOPICS,
+  LABEL_TRIGGER_DESCRIPTIONS,
+  LABEL_SETTINGS_COHERENCE,
+  LABEL_TOOLNAME_REFERENCES,
+  LABEL_CONTENT_MODERATION,
+  LABEL_INITIAL_TESTING,
+  LABEL_ITERATION_COMPLETE,
+} from "../constants/buildStateLabels.js";
 
 /** Describes a single agent in the architecture */
 export interface AgentEntry {
@@ -537,25 +559,25 @@ export function buildArchitecture(
   lines.push(
     "## Build State",
     "",
-    "- [x] Spec complete",
-    "- [x] Architecture approved",
-    "- [ ] Platform constraint validation passed",
-    "- [ ] Agents created in portal",
-    "- [ ] Tools/connectors configured (portal scaffold)",
-    "- [ ] Autonomous triggers configured",
-    "- [ ] Knowledge sources uploaded",
-    ...(hasDataverseTools ? ["- [ ] Dataverse tables created"] : []),
-    ...(hasDataverseTools ? ["- [ ] Dataverse sample data loaded"] : []),
-    "- [ ] Agent instructions generated",
-    "- [ ] Tool modelDescriptions generated",
-    "- [ ] Topic descriptions and YAML generated",
-    "- [ ] System topics customised (ConversationStart, Fallback, Escalation, OnError)",
-    "- [ ] Trigger descriptions updated",
-    "- [ ] Settings coherence validated",
-    "- [ ] /ToolName references validated",
-    "- [ ] Content moderation set in portal",
-    "- [ ] Initial testing complete",
-    "- [ ] Iteration complete",
+    `- [x] ${LABEL_SPEC_COMPLETE}`,
+    `- [x] ${LABEL_ARCHITECTURE_APPROVED}`,
+    `- [ ] ${LABEL_PLATFORM_CONSTRAINT_VALIDATION}`,
+    `- [ ] ${LABEL_AGENTS_CREATED}`,
+    `- [ ] ${LABEL_TOOLS_CONFIGURED}`,
+    `- [ ] ${LABEL_AUTONOMOUS_TRIGGERS}`,
+    `- [ ] ${LABEL_KNOWLEDGE_SOURCES}`,
+    ...(hasDataverseTools ? [`- [ ] ${LABEL_DATAVERSE_TABLES}`] : []),
+    ...(hasDataverseTools ? [`- [ ] ${LABEL_DATAVERSE_SAMPLE_DATA}`] : []),
+    `- [ ] ${LABEL_AGENT_INSTRUCTIONS}`,
+    `- [ ] ${LABEL_TOOL_DESCRIPTIONS}`,
+    `- [ ] ${LABEL_TOPIC_DESCRIPTIONS}`,
+    `- [ ] ${LABEL_SYSTEM_TOPICS}`,
+    `- [ ] ${LABEL_TRIGGER_DESCRIPTIONS}`,
+    `- [ ] ${LABEL_SETTINGS_COHERENCE}`,
+    `- [ ] ${LABEL_TOOLNAME_REFERENCES}`,
+    `- [ ] ${LABEL_CONTENT_MODERATION}`,
+    `- [ ] ${LABEL_INITIAL_TESTING}`,
+    `- [ ] ${LABEL_ITERATION_COMPLETE}`,
     "",
   );
 
@@ -733,7 +755,7 @@ export async function createArchitectureFromDocs(root: string): Promise<void> {
 
   // Read the architecture template
   const templatePath = path.join(
-    path.dirname(path.dirname(__dirname)),
+    getExtensionRoot(),
     "templates",
     "architecture-template.md",
   );

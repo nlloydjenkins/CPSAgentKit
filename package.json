@@ -2,7 +2,7 @@
   "name": "cpsagentkit",
   "displayName": "Copilot Studio Agent Kit",
   "description": "Turns GitHub Copilot into a Copilot Studio expert — scaffolds CPS agent projects, syncs platform knowledge, and generates copilot-instructions.md for deep CPS awareness.",
-  "version": "0.9.0",
+  "version": "0.10.1",
   "publisher": "nicklj",
   "license": "MIT",
   "engines": {
@@ -23,10 +23,36 @@
     "power-platform"
   ],
   "activationEvents": [
-    "workspaceContains:.cpsagentkit"
+    "workspaceContains:.cpsagentkit",
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "cpsAgentKit",
+          "title": "CPSAgentKit",
+          "icon": "media/cpsagentkit-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "cpsAgentKit": [
+        {
+          "id": "cpsAgentKit.sidebar",
+          "name": "Commands",
+          "type": "tree"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "cpsAgentKit.sidebar",
+        "contents": "Welcome to CPSAgentKit!\n\nGet started by initialising a CPS project in this workspace.\n[Initialise Project](command:cpsAgentKit.init)",
+        "when": "!cpsAgentKit.isInitialised"
+      }
+    ],
     "commands": [
       {
         "command": "cpsAgentKit.init",
@@ -87,8 +113,50 @@
         "command": "cpsAgentKit.buildDemo",
         "title": "Build Demo",
         "category": "CPSAgentKit"
+      },
+      {
+        "command": "cpsAgentKit.createArchitecture",
+        "title": "Create Architecture",
+        "category": "CPSAgentKit"
+      },
+      {
+        "command": "cpsAgentKit.refreshSidebar",
+        "title": "Refresh Sidebar",
+        "category": "CPSAgentKit",
+        "icon": "$(refresh)"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "cpsAgentKit.refreshSidebar",
+          "when": "view == cpsAgentKit.sidebar",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "cpsAgentKit.reviewSolution",
+          "when": "explorerResourceIsFolder",
+          "group": "cpsAgentKit@1"
+        },
+        {
+          "command": "cpsAgentKit.reviewSolutionFile",
+          "when": "resourceExtname == .yml || resourceExtname == .yaml",
+          "group": "cpsAgentKit@2"
+        },
+        {
+          "command": "cpsAgentKit.applyToolDescriptions",
+          "when": "explorerResourceIsFolder",
+          "group": "cpsAgentKit@3"
+        },
+        {
+          "command": "cpsAgentKit.scaffoldTopics",
+          "when": "explorerResourceIsFolder",
+          "group": "cpsAgentKit@4"
+        }
+      ]
+    },
     "configuration": {
       "title": "CPSAgentKit",
       "properties": {

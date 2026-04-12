@@ -238,10 +238,10 @@ export async function syncKnowledge(
 
   onProgress?.("Fetching file list from GitHub...");
 
-  // Get list of knowledge files
+  // Get list of knowledge files (recursive to pick up subdirectories)
   let files: GitHubContentEntry[];
   try {
-    files = await listKnowledgeFiles(owner, repo, knowledgePath, branch);
+    files = await listFilesRecursive(owner, repo, knowledgePath, branch);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     // Fall back to bundled files
@@ -272,9 +272,14 @@ export async function syncKnowledge(
         continue;
       }
       const content = await downloadFile(file.download_url);
-      const destPath = safePath(knowledgeDir, file.name);
+      // Preserve directory structure relative to the knowledge root
+      const relativePath = file.path.startsWith(knowledgePath + "/")
+        ? file.path.slice(knowledgePath.length + 1)
+        : file.name;
+      const destPath = safePath(knowledgeDir, relativePath);
+      await fs.mkdir(path.dirname(destPath), { recursive: true });
       await fs.writeFile(destPath, content, "utf-8");
-      result.filesWritten.push(file.name);
+      result.filesWritten.push(relativePath);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       result.errors.push(`Failed to download ${file.name}: ${message}`);
@@ -377,12 +382,14 @@ export async function syncBestPractices(
 
   let files: GitHubContentEntry[];
   try {
-    files = await listKnowledgeFiles(owner, repo, bestPracticesPath, branch);
+    files = await listFilesRecursive(owner, repo, bestPracticesPath, branch);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     // Fall back to bundled files
     if (extensionPath) {
-      onProgress?.("GitHub unavailable — copying bundled best practice files...");
+      onProgress?.(
+        "GitHub unavailable — copying bundled best practice files...",
+      );
       const bundledDir = path.join(extensionPath, "docs", "bestpractices");
       const copied = await copyBundledFiles(bundledDir, bestPracticesDir);
       result.filesWritten.push(...copied);
@@ -407,9 +414,14 @@ export async function syncBestPractices(
         continue;
       }
       const content = await downloadFile(file.download_url);
-      const destPath = safePath(bestPracticesDir, file.name);
+      // Preserve directory structure relative to the best practices root
+      const relativePath = file.path.startsWith(bestPracticesPath + "/")
+        ? file.path.slice(bestPracticesPath.length + 1)
+        : file.name;
+      const destPath = safePath(bestPracticesDir, relativePath);
+      await fs.mkdir(path.dirname(destPath), { recursive: true });
       await fs.writeFile(destPath, content, "utf-8");
-      result.filesWritten.push(file.name);
+      result.filesWritten.push(relativePath);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       result.errors.push(`Failed to download ${file.name}: ${message}`);
