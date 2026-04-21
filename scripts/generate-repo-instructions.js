@@ -34,17 +34,8 @@ async function main() {
     path.join(root, "docs", "bestpractices"),
   );
 
-  const knowledgeSections = knowledgeFiles.map(({ filename, content }) => {
-    const sectionName = filename.replace(/\.md$/, "").replace(/-/g, " ");
-    return `<!-- Knowledge: ${sectionName} -->\n${content}`;
-  });
-
-  const bestPracticeSections = bestPracticeFiles.map(
-    ({ filename, content }) => {
-      const sectionName = filename.replace(/\.md$/, "").replace(/-/g, " ");
-      return `<!-- Best Practice: ${sectionName} -->\n${content}`;
-    },
-  );
+  const knowledgeFileList = knowledgeFiles.map(({ filename }) => `- \`docs/knowledge/${filename}\``);
+  const bestPracticeFileList = bestPracticeFiles.map(({ filename }) => `- \`docs/bestpractices/${filename}\``);
 
   const projectStateSection = [
     "## Current Project State",
@@ -61,26 +52,29 @@ async function main() {
     "<!-- AUTO-GENERATED for CPSAgentKit repo maintenance. Regenerate after source knowledge changes. -->",
     "",
     template,
-    "",
-    "---",
-    "",
-    "# CPS Platform Knowledge Reference",
-    "",
-    "The following sections contain the CPS platform knowledge base used to maintain this repository. Reference these when changing prompts, review logic, architecture guidance, or build automation.",
-    "",
-    ...knowledgeSections.map((section) => `\n${section}`),
   ];
 
-  if (bestPracticeSections.length > 0) {
+  if (knowledgeFileList.length > 0) {
     parts.push(
       "",
       "---",
       "",
-      "# CPS Best Practices",
+      "## Available Knowledge Files",
       "",
-      "The following sections contain best practice guidance for Copilot Studio solutions. Apply these when designing, building, and reviewing agents.",
+      "Read these files when you need detailed platform knowledge for design, build, or troubleshooting decisions:",
       "",
-      ...bestPracticeSections.map((section) => `\n${section}`),
+      ...knowledgeFileList,
+    );
+  }
+
+  if (bestPracticeFileList.length > 0) {
+    parts.push(
+      "",
+      "## Available Best Practice Files",
+      "",
+      "Read these files when designing, building, or reviewing agents:",
+      "",
+      ...bestPracticeFileList,
     );
   }
 

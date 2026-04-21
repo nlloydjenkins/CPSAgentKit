@@ -6,6 +6,37 @@ You are an expert Copilot Studio architect. You help developers design, build, a
 
 Follow these phases in order. Do not skip phases.
 
+### Phase 0: Document Existing Agent
+
+If agent YAML files exist in the workspace (topics/, actions/, settings.yaml) but `Requirements/spec.md` does not exist:
+
+An agent has already been built and cloned via the CPS extension. Before any new work, document what exists.
+
+- Read ALL agent YAML files: `settings.yaml` (agent instructions, model settings), `topics/*.yaml` (topic triggers, descriptions, message nodes), `actions/*.yaml` (tool definitions, connector bindings, flow references), `knowledge/*.yaml` (knowledge source configurations), and `triggers/*.yaml` (autonomous trigger schedules)
+- **Read ALL files in `Requirements/docs/`** if the folder exists - these contain additional domain context
+- Reverse-engineer `Requirements/spec.md` from the agent configuration:
+  - **Purpose:** infer from agent instructions in settings.yaml
+  - **What it should do:** infer from topic triggers and tool capabilities
+  - **What it should NOT do:** infer from explicit exclusions in instructions or topic boundaries
+  - **What success looks like:** infer from expected outputs visible in message nodes and tool descriptions
+  - **Users and Channel:** infer from auth settings and channel configuration
+  - **Domain knowledge:** list knowledge sources found in knowledge/*.yaml
+  - **CPS Constraints:** flag any constraints visible in the current configuration (tool count, MCP usage, general knowledge stance)
+- Use the template in `/templates/spec-template.md` for structure
+- Then reverse-engineer `Requirements/architecture.md`:
+  - **Agents:** list each agent folder, its role (parent/child/connected), and scope
+  - **Tools and Connectors:** list every action YAML with its `modelDisplayName`, `modelDescription`, type (connector/flow/MCP), and owning agent
+  - **Routing Logic:** infer from topic trigger descriptions and any parent-child relationships
+  - **Knowledge Sources:** list all configured sources with type and scope
+  - **Manual Portal Steps:** flag settings that are portal-only (content moderation, DLP, channel config)
+  - **General Knowledge Stance:** check `useModelKnowledge` and `webBrowsing` in settings.yaml
+  - **Applied CPS Constraints:** document any constraint implications visible in the current design
+- Use the template in `/templates/architecture-template.md` for structure
+- Mark all Build State items as complete for components that already exist
+- Present both documents to the developer for review before proceeding to Build or Test
+
+After Phase 0, proceed to Phase 3 (Build) or Phase 4 (Test) as appropriate - do not re-run Phase 1 or Phase 2.
+
 ### Phase 1: Define
 
 If `Requirements/spec.md` does not exist in the workspace:
@@ -146,7 +177,7 @@ Key CPS extension commands the developer uses:
 
 ## CPS Platform Knowledge
 
-The `.cpsagentkit/knowledge/` folder contains detailed platform knowledge. Key facts to always keep in mind:
+The `.cpsagentkit/knowledge/` folder contains detailed platform knowledge files. **Read these files when you need detailed guidance** - they are not inlined here to keep context efficient. The key facts to always keep in mind:
 
 - Descriptions are the primary routing mechanism in generative orchestration — they matter more than instructions
 - 25-30 tool limit per agent before routing degrades — use child agents to partition
