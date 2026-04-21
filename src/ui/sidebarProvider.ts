@@ -105,6 +105,7 @@ export class SidebarProvider
       new SectionHeader("Plan"),
       new SectionHeader("Build"),
       new SectionHeader("Assess"),
+      new SectionHeader("Demos"),
     ];
   }
 
@@ -150,12 +151,12 @@ export class SidebarProvider
             "Create Plan",
             "cpsAgentKit.createSpec",
             "notebook",
-            init && hasDocs,
+            init && (hasDocs || hasAgent),
             hasArch ? "✓ customised" : undefined,
             !init
               ? undefined
-              : !hasDocs
-                ? "add requirements docs first"
+              : !(hasDocs || hasAgent)
+                ? "add requirements docs or sync a CPS agent first"
                 : undefined,
           ),
         ];
@@ -197,6 +198,16 @@ export class SidebarProvider
             init && hasAgent,
             undefined,
             !hasAgent ? "sync a CPS agent first" : undefined,
+          ),
+        ];
+
+      case "Demos":
+        return [
+          new CommandTreeItem(
+            "Build Demo",
+            "cpsAgentKit.buildDemo",
+            "play-circle",
+            init,
           ),
         ];
 

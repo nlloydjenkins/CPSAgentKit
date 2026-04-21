@@ -2,9 +2,17 @@ import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { buildCpsGuidancePack } from "../services/cpsGuidanceContext.js";
-import { readMarkdownFiles, findImageFiles } from "../services/fileUtils.js";
+import {
+  readMarkdownFiles,
+  findImageFiles,
+  findCpsAgentFolders,
+} from "../services/fileUtils.js";
 import { createArchitectureGuided } from "./createArchitecture.js";
 import { getExtensionRoot } from "../services/paths.js";
+import {
+  gatherAgentSnapshot,
+  formatAgentSnapshotMarkdown,
+} from "../services/solutionReviewer.js";
 import {
   requireWorkspaceRoot,
   collectList,
@@ -203,34 +211,54 @@ export async function createSpecCommand(): Promise<void> {
   const existingSpec = await readExistingFile(specPath);
   const existingArchitecture = await readExistingFile(archPath);
 
+  // Detect whether a CPS agent is cloned in the workspace
+  const agentFolders = await findCpsAgentFolders(root);
+
   // Choose creation mode
-  const mode = await vscode.window.showQuickPick(
-    [
-      {
-        label: "Guided wizard",
-        description:
-          "Answer prompts step by step to build spec.md and architecture.md",
-        detail: "wizard",
-      },
-      {
-        label: "Generate from requirements docs",
-        description:
-          "Read documents in Requirements/docs/ and generate spec.md plus architecture.md via Copilot Chat",
-        detail: "from-docs",
-      },
-    ],
+  const modeOptions: Array<{
+    label: string;
+    description: string;
+    detail: string;
+  }> = [
     {
-      title: "CPSAgentKit: Create Specification",
-      placeHolder: "How do you want to create the specification?",
-      ignoreFocusOut: true,
+      label: "Guided wizard",
+      description:
+        "Answer prompts step by step to build spec.md and architecture.md",
+      detail: "wizard",
     },
-  );
+    {
+      label: "Generate from requirements docs",
+      description:
+        "Read documents in Requirements/docs/ and generate spec.md plus architecture.md via Copilot Chat",
+      detail: "from-docs",
+    },
+  ];
+
+  if (agentFolders.length > 0) {
+    modeOptions.push({
+      label: "Generate from existing agent",
+      description:
+        "Read cloned CPS agent YAML and reverse-engineer spec.md plus architecture.md via Copilot Chat",
+      detail: "from-agent",
+    });
+  }
+
+  const mode = await vscode.window.showQuickPick(modeOptions, {
+    title: "CPSAgentKit: Create Specification",
+    placeHolder: "How do you want to create the specification?",
+    ignoreFocusOut: true,
+  });
   if (!mode) {
     return;
   }
 
   if (mode.detail === "from-docs") {
     await createSpecificationFromDocs(root, existingSpec);
+    return;
+  }
+
+  if (mode.detail === "from-agent") {
+    await createSpecificationFromAgent(root, existingSpec);
     return;
   }
 
@@ -428,6 +456,128 @@ async function createSpecificationFromDocs(
     prompt,
     "Requirements/spec.md and Requirements/architecture.md as separate files",
     "Specification and architecture generation from requirements docs.",
+    imageFiles,
+  );
+}
+
+/** Generate spec + architecture by reverse-engineering cloned CPS agent YAML via Copilot Chat */
+async function createSpecificationFromAgent(
+  root: string,
+  existingSpec?: string,
+): Promise<void> {
+  const agents = await gatherAgentSnapshot(root);
+
+  if (agents.length === 0) {
+    vscode.window.showWarningMessage(
+      "CPSAgentKit: No cloned CPS agent found in the workspace.",
+    );
+    return;
+  }
+
+  // Also read any requirements docs that might exist as supplementary context
+  const docsDir = path.join(root, "Requirements", "docs");
+  const docs = await readMarkdownFiles(docsDir);
+  const imageFiles = await findImageFiles(docsDir);
+
+  const specTemplatePath = path.join(
+    getExtensionRoot(),
+    "templates",
+    "spec-template.md",
+  );
+  const architectureTemplatePath = path.join(
+    getExtensionRoot(),
+    "templates",
+    "architecture-template.md",
+  );
+  let specTemplate = "";
+  let architectureTemplate = "";
+  try {
+    specTemplate = await fs.readFile(specTemplatePath, "utf-8");
+  } catch {
+    // Template not available — proceed without it
+  }
+  try {
+    architectureTemplate = await fs.readFile(architectureTemplatePath, "utf-8");
+  } catch {
+    // Template not available — proceed without it
+  }
+
+  const cpsGuidancePack = await buildCpsGuidancePack();
+  const agentYamlMarkdown = formatAgentSnapshotMarkdown(agents);
+
+  const prompt = [
+    "You are reverse-engineering an existing Copilot Studio agent. Read the agent YAML configuration below and generate both a complete spec.md and a complete architecture.md that document what this agent currently does.",
+    "Use the CPS Guidance Pack below as the authoritative repo standard for platform-safe, best-practice Copilot Studio design.",
+    "Do not rely on unstated generic Copilot Studio knowledge when the guidance pack or templates cover the decision.",
+    "",
+    "## Agent Configuration",
+    "",
+    agentYamlMarkdown,
+    "",
+    existingSpec ? ["## Existing Spec", "", existingSpec].join("\n") : "",
+    "",
+    docs.length > 0
+      ? [
+          "## Supplementary Requirements Documents",
+          "",
+          ...docs.map(
+            (d) =>
+              `### ${d.filename.replace(/\.md$/, "").replace(/-/g, " ")}\n\n${d.content}`,
+          ),
+        ].join("\n")
+      : "",
+    "",
+    specTemplate
+      ? [
+          "## Spec Template",
+          "",
+          "Use this structure for Requirements/spec.md:",
+          "",
+          specTemplate,
+        ].join("\n")
+      : "",
+    "",
+    cpsGuidancePack,
+    "",
+    architectureTemplate
+      ? [
+          "## Architecture Template",
+          "",
+          "Use this structure for Requirements/architecture.md:",
+          "",
+          architectureTemplate,
+        ].join("\n")
+      : "",
+    "",
+    "## Instructions",
+    "",
+    "- Create both Requirements/spec.md and Requirements/architecture.md in one pass",
+    "- Reverse-engineer the agent's purpose, capabilities, boundaries, and success criteria from the YAML configuration — instructions in settings.yaml, topic triggers and descriptions, tool definitions, and knowledge sources",
+    "- Infer what the agent should NOT do from explicit exclusions in the instructions or topic boundaries",
+    "- Infer success criteria from expected outputs visible in message nodes and tool descriptions",
+    "- If supplementary requirements documents exist, incorporate their context but prioritise what the agent YAML actually shows",
+    "- If spec.md already exists, preserve its intent while improving clarity where the agent YAML reveals additional detail",
+    "- In the architecture, list every agent folder, its role (parent/child/connected), and scope",
+    "- List every action YAML with its modelDisplayName, modelDescription, type (connector/flow/MCP), and owning agent",
+    "- Infer routing logic from topic trigger descriptions and any parent-child relationships",
+    "- List all configured knowledge sources with type and scope",
+    "- Flag settings that are portal-only (content moderation, DLP, channel config) as manual portal steps",
+    "- Check useModelKnowledge and webBrowsing in settings.yaml and document the general knowledge stance",
+    "- Mark all Build State items as complete for components that already exist in the YAML",
+    "- Keep the spec focused on purpose, scope, boundaries, success criteria, and reference documents",
+    "- Keep the architecture focused on agent shape, routing, tools, knowledge, manual portal steps, applied CPS constraints, best-practice decisions, known risks, and build state",
+    "- If the agent configuration reveals anti-patterns or constraint violations against the guidance pack, note them in a 'Known Issues' section in the architecture rather than silently correcting them",
+    "- If something cannot be determined from the YAML alone, note it as TBD",
+    "- Write the spec to Requirements/spec.md",
+    "- Write the architecture to Requirements/architecture.md",
+  ].join("\n");
+
+  await writePromptAndOpenChat(
+    root,
+    "specification",
+    prompt,
+    "Requirements/spec.md and Requirements/architecture.md as separate files",
+    "Specification and architecture reverse-engineered from existing agent YAML.",
     imageFiles,
   );
 }

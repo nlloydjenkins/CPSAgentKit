@@ -80,6 +80,96 @@ async function readAgentSnapshot(
   };
 }
 
+/** Read all agent snapshots from the workspace */
+export async function gatherAgentSnapshot(
+  workspaceRoot: string,
+): Promise<AgentSnapshot[]> {
+  const agentNames = await findCpsAgentFolders(workspaceRoot);
+  const agents: AgentSnapshot[] = [];
+  for (const name of agentNames) {
+    agents.push(await readAgentSnapshot(workspaceRoot, name));
+  }
+  return agents;
+}
+
+/** Format agent snapshots as markdown sections for inclusion in prompts */
+export function formatAgentSnapshotMarkdown(agents: AgentSnapshot[]): string {
+  const sections: string[] = [];
+  for (const agent of agents) {
+    sections.push(`### Agent: ${agent.name}`, "");
+
+    const cleanSettings = stripSettingsNoise(agent.settings);
+    const settingsFence = detectFenceLanguage(cleanSettings);
+    sections.push(
+      "#### settings",
+      "```" + settingsFence,
+      cleanSettings,
+      "```",
+      "",
+    );
+
+    if (agent.agentConfig) {
+      const configFence = detectFenceLanguage(agent.agentConfig);
+      sections.push(
+        "#### agent config",
+        "```" + configFence,
+        agent.agentConfig,
+        "```",
+        "",
+      );
+    }
+
+    if (agent.connectionReferences) {
+      sections.push(
+        "#### connection references",
+        "```yaml",
+        agent.connectionReferences,
+        "```",
+        "",
+      );
+    }
+
+    if (agent.topics.length > 0) {
+      sections.push("#### topics", "");
+      for (const t of agent.topics) {
+        const topicFence = detectFenceLanguage(t.content);
+        sections.push(
+          `**${t.filename}**`,
+          "```" + topicFence,
+          t.content,
+          "```",
+          "",
+        );
+      }
+    }
+
+    if (agent.actions.length > 0) {
+      sections.push("#### actions", "");
+      for (const a of agent.actions) {
+        const actionFence = detectFenceLanguage(a.content);
+        sections.push(
+          `**${a.filename}**`,
+          "```" + actionFence,
+          a.content,
+          "```",
+          "",
+        );
+      }
+    }
+
+    if (agent.knowledge.length > 0) {
+      sections.push("#### knowledge", "");
+      for (const k of agent.knowledge) {
+        const fence = k.filename.endsWith(".md")
+          ? "markdown"
+          : detectFenceLanguage(k.content);
+        sections.push(`**${k.filename}**`, "```" + fence, k.content, "```", "");
+      }
+    }
+  }
+  return sections.join("\n");
+}
+
 /** Read all knowledge files from .cpsagentkit/knowledge/ */
 export async function readKnowledgeRules(
   extensionPath: string,
