@@ -66,22 +66,12 @@
       },
       {
         "command": "cpsAgentKit.createSpec",
-        "title": "Create Specification",
-        "category": "CPSAgentKit"
-      },
-      {
-        "command": "cpsAgentKit.build",
-        "title": "Build Checklist",
+        "title": "Create Plan",
         "category": "CPSAgentKit"
       },
       {
         "command": "cpsAgentKit.buildAgent",
         "title": "Build Agent",
-        "category": "CPSAgentKit"
-      },
-      {
-        "command": "cpsAgentKit.applyToolDescriptions",
-        "title": "Apply Tool Descriptions From Architecture",
         "category": "CPSAgentKit"
       },
       {
@@ -105,18 +95,8 @@
         "category": "CPSAgentKit"
       },
       {
-        "command": "cpsAgentKit.scaffoldTopics",
-        "title": "Scaffold Agent Topics",
-        "category": "CPSAgentKit"
-      },
-      {
         "command": "cpsAgentKit.buildDemo",
         "title": "Build Demo",
-        "category": "CPSAgentKit"
-      },
-      {
-        "command": "cpsAgentKit.createArchitecture",
-        "title": "Create Architecture",
         "category": "CPSAgentKit"
       },
       {
@@ -144,16 +124,6 @@
           "command": "cpsAgentKit.reviewSolutionFile",
           "when": "resourceExtname == .yml || resourceExtname == .yaml",
           "group": "cpsAgentKit@2"
-        },
-        {
-          "command": "cpsAgentKit.applyToolDescriptions",
-          "when": "explorerResourceIsFolder",
-          "group": "cpsAgentKit@3"
-        },
-        {
-          "command": "cpsAgentKit.scaffoldTopics",
-          "when": "explorerResourceIsFolder",
-          "group": "cpsAgentKit@4"
         }
       ]
     },

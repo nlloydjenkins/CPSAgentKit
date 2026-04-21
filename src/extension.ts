@@ -2,16 +2,12 @@ import * as vscode from "vscode";
 import { initCommand } from "./commands/init.js";
 import { syncKnowledgeCommand } from "./commands/syncKnowledge.js";
 import { createSpecCommand } from "./commands/createSpec.js";
-import { buildCommand } from "./commands/build.js";
 import { buildAgentCommand } from "./commands/buildAgent.js";
-import { applyToolDescriptionsCommand } from "./commands/applyToolDescriptions.js";
 import { generateRepoInstructionsCommand } from "./commands/generateRepoInstructions.js";
 import { reviewSolutionCommand } from "./commands/reviewSolution.js";
 import { reviewSolutionFileCommand } from "./commands/reviewSolutionFile.js";
 import { preBuildCommand } from "./commands/preBuild.js";
-import { scaffoldTopicsCommand } from "./commands/scaffoldTopics.js";
 import { buildDemoCommand } from "./commands/buildDemo.js";
-import { createArchitectureGuided } from "./commands/createArchitecture.js";
 import { detectProjectState } from "./services/projectState.js";
 import { readConfig } from "./services/config.js";
 import {
@@ -22,7 +18,6 @@ import {
 import { generateInstructions } from "./services/instructionsGenerator.js";
 import { StatusBar } from "./ui/statusBar.js";
 import { SidebarProvider } from "./ui/sidebarProvider.js";
-import { requireWorkspaceRoot } from "./ui/uiUtils.js";
 
 let statusBar: StatusBar;
 let sidebarProvider: SidebarProvider;
@@ -54,12 +49,8 @@ export function activate(context: vscode.ExtensionContext): void {
       await createSpecCommand();
       sidebarProvider.refreshState();
     }),
-    vscode.commands.registerCommand("cpsAgentKit.build", () => buildCommand()),
     vscode.commands.registerCommand("cpsAgentKit.buildAgent", () =>
       buildAgentCommand(),
-    ),
-    vscode.commands.registerCommand("cpsAgentKit.applyToolDescriptions", () =>
-      applyToolDescriptionsCommand(),
     ),
     vscode.commands.registerCommand(
       "cpsAgentKit.generateRepoInstructions",
@@ -74,21 +65,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("cpsAgentKit.preBuild", () =>
       preBuildCommand(),
     ),
-    vscode.commands.registerCommand("cpsAgentKit.scaffoldTopics", () =>
-      scaffoldTopicsCommand(),
-    ),
     vscode.commands.registerCommand("cpsAgentKit.buildDemo", () =>
       buildDemoCommand(extensionPath),
-    ),
-    vscode.commands.registerCommand(
-      "cpsAgentKit.createArchitecture",
-      async () => {
-        const root = requireWorkspaceRoot();
-        if (root) {
-          await createArchitectureGuided(root);
-          sidebarProvider.refreshState();
-        }
-      },
     ),
     vscode.commands.registerCommand("cpsAgentKit.refreshSidebar", () =>
       sidebarProvider.refreshState(),

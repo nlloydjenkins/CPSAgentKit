@@ -26,7 +26,6 @@ export class CommandTreeItem extends vscode.TreeItem {
     if (!enabled && commandId) {
       const reason = disabledReason ?? "initialise the project first";
       this.tooltip = `${label} — ${reason}`;
-      this.description = disabledReason ?? "requires init";
     } else if (!enabled && !commandId) {
       this.tooltip = label;
     }
@@ -148,27 +147,15 @@ export class SidebarProvider
                 : undefined,
           ),
           new CommandTreeItem(
-            "Create Specification",
+            "Create Plan",
             "cpsAgentKit.createSpec",
             "notebook",
             init && hasDocs,
-            hasSpec ? "✓ customised" : undefined,
+            hasArch ? "✓ customised" : undefined,
             !init
               ? undefined
               : !hasDocs
                 ? "add requirements docs first"
-                : undefined,
-          ),
-          new CommandTreeItem(
-            "Create Architecture",
-            "cpsAgentKit.createArchitecture",
-            "symbol-structure",
-            init && hasSpec,
-            hasArch ? "✓ customised" : undefined,
-            !init
-              ? undefined
-              : !hasSpec
-                ? "create specification first"
                 : undefined,
           ),
         ];
@@ -181,15 +168,7 @@ export class SidebarProvider
             "checklist",
             init && hasArch,
             undefined,
-            !hasArch ? "create architecture first" : undefined,
-          ),
-          new CommandTreeItem(
-            "Build Checklist",
-            "cpsAgentKit.build",
-            "tasklist",
-            init && hasArch,
-            undefined,
-            !hasArch ? "create architecture first" : undefined,
+            !hasArch ? "create plan first" : undefined,
           ),
           new CommandTreeItem(
             "Build Agent",
@@ -197,31 +176,7 @@ export class SidebarProvider
             "rocket",
             init && hasArch,
             undefined,
-            !hasArch ? "create architecture first" : undefined,
-          ),
-          new CommandTreeItem(
-            "Scaffold Topics",
-            "cpsAgentKit.scaffoldTopics",
-            "list-tree",
-            init && hasArch && hasAgent,
-            undefined,
-            !hasArch
-              ? "create architecture first"
-              : !hasAgent
-                ? "sync a CPS agent first"
-                : undefined,
-          ),
-          new CommandTreeItem(
-            "Apply Tool Descriptions",
-            "cpsAgentKit.applyToolDescriptions",
-            "tag",
-            init && hasArch && hasAgent,
-            undefined,
-            !hasArch
-              ? "create architecture first"
-              : !hasAgent
-                ? "sync a CPS agent first"
-                : undefined,
+            !hasArch ? "create plan first" : undefined,
           ),
         ];
 
