@@ -50,9 +50,33 @@ Partial workarounds:
 - Expose sub-agent logic as a custom tool/API (bypasses summarisation)
 - Instruct the parent to preserve downstream outputs as labeled blocks (e.g., `CU_RELEVANCE_RAW`, `CU_CLARITY_RAW`) rather than paraphrasing them. This reduces information loss when passing one child's output to the next step.
 
+### Prompt Tools Over Child Agents for Summarisation-Sensitive Pipelines
+
+Generative orchestration summarises child agent responses between stages. This is a platform behaviour, not an instruction issue, and it cannot be disabled. For specialist pipelines with strict output templates (numbered criteria, fixed headings, structured data), no amount of instruction work will reliably preserve the structure through multiple child-agent hops.
+
+**Pattern:** replace child agents with AI Builder **prompt tools** invoked sequentially from a single `AdaptiveDialog` topic. The topic acts as deterministic orchestration; prompt tools are pure text-in, text-out transformation steps with no orchestration summarisation layer.
+
+Empirical result from a 25+ iteration production build: multi-criterion coverage recovered from ~30-50% partial (narrative summaries losing criteria) to 100% complete (every criterion individually assessed) and held stable across subsequent releases.
+
+**When to apply:**
+
+- Specialist agents with strict output templates — numbered criteria, fixed headings, structured data
+- Pipelines where every stage produces structured data that downstream stages must consume verbatim
+- Scenarios where orchestration summarisation is destroying detail despite labeled-block instructions
+
+**When NOT to apply:**
+
+- Specialists that need their own tools, knowledge sources, or independent governance
+- Agents intended for reuse across multiple parent orchestrators
+- Pipelines where child-agent conversation state is genuinely useful
+
+This pattern sits alongside the existing Output Preservation Pattern and Summary/Detail Pattern below: those two mitigate orchestration summarisation; prompt-tools-over-child-agents eliminates it for applicable scenarios. See `pipeline-patterns.md` for the topic-level structure (topic-owned linear pipeline).
+
 ### Output Preservation Pattern
 
 When a parent agent needs to pass one child/tool/agent result to another downstream step, tell the parent to preserve the output as a labeled block rather than paraphrasing it. This is a mitigation for CPS generative orchestration, which normally summarises returned information into the final response. It reduces information loss but doesn't change the platform's underlying summarisation behavior.
+
+Empirical confirmation from production: labeled raw blocks with uppercase ASCII `_RAW` suffixes (e.g. `RELEVANCE_RAW`, `CLARITY_RAW`) work reliably across 25+ iterations with stable downstream behaviour when combined with an assembly prompt instructed to reproduce the blocks verbatim.
 
 **How to implement labeled output blocks:**
 
@@ -130,9 +154,11 @@ Responsibilities:
 
 - **Arithmetic consistency** — scores sum correctly, percentages match thresholds, colour ratings align with numeric scores
 - **Cross-agent conflict detection** — Brand recommendation conflicts with Compliance requirement, or Clarity suggestion removes a necessary disclaimer
-- **Structural completeness** — all expected sections present, all required criteria assessed, no sections silently dropped
+- **Structural completeness** — all expected sections present, all required criteria assessed, no sections silently dropped; includes expected criterion counts per specialist (e.g. "Clarity must show 10 criteria — flag if fewer")
 - **Scope boundary compliance** — no agent has leaked into another's domain
 - **Summary-vs-detail accuracy** — when specialists produce dual-layer output (summary + detail), verify that each summary accurately represents the underlying detail. Summaries that omit findings or inflate scores relative to the detail block indicate compression or instruction drift in the specialist.
+- **Colour/band threshold classification** — when specialists map numeric scores to RAG bands or thresholds, verify the band matches the score
+- **Placeholder detection** — catch specialists returning template content (e.g. literal `[Criterion 1 text]`) instead of real assessment output
 
 The Evaluator's output must appear in the final report even if no issues are found (e.g., "Arithmetic verified. No conflicts. All outputs align."). An empty QC section undermines trust in the review.
 

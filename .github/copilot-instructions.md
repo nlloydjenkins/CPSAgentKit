@@ -207,7 +207,9 @@ Read these files when you need detailed platform knowledge for design, build, or
 - `docs/knowledge/direct-line-api.md`
 - `docs/knowledge/knowledge-sources.md`
 - `docs/knowledge/multi-agent-patterns.md`
+- `docs/knowledge/pipeline-patterns.md`
 - `docs/knowledge/prompt-engineering.md`
+- `docs/knowledge/prompt-sync.md`
 - `docs/knowledge/reference-library.md`
 - `docs/knowledge/reference-patterns.md`
 - `docs/knowledge/tool-descriptions.md`

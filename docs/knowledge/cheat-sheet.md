@@ -57,6 +57,13 @@ Things that catch people out, behave unexpectedly, or aren't in the docs. For de
 - Prose format descriptions are unreliable — use literal templates + examples. _(See prompt-engineering.md → Output Format Enforcement)_
 - Prompt tools provide code interpreter, temperature control, deterministic transforms. _(See prompt-engineering.md → Prompt Tools)_
 - Autonomous pipeline `SystemError` from verbose child outputs — compact to machine-oriented format. Escalate to CPS workflow if persistent. _(See multi-agent-patterns.md → Autonomous Pipeline Output Compaction)_
+- For summarisation-sensitive specialist pipelines (strict templates, structured data), prompt tools beat child agents — no orchestration summarisation layer. _(See multi-agent-patterns.md → Prompt Tools Over Child Agents and pipeline-patterns.md)_
+- Format ownership lives at the production point — version stamps, fixed headings and literal templates go in the final-stage prompt, not in the orchestrator. _(See prompt-engineering.md → Output Format Ownership)_
+- Template-line "MUST include X" reinforcements are unreliable — use literal templates with worked + negative examples in the body of the prompt. _(See prompt-engineering.md → Anti-Compression Directives)_
+- Prefix tokens used for gating (`FAILED_CHECK:` etc) must be reserved for failures only — PASS lines must never use the prefix. _(See prompt-engineering.md → Prefix-Token Discipline)_
+- Code interpreter is stdlib-only — no `bs4`, `pandas`, `nltk`. Revert to qualitative assessment or move the calculation to a flow. _(See constraints.md → Code Interpreter)_
+- Prompt tool instruction text lives in Dataverse (`msdyn_aiconfiguration.msdyn_customconfiguration`), NOT in action YAML `modelDescription`. Edit via Dataverse MCP or a sync script. _(See prompt-sync.md)_
+- Use echo `SendActivity` nodes between pipeline stages for debugging; remove before release. _(See troubleshooting.md → Pipeline Debugging with Echo Nodes)_
 
 ## Deployment & Channels
 

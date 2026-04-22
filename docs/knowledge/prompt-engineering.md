@@ -27,6 +27,8 @@ There is no single "system prompt" in CPS. Behaviour is shaped by multiple layer
 - **Hard limit:** 8,000 characters — quality may degrade before this with dense content
 - **Decomposition signal:** If instructions exceed ~3,000 characters for a specialist or ~5,500 for an orchestrator, the fix is structural (child agents, prompt tools, knowledge files) not more text
 
+Empirical evidence from a production build: reducing an orchestrator from an oversized instruction block down to ~6,100 characters produced a 20-point (out of 25) quality jump in downstream output. The soft ceiling at which quality starts to degrade is well below the 8,000-character hard limit. Treat ~5,500 characters as the point at which decomposition is required, not optional.
+
 ## Agent Instructions — What Doesn't Work
 
 - Negative constraints as primary control ("never mention competitors" — will be violated)
@@ -189,6 +191,37 @@ DO produce numbered criteria with individual assessments like this:
 ### The Show-Don't-Tell Principle
 
 When procedural instructions fail to produce the desired output format, switch to showing examples. The combination of literal template + one worked example + one negative example is the most reliable format enforcement pattern observed in production. This shift — from "telling the model what to do" to "showing the model what correct output looks like" — consistently produces the largest output quality improvements.
+
+### Anti-Compression Directives Must Be Explicit and Structural
+
+Vague instructions like "provide detail" or "do not summarise" do not prevent specialists from compressing multi-criterion checklists into narrative. Explicit structural directives do:
+
+- "Every criterion must be individually numbered"
+- "Do NOT compress into narrative"
+- Combined with a worked example showing the numbered-criteria format
+- Combined with a negative example showing the compressed format that should not be produced
+
+Empirical: adding this pattern recovered structured criterion coverage from partial to complete in a single prompt release. Template-line reinforcements (appending "MUST include X" at the end of a criterion definition) consistently fail — the fix is structural enforcement in the body of the prompt, not tacked-on emphasis.
+
+### Prefix-Token Discipline for Gating
+
+When a validator emits pass/fail verdicts as a prefix token (e.g. `FAILED_CHECK:`), every prompt that produces such verdicts must reserve the token exclusively for failures. If passing checks also use the token, downstream consumers cannot gate on it ("fail the build if any line starts with `FAILED_CHECK:`" stops working the moment a PASS line also carries the prefix).
+
+Fix: add an explicit CRITICAL section at the top of the validator prompt stating the prefix is reserved, with PASS and FAIL worked examples side by side.
+
+```
+CRITICAL: The prefix `FAILED_CHECK:` is reserved for failures only.
+PASS example: `Arithmetic: scores sum to 82 (expected 80–100). PASS.`
+FAIL example: `FAILED_CHECK: Clarity shows 4 criteria, expected 10.`
+```
+
+### Output Format Ownership Lives at the Production Point
+
+Version stamps, fixed headings, literal templates — these must live in the prompt text of the tool that produces the final artifact, not in upstream orchestrator instructions.
+
+Empirical: attempting to enforce "always include a version stamp at the top of the report" from the parent orchestrator failed across multiple iterations. Moving the instruction into the final-stage prompt text worked on the first test.
+
+Rule of thumb: if a behaviour must be visible in the output artifact, instruct it in the prompt/agent that produces the artifact. Upstream orchestrators are too far from the production point to reliably enforce format details through instruction pressure.
 
 ## Final-Artifact Suppression
 

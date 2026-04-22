@@ -32,6 +32,8 @@
 
 **Prose descriptions of output format.** "Include a summary table with pillar scores" is unreliable. The model defaults to trained summary behaviour. Use literal templates with placeholders in knowledge files instead. See Output Format Enforcement in prompt-engineering.md.
 
+**Template-line reinforcements ("MUST include X") at the end of criterion definitions.** Appending emphatic reinforcements to criterion definitions consistently fails to produce adoption — tested 0 of 3 successful adoptions across a production build. The fix is structural: put a literal template in the body of the prompt with a worked example of correct output and a negative example showing the compressed form that must not appear. Show don't tell. See Output Format Enforcement in prompt-engineering.md.
+
 **Vague tool/topic descriptions.** "Helper tool" or "Support topic" gives the orchestrator nothing to route on. Descriptions need specific intents AND explicit exclusions.
 
 **Duplicate/overlapping descriptions.** Two tools described as "handles account queries" = coin flip routing. One must be differentiated or restricted to explicit invocation.
@@ -41,6 +43,8 @@
 **Trying to control retrieval via instructions.** "Always search document X first" is unreliable. The AI chooses based on query relevance.
 
 ## Multi-Agent Anti-Patterns
+
+**Using child agents for specialists whose only job is structured output.** Generative orchestration summarises child agent responses between stages. For pipelines whose specialists emit strict templates (numbered criteria, labeled blocks, structured data) and nothing else — no independent tools, knowledge, or governance — prompt tools invoked from a single topic preserve structure where child agents will not. See multi-agent-patterns.md → Prompt Tools Over Child Agents for Summarisation-Sensitive Pipelines and pipeline-patterns.md.
 
 **Missing agent boundary prohibitions.** Positive scope alone is insufficient — specialist agents leak into each other's domains. Add explicit prohibitions stating what each agent must NOT assess. See multi-agent-patterns.md → Agent Boundary Enforcement for the full pattern.
 

@@ -98,6 +98,13 @@ For autonomous pipelines (no user to prompt), every input must be either "Dynami
 
 - Hard limit: 8,000 characters. Quality and routing may degrade before the hard limit with dense or complex instructions — decompose into child agents or prompt tools rather than packing one instruction block.
 - **Curly braces are evaluated as Power Fx expressions.** CPS evaluates `{` and `}` in the `instructions` field as Power Fx interpolation. JSON examples in instructions (e.g. `{"key": "value"}`) will cause parse errors or unexpected behavior. Only `{System.Bot.Components...}` references are valid. Use `key=value` notation or prose descriptions instead of JSON examples.
+
+## Code Interpreter
+
+- **Stdlib-only sandbox.** The code interpreter available to prompt tools runs a Python sandbox restricted to the standard library. External packages (`bs4`, `pandas`, `nltk`, `numpy`, `requests`, etc.) are not installed. Prompts that instruct execution requiring third-party libraries crash with `No module named 'X'`.
+- This is a hard sandbox constraint, not a prompt problem. Four production mitigations all failed: stdlib-only constraint in the prompt, exact code block provided, explicit prohibition on imports, and positive-only framing listing allowed libraries. The sandbox does not install packages on demand.
+- **Workaround:** revert to qualitative assessment in the prompt, or perform the calculation in a Power Automate flow (which can call external services), or use a prompt tool without code interpreter and let the model reason about the inputs.
+- Do not rely on code interpreter for HTML parsing, dataframe operations, statistical libraries, or anything beyond what stdlib (`json`, `re`, `math`, `statistics`, `datetime`, `collections`, `itertools`, `csv`, `string`) provides.
 - **`modelDescription` hard limit: 1,024 characters.** CPS silently truncates or rejects descriptions exceeding this. Action descriptions for topic-owned tools can be shorter since the orchestrator doesn't route to them directly.
 - Temperature control only available in prompt actions, not at agent level.
 - Content filtering: no logging, no reason code, no diagnostic info when triggered.

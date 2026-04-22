@@ -55,6 +55,30 @@ Distinct from `OpenAIMaxTokenLengthExceeded`. In autonomous multi-agent pipeline
 
 **Escalation path:** Reduce prompts → compact child outputs → if still failing → CPS workflow.
 
+## Pipeline Debugging with Echo Nodes
+
+When specialist output is being compressed or structurally degraded between stages and you cannot tell which stage is responsible, insert `SendActivity` echo nodes between stages that emit the raw output with distinctive delimiters:
+
+```
+=== RAW <SPECIALIST> ===
+{Topic.XText}
+=== END RAW <SPECIALIST> ===
+```
+
+This makes the exact input and output of each stage visible in the test pane. Compare the delimited blocks across stages to locate where detail is lost (which specialist is producing narrative, which reformatter is stripping structure, which assembly step is summarising). Remove the echo nodes before production release.
+
+This pairs with the labeled raw block pattern (see `multi-agent-patterns.md` → Output Preservation Pattern). The labeled blocks are what the pipeline passes around in production; the echo nodes surface the same blocks in the test pane during iteration.
+
+## Testing Discipline for Iterative Prompt Work
+
+For agent pipelines under iteration, ad-hoc testing is the fastest way to lose track of what works:
+
+1. **Hold the test document constant across consecutive iterations** to isolate prompt-change effects from document-change effects. Periodically swap in a different document to expose coverage gaps that the primary test document hides.
+2. **Version stamp every run.** Without version stamps in the output, debugging "it worked yesterday" regressions is guesswork. See `prompt-engineering.md` → Output Format Ownership for where to put the stamp.
+3. **Track a version → score → summary table** to make regression trajectories visible.
+4. **Expect regressions in ~20% of releases.** Common causes: instruction accumulation, platform model updates, portal edits reverting local state, prompt tool schema changes breaking bindings, unsupported platform features (e.g. external libraries in code interpreter).
+5. **Define the scoring rubric before the first live test**, not after. Retrofitting a rubric to already-produced output biases the evaluation.
+
 ## Child Agent Loops
 
 1. Add explicit closing instruction: "End conversation and return to parent after completing the task."
