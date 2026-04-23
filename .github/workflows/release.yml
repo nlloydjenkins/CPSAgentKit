@@ -1,3 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile all workspaces
+        run: npm run compile
+
+      - name: Bundle MCP server
+        run: npm run bundle:mcp
+
+      - name: Smoke-test bundled MCP server
+        run: npm run smoke:mcp:bundle
+
+      - name: Read version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Verify tag matches package.json version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          PKG="${{ steps.version.outputs.version }}"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::Tag v$TAG does not match package.json version $PKG"
+            exit 1
+          fi
+
+      - name: Package VSIX
+        run: npm run package:extension
+
+      - name: Stage VSIX for release
+        run: |
+          mkdir -p releases
+          cp packages/extension/cpsagentkit-${{ steps.version.outputs.version }}.vsix releases/
+
+      - name: Publish @cpsagentkit/mcp-server to npm
+        run: npm publish --workspace=packages/mcp-server --access=public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
+          files: releases/cpsagentkit-${{ steps.version.outputs.version }}.vsix
+          make_latest: true
+          generate_release_notes: true
 name: Build and Release
 
 on:

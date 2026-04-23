@@ -1,15 +1,10 @@
 import * as fs from "fs/promises";
 import * as path from "path";
-import { fileExists } from "./fileUtils.js";
-import type { AgentSnapshot } from "./solutionReviewer.js";
+import { fileExists } from "../fs/fileUtils.js";
+import type { AgentSnapshot } from "./agentSnapshot.js";
+import type { SolutionMetadata } from "../types/index.js";
 
-/** Metadata extracted from solution.xml */
-export interface SolutionMetadata {
-  uniqueName: string;
-  displayName: string;
-  version: string;
-  publisher: string;
-}
+export type { SolutionMetadata } from "../types/index.js";
 
 /** A bot component (topic) from the exported solution */
 interface BotComponent {

@@ -1,162 +1,31 @@
 {
-  "name": "cpsagentkit",
-  "displayName": "Copilot Studio Agent Kit",
-  "description": "Turns GitHub Copilot into a Copilot Studio expert — scaffolds CPS agent projects, syncs platform knowledge, and generates copilot-instructions.md for deep CPS awareness.",
-  "version": "0.11.3",
-  "publisher": "nicklj",
+  "name": "cpsagentkit-monorepo",
+  "version": "0.12.0",
+  "private": true,
   "license": "MIT",
-  "engines": {
-    "vscode": "^1.85.0"
-  },
-  "categories": [
-    "Other"
-  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/nlloydjenkins/CPSAgentKit"
   },
-  "keywords": [
-    "copilot-studio",
-    "copilot",
-    "multi-agent",
-    "cps",
-    "power-platform"
+  "workspaces": [
+    "packages/core",
+    "packages/extension",
+    "packages/mcp-server"
   ],
-  "activationEvents": [
-    "workspaceContains:.cpsagentkit",
-    "onStartupFinished"
-  ],
-  "main": "./out/extension.js",
-  "contributes": {
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "cpsAgentKit",
-          "title": "CPSAgentKit",
-          "icon": "media/cpsagentkit-icon.svg"
-        }
-      ]
-    },
-    "views": {
-      "cpsAgentKit": [
-        {
-          "id": "cpsAgentKit.sidebar",
-          "name": "Commands",
-          "type": "tree"
-        }
-      ]
-    },
-    "viewsWelcome": [
-      {
-        "view": "cpsAgentKit.sidebar",
-        "contents": "Welcome to CPSAgentKit!\n\nGet started by initialising a CPS project in this workspace.\n[Initialise Project](command:cpsAgentKit.init)",
-        "when": "!cpsAgentKit.isInitialised"
-      }
-    ],
-    "commands": [
-      {
-        "command": "cpsAgentKit.init",
-        "title": "Initialise CPS Project",
-        "category": "CPSAgentKit"
-      },
-      {
-        "command": "cpsAgentKit.syncKnowledge",
-        "title": "Sync Knowledge",
-        "category": "CPSAgentKit"
-      },
-      {
-        "command": "cpsAgentKit.createSpec",
-        "title": "Create Plan",
-        "category": "CPSAgentKit"
-      },
-      {
-        "command": "cpsAgentKit.buildAgent",
-        "title": "Build Agent",
-        "category": "CPSAgentKit"
-      },
-      {
-        "command": "cpsAgentKit.generateRepoInstructions",
-        "title": "Generate Repo Copilot Instructions",
-        "category": "CPSAgentKit"
-      },
-      {
-        "command": "cpsAgentKit.reviewSolution",
-        "title": "Run Agent Assessment",
-        "category": "CPSAgentKit"
-      },
-      {
-        "command": "cpsAgentKit.reviewSolutionFile",
-        "title": "Run Solution Assessment",
-        "category": "CPSAgentKit"
-      },
-      {
-        "command": "cpsAgentKit.preBuild",
-        "title": "Run Pre-Build Checklist",
-        "category": "CPSAgentKit"
-      },
-      {
-        "command": "cpsAgentKit.buildDemo",
-        "title": "Build Demo",
-        "category": "CPSAgentKit"
-      },
-      {
-        "command": "cpsAgentKit.refreshSidebar",
-        "title": "Refresh Sidebar",
-        "category": "CPSAgentKit",
-        "icon": "$(refresh)"
-      }
-    ],
-    "menus": {
-      "view/title": [
-        {
-          "command": "cpsAgentKit.refreshSidebar",
-          "when": "view == cpsAgentKit.sidebar",
-          "group": "navigation"
-        }
-      ],
-      "explorer/context": [
-        {
-          "command": "cpsAgentKit.reviewSolution",
-          "when": "explorerResourceIsFolder",
-          "group": "cpsAgentKit@1"
-        },
-        {
-          "command": "cpsAgentKit.reviewSolutionFile",
-          "when": "resourceExtname == .yml || resourceExtname == .yaml",
-          "group": "cpsAgentKit@2"
-        }
-      ]
-    },
-    "configuration": {
-      "title": "CPSAgentKit",
-      "properties": {
-        "cpsAgentKit.knowledgeRepoUrl": {
-          "type": "string",
-          "default": "https://github.com/nlloydjenkins/CPSAgentKit",
-          "description": "GitHub repo URL for the CPS knowledge base"
-        },
-        "cpsAgentKit.syncOnOpen": {
-          "type": "boolean",
-          "default": true,
-          "description": "Sync knowledge automatically when the workspace opens"
-        },
-        "cpsAgentKit.knowledgeRepoBranch": {
-          "type": "string",
-          "default": "main",
-          "description": "Branch to pull knowledge from"
-        }
-      }
-    }
-  },
   "scripts": {
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "lint": "eslint src --ext ts",
+    "compile": "npm run compile --workspaces --if-present",
+    "watch": "npm run watch --workspace=packages/extension",
+    "lint": "npm run lint --workspaces --if-present",
     "generate:repo-instructions": "node scripts/generate-repo-instructions.js",
-    "package": "vsce package",
+    "copy:shared": "node scripts/copy-shared-assets.js",
+    "bundle:mcp": "npm run bundle --workspace=packages/mcp-server",
+    "package:extension": "npm run package --workspace=packages/extension",
+    "smoke:mcp": "node scripts/smoke-mcp.mjs",
+    "smoke:mcp:bundle": "node scripts/smoke-mcp-bundle.mjs",
     "build:patch": "node scripts/build-release.js patch",
     "build:minor": "node scripts/build-release.js minor",
     "build:major": "node scripts/build-release.js major",
+    "publish:mcp": "npm publish --workspace=packages/mcp-server --access=public",
     "install:vsix": "node scripts/install-vsix.js"
   },
   "devDependencies": {

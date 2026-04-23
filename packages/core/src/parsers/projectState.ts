@@ -1,6 +1,6 @@
 import * as fs from "fs/promises";
 import * as path from "path";
-import { fileExists, findCpsAgentFolders } from "./fileUtils.js";
+import { fileExists, findCpsAgentFolders } from "../fs/fileUtils.js";
 
 /** Snapshot of what exists in the workspace */
 export interface ProjectState {

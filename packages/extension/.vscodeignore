@@ -1,0 +1,20 @@
+.vscode/**
+.vscode-test/**
+src/**
+node_modules/**
+.eslintrc.json
+tsconfig.json
+scripts/**
+change-requests/**
+**/*.map
+**/*.ts
+!out/**
+# Only ship the bundled extension.js, not the tsc-emitted per-file output
+out/commands/**
+out/constants/**
+out/services/**
+out/ui/**
+out/extension.d.ts
+out/extension.d.ts.map
+test-*.js
+migration_feature_plan.md

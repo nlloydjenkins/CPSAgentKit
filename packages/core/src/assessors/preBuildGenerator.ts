@@ -4,8 +4,8 @@ import {
   readMarkdownFiles,
   fileExists,
   findCpsAgentFolders,
-} from "./fileUtils.js";
-import { CURRENT_VERSION } from "./config.js";
+} from "../fs/fileUtils.js";
+import { CORE_VERSION as CURRENT_VERSION } from "../version.js";
 import { resolveCuratedConnectorRequirement } from "./connectorCatalog.js";
 
 /** Result of checking Dataverse MCP configuration in the workspace */
