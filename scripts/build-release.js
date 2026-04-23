@@ -49,6 +49,9 @@ for (const pkgPath of workspacePackages) {
   if (pkg.dependencies && pkg.dependencies["@cpsagentkit/core"]) {
     pkg.dependencies["@cpsagentkit/core"] = VERSION;
   }
+  if (pkg.devDependencies && pkg.devDependencies["@cpsagentkit/core"]) {
+    pkg.devDependencies["@cpsagentkit/core"] = VERSION;
+  }
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf-8");
   console.log(`  updated ${path.relative(repoRoot, pkgPath)}`);
 }
