@@ -7,11 +7,26 @@
   "main": "./out/index.js",
   "types": "./out/index.d.ts",
   "exports": {
-    ".": "./out/index.js",
-    "./parsers": "./out/parsers/index.js",
-    "./assessors": "./out/assessors/index.js",
-    "./knowledge": "./out/knowledge/index.js",
-    "./types": "./out/types/index.js"
+    ".": {
+      "types": "./out/index.d.ts",
+      "default": "./out/index.js"
+    },
+    "./parsers": {
+      "types": "./out/parsers/index.d.ts",
+      "default": "./out/parsers/index.js"
+    },
+    "./assessors": {
+      "types": "./out/assessors/index.d.ts",
+      "default": "./out/assessors/index.js"
+    },
+    "./knowledge": {
+      "types": "./out/knowledge/index.d.ts",
+      "default": "./out/knowledge/index.js"
+    },
+    "./types": {
+      "types": "./out/types/index.d.ts",
+      "default": "./out/types/index.js"
+    }
   },
   "scripts": {
     "compile": "tsc -p ./",

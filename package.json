@@ -13,7 +13,7 @@
     "packages/mcp-server"
   ],
   "scripts": {
-    "compile": "npm run compile --workspaces --if-present",
+    "compile": "npm run compile -w packages/core && npm run compile -w packages/extension && npm run compile -w packages/mcp-server",
     "watch": "npm run watch --workspace=packages/extension",
     "lint": "npm run lint --workspaces --if-present",
     "generate:repo-instructions": "node scripts/generate-repo-instructions.js",
