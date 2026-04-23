@@ -1,0 +1,25 @@
+{
+  "name": "@cpsagentkit/core",
+  "version": "0.12.0",
+  "private": true,
+  "description": "Shared CPS parsing, assessment, and knowledge logic used by the CPSAgentKit VS Code extension and MCP server.",
+  "license": "MIT",
+  "main": "./out/index.js",
+  "types": "./out/index.d.ts",
+  "exports": {
+    ".": "./out/index.js",
+    "./parsers": "./out/parsers/index.js",
+    "./assessors": "./out/assessors/index.js",
+    "./knowledge": "./out/knowledge/index.js",
+    "./types": "./out/types/index.js"
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.0"
+  }
+}

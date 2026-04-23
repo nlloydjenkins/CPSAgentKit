@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile all workspaces
+        run: npm run compile
+
+      - name: Bundle MCP server
+        run: npm run bundle:mcp
+
+      - name: Smoke-test MCP server (source)
+        run: npm run smoke:mcp
+
+      - name: Smoke-test MCP server (bundled)
+        run: npm run smoke:mcp:bundle
+
+      - name: Package VSIX (verification)
+        run: npm run package:extension
+
+      - name: npm pack (mcp-server dry-run)
+        run: npm pack --dry-run
+        working-directory: packages/mcp-server
