@@ -6,7 +6,6 @@ import { buildAgentCommand } from "./commands/buildAgent.js";
 import { generateRepoInstructionsCommand } from "./commands/generateRepoInstructions.js";
 import { reviewSolutionCommand } from "./commands/reviewSolution.js";
 import { reviewSolutionFileCommand } from "./commands/reviewSolutionFile.js";
-import { preBuildCommand } from "./commands/preBuild.js";
 import { buildDemoCommand } from "./commands/buildDemo.js";
 import { detectProjectState } from "./services/projectState.js";
 import { readConfig } from "./services/config.js";
@@ -61,9 +60,6 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand("cpsAgentKit.reviewSolutionFile", () =>
       reviewSolutionFileCommand(extensionPath),
-    ),
-    vscode.commands.registerCommand("cpsAgentKit.preBuild", () =>
-      preBuildCommand(),
     ),
     vscode.commands.registerCommand("cpsAgentKit.buildDemo", () =>
       buildDemoCommand(extensionPath),

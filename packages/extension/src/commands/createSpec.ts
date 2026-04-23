@@ -339,8 +339,8 @@ export async function createSpecCommand(): Promise<void> {
 
   vscode.window.showInformationMessage(
     createSpec
-      ? "CPSAgentKit: Requirements/spec.md and Requirements/architecture.md created. Review and refine them, then run CPSAgentKit: Run Pre-Build. After the manual setup is complete, run Build."
-      : "CPSAgentKit: Requirements/architecture.md created using the existing spec. Review and refine it, then run CPSAgentKit: Run Pre-Build. After the manual setup is complete, run Build.",
+      ? "CPSAgentKit: Requirements/spec.md and Requirements/architecture.md created. Review and refine them, then run Build Agent."
+      : "CPSAgentKit: Requirements/architecture.md created using the existing spec. Review and refine it, then run Build Agent.",
   );
 }
 

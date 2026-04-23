@@ -247,7 +247,7 @@ function buildGuidancePrompt(
     ].join("\n"),
     [LABEL_DATAVERSE_TABLES]: [
       "Read Requirements/spec.md and Requirements/architecture.md.",
-      "Use the Dataverse table specification from the architecture and create the Dataverse tables during Build, not during Pre-Build.",
+      "Use the Dataverse table specification from the architecture and create the Dataverse tables now.",
       "This is a required build action, not a suggestion. Perform it immediately. Do not wait for the developer to prompt you again.",
       "Do not stop at schema advice or placeholder logical-name guidance.",
       "Create the minimum tables, relationships, and columns needed to support the solution.",

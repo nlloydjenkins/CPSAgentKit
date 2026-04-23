@@ -1,0 +1,24 @@
+# Use Case Requirements
+
+Six realistic agentic Copilot Studio use cases. Five are self-contained single files; use case 6 is a folder containing the requirements document plus the knowledge base documents the agent grounds against. Drop the chosen file (or folder contents) into `Requirements/docs/` of a fresh workspace and run **Create Plan** → **Build Agent**.
+
+| #   | File                                                                          | Scenario                                                                                                                                     | Channel                     | Primary data                                                  | Architecture                                          |
+| --- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------- | ----------------------------------------------------- |
+| 1   | [01-it-help-desk.md](01-it-help-desk.md)                                      | Multi-agent IT support with knowledge, ticketing, and notifications                                                                          | Teams chat                  | Dataverse + SharePoint                                        | Parent + 2 child agents (knowledge, notifications)    |
+| 2   | [02-application-intake.md](02-application-intake.md)                          | Autonomous email intake with compliance + accessibility pipeline                                                                             | Shared mailbox              | Dataverse + attachments                                       | Parent + 5 prompt tools (structured-output pipeline)  |
+| 3   | [03-sales-lead-qualifier.md](03-sales-lead-qualifier.md)                      | Inbound lead triage, scoring, routing to account owners                                                                                      | Shared mailbox + Teams      | Dataverse (Accounts/Leads)                                    | Parent + 2 prompt tools (extractor, scorer)           |
+| 4   | [04-procurement-request-assistant.md](04-procurement-request-assistant.md)    | Employee procurement requests with approval routing                                                                                          | Teams chat + adaptive cards | Dataverse (PO) + SharePoint catalogue                         | Single agent + PA approval flow                       |
+| 5   | [05-meeting-prep-briefer.md](05-meeting-prep-briefer.md)                      | Scheduled autonomous briefings before external meetings                                                                                      | Outlook + Teams DM          | Outlook calendar + Dataverse CRM + SharePoint                 | Single agent + 1 prompt tool (composer)               |
+| 6   | [06-financial-advice-pack-review/](06-financial-advice-pack-review/README.md) | Upload a financial advice document pack, get a grounded suitability report graded against FCA Consumer Duty, firm policy, and grading rubric | Teams chat upload           | Uploaded pack + 5 SharePoint knowledge docs + Dataverse audit | Single agent + topic-owned pipeline of 7 prompt tools |
+
+## How to use
+
+1. Copy the chosen file into a fresh workspace at `Requirements/docs/business-requirements.md` (or keep the original filename — the Create Plan command reads every file in `Requirements/docs/`).
+   - For use case 6, copy the **entire folder contents** into `Requirements/docs/`. The `knowledge/*.md` files should also be uploaded to the SharePoint library that will back the agent's knowledge sources.
+2. Run **CPSAgentKit: Initialise CPS Project** if not already initialised.
+3. Run **CPSAgentKit: Create Plan** → choose **Generate from requirements docs**.
+4. Review and refine `Requirements/spec.md` and `Requirements/architecture.md`.
+5. Run **CPSAgentKit: Build Agent** to generate agent instructions, tool descriptions, topic content, and settings.
+6. Apply changes via the CPS extension, test in the portal, iterate.
+
+All six scenarios use only first-party Microsoft services (Entra, Teams, Outlook, SharePoint, Dataverse, Power Automate) and are designed to stay within documented CPS platform constraints (tool count per agent, orchestration limits, MCP-on-parent rule, integer choice column values, N/A sentinel for optional flow inputs, pre-bound Dataverse actions per table). Each file includes a **Platform Considerations** section flagging the specific constraints that apply to that scenario — the Build phase should treat these as hard requirements.

@@ -34,8 +34,28 @@ async function main() {
     path.join(root, "docs", "bestpractices"),
   );
 
-  const knowledgeFileList = knowledgeFiles.map(({ filename }) => `- \`docs/knowledge/${filename}\``);
-  const bestPracticeFileList = bestPracticeFiles.map(({ filename }) => `- \`docs/bestpractices/${filename}\``);
+  // List reference architecture template directories
+  const templatesDir = path.join(root, "docs", "templates");
+  let templateDirNames = [];
+  try {
+    const tplEntries = await fs.readdir(templatesDir, { withFileTypes: true });
+    templateDirNames = tplEntries
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name)
+      .sort();
+  } catch {
+    // Templates directory doesn't exist
+  }
+
+  const knowledgeFileList = knowledgeFiles.map(
+    ({ filename }) => `- \`docs/knowledge/${filename}\``,
+  );
+  const bestPracticeFileList = bestPracticeFiles.map(
+    ({ filename }) => `- \`docs/bestpractices/${filename}\``,
+  );
+  const templateDirList = templateDirNames.map(
+    (name) => `- \`docs/templates/${name}/\``,
+  );
 
   const projectStateSection = [
     "## Current Project State",
@@ -75,6 +95,17 @@ async function main() {
       "Read these files when designing, building, or reviewing agents:",
       "",
       ...bestPracticeFileList,
+    );
+  }
+
+  if (templateDirList.length > 0) {
+    parts.push(
+      "",
+      "## Available Reference Architecture Templates",
+      "",
+      "Read these directories for proven multi-agent designs and working examples when proposing architectures:",
+      "",
+      ...templateDirList,
     );
   }
 

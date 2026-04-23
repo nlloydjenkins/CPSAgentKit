@@ -65,8 +65,6 @@ The server registers the following tools:
 
 ### Build context
 
-- **`cps_detect_prebuild_state`** — compares cloned agents against architecture.md and returns gaps.
-- **`cps_compose_prebuild_report`** — markdown pre-build checklist.
 - **`cps_generate_topic_scaffolds`** — extracts topic scaffolds from architecture.md.
 - **`cps_detect_dataverse_mcp`** — checks for Dataverse MCP configuration in `.vscode/mcp.json`.
 

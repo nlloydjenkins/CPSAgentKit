@@ -1,0 +1,11 @@
+name: cpsagentkit-mcp-server
+metadata:
+  template: cpsagentkit-mcp-server
+infra:
+  provider: bicep
+  path: ./infra
+services:
+  mcp-server:
+    project: .
+    language: js
+    host: appservice

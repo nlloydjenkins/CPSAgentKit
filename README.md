@@ -1,27 +1,166 @@
 # CPSAgentKit
 
-A VS Code extension that turns GitHub Copilot into a Copilot Studio expert.
+Turn any MCP-aware LLM into a Copilot Studio expert.
 
-## What it does
+CPSAgentKit provides curated CPS platform knowledge, agent parsing, and best-practice assessment. It ships as two packages — a **VS Code extension** for GitHub Copilot users and a standalone **MCP server** for Claude Desktop, Cursor, or any other MCP client.
 
-CPSAgentKit scaffolds CPS agent projects, syncs curated platform knowledge and best practices from a central repo, and generates a `.github/copilot-instructions.md` file that gives GitHub Copilot deep awareness of Copilot Studio constraints, multi-agent patterns, and platform behaviour. Developers work with GitHub Copilot as normal — it just happens to know how to build CPS agents properly.
+Both packages share the same core library and knowledge base.
 
-## How to use it
+---
 
-1. Install the extension alongside the Copilot Studio VS Code extension (pre-release).
-2. Clone an agent using the CPS extension. Agent components become YAML files in the workspace.
-3. Run **Initialise CPS Project** from the sidebar or command palette.
-4. The extension scaffolds the folder structure, pulls the latest knowledge, and writes the instructions file.
-5. Add your requirements docs to `Requirements/docs/`, then run **Create Plan**.
-6. Run **Pre-Build Checklist** and **Build Agent** to generate agent configs.
-7. Apply changes via the CPS extension, test in the portal, paste output back into Copilot Chat.
-8. Run **Agent Assessment** or **Solution Assessment** to review against best practices.
+## VS Code Extension
 
 ### Prerequisites
 
-- Copilot Studio VS Code extension (pre-release)
+- [Copilot Studio VS Code extension](https://marketplace.visualstudio.com/items?itemName=microsoft-IsvExpTools.powerplatform-vscode) (pre-release)
 - GitHub Copilot
 - A Copilot Studio environment with agents to work on
+
+### Install
+
+Download the latest `.vsix` from [Releases](https://github.com/nlloydjenkins/CPSAgentKit/releases), then:
+
+```bash
+code --install-extension cpsagentkit-*.vsix
+```
+
+Or build from source:
+
+```bash
+git clone https://github.com/nlloydjenkins/CPSAgentKit.git
+cd CPSAgentKit
+npm install
+npm run compile
+npm run package:extension
+npm run install:vsix
+```
+
+### Usage
+
+1. Clone an agent using the CPS extension. Agent components become YAML files in the workspace.
+2. Run **Initialise CPS Project** from the sidebar or command palette.
+3. The extension scaffolds the folder structure, pulls the latest knowledge, and writes `.github/copilot-instructions.md`.
+4. Add your requirements docs to `Requirements/docs/`, then run **Create Plan**.
+5. Run **Build Agent** to generate agent configs.
+6. Apply changes via the CPS extension, test in the portal, paste output back into Copilot Chat.
+7. Run **Agent Assessment** or **Solution Assessment** to review against best practices.
+
+---
+
+## MCP Server
+
+Use CPSAgentKit with Claude Desktop, Cursor, VS Code MCP, or any MCP-aware client — no extension install needed.
+
+### Quick start (no install)
+
+```bash
+npx @cpsagentkit/mcp-server --transport=stdio
+```
+
+### Global install
+
+```bash
+npm install -g @cpsagentkit/mcp-server
+cpsagentkit-mcp --transport=stdio
+```
+
+### Claude Desktop
+
+Add to your `claude_desktop_config.json` (typically `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+
+```json
+{
+  "mcpServers": {
+    "cpsagentkit": {
+      "command": "npx",
+      "args": ["-y", "@cpsagentkit/mcp-server", "--transport=stdio"]
+    }
+  }
+}
+```
+
+Restart Claude Desktop. The CPS tools will appear in the tool list.
+
+### Claude Code
+
+```bash
+claude mcp add cpsagentkit -- npx -y @cpsagentkit/mcp-server --transport=stdio
+```
+
+This registers the server for the current project. Use `--scope user` to make it available globally:
+
+```bash
+claude mcp add --scope user cpsagentkit -- npx -y @cpsagentkit/mcp-server --transport=stdio
+```
+
+### VS Code (MCP config)
+
+Add to `.vscode/mcp.json` in your workspace:
+
+```json
+{
+  "servers": {
+    "cpsagentkit": {
+      "command": "npx",
+      "args": ["-y", "@cpsagentkit/mcp-server", "--transport=stdio"]
+    }
+  }
+}
+```
+
+### HTTP transport
+
+For clients that connect to a long-running server:
+
+```bash
+cpsagentkit-mcp --transport=http --host=127.0.0.1 --port=3333
+```
+
+The endpoint is `POST /mcp` (MCP Streamable HTTP spec).
+
+### Available tools
+
+| Category       | Tools                                                                                                               |
+| -------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Knowledge**  | `cps_list_knowledge_topics`, `cps_get_knowledge`, `cps_get_best_practice`                                           |
+| **Parsing**    | `cps_detect_project_state`, `cps_list_agents`, `cps_parse_agent`, `cps_parse_solution`, `cps_find_solution_folders` |
+| **Assessment** | `cps_validate_tool_description`, `cps_compose_review_prompt`                                                        |
+| **Build**      | `cps_generate_topic_scaffolds`, `cps_detect_dataverse_mcp`                                                          |
+
+All bundled knowledge and best-practice documents are also exposed as MCP resources (`cpsagentkit://<category>/<slug>`).
+
+### Deploy to Azure
+
+You can host the MCP server on Azure App Service so remote MCP clients can connect over HTTPS. Infrastructure files are included in `packages/mcp-server/`.
+
+**Prerequisites:** [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) and [Azure Developer CLI (azd)](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd).
+
+```bash
+cd packages/mcp-server
+azd auth login
+azd init
+azd up
+```
+
+This provisions a Linux App Service plan and deploys the MCP server. The output includes the endpoint URL:
+
+```
+mcpEndpoint = https://<app-name>.azurewebsites.net/mcp
+```
+
+Point any MCP client at that URL using the Streamable HTTP transport. For example, in Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "cpsagentkit": {
+      "url": "https://<app-name>.azurewebsites.net/mcp"
+    }
+  }
+}
+```
+
+---
 
 ## Sidebar
 
@@ -31,7 +170,7 @@ The extension adds a **CPSAgentKit** activity bar panel with commands organised 
 | ---------- | --------------------------------------------- |
 | **Setup**  | Initialise Project, Sync Knowledge            |
 | **Plan**   | Add Requirements, Create Plan                 |
-| **Build**  | Pre-Build Checklist, Build Agent              |
+| **Build**  | Build Agent                                   |
 | **Assess** | Run Agent Assessment, Run Solution Assessment |
 
 ## Commands
@@ -53,10 +192,6 @@ Offers three modes for creating `Requirements/spec.md` and `Requirements/archite
 - **Guided wizard** — answer prompts step by step to build both documents interactively.
 - **Generate from requirements docs** — reads documents in `Requirements/docs/` and generates both files via Copilot Chat.
 - **Generate from existing agent** — reads the cloned CPS agent YAML (settings, topics, actions, knowledge) and reverse-engineers both documents via Copilot Chat. Only appears when a CPS agent is detected in the workspace.
-
-### Pre-Build Checklist
-
-Compares the architecture against the currently cloned CPS YAML, highlights missing build prerequisites, and flags manual portal work such as knowledge sources, MCP setup, and portal-only settings.
 
 ### Build Agent
 

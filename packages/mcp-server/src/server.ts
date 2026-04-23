@@ -16,8 +16,6 @@ import {
   validateToolDescription,
   composeReviewPrompt,
   gatherSolutionSnapshot,
-  detectPreBuildState,
-  composePreBuildReport,
   detectDataverseMcp,
   readRequirements,
   generateTopicScaffolds,
@@ -348,9 +346,7 @@ export async function createServer(): Promise<McpServer> {
       description:
         "Lint-checks a description string against CPS prompt-engineering rules: length, vague openers, missing 'when to call' cues, missing input hints, missing boundary statements. Returns structured issues (error/warning/info) and concrete suggestions. Use before publishing an action's modelDescription or a topic trigger description.",
       inputSchema: {
-        description: z
-          .string()
-          .describe("The description text to validate."),
+        description: z.string().describe("The description text to validate."),
         kind: z
           .enum(["tool", "topic", "agent"])
           .optional()
@@ -411,69 +407,6 @@ export async function createServer(): Promise<McpServer> {
   );
 
   // ── Build-context tools ────────────────────────────────────
-
-  reg.registerTool(
-    "cps_detect_prebuild_state",
-    {
-      title: "Detect pre-build state for a CPS workspace",
-      description:
-        "Scans cloned CPS agent folders against the architecture.md expectations and returns structured gaps: which expected agents/topics/tools are missing, which settings flags disagree with the architecture, and which knowledge sources are unconfigured. Use before Build phase to decide what still needs creating in the CPS portal.",
-      inputSchema: {
-        workspaceRoot: z
-          .string()
-          .min(1)
-          .describe("Absolute path to the workspace root."),
-      },
-    },
-    async ({ workspaceRoot }: { workspaceRoot: string }) => {
-      const { architecture } = await readRequirements(workspaceRoot);
-      if (!architecture) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: "No architecture.md found. Run the Architect phase first.",
-            },
-          ],
-          isError: true as const,
-        };
-      }
-      const state = await detectPreBuildState(workspaceRoot, architecture);
-      return jsonContent(state);
-    },
-  );
-
-  reg.registerTool(
-    "cps_compose_prebuild_report",
-    {
-      title: "Compose a pre-build report for a CPS workspace",
-      description:
-        "Returns a markdown pre-build report that lists portal-side setup steps (agent creation, topic scaffolding, tool wiring, knowledge sources, settings flags) derived from spec.md + architecture.md and compared against the current cloned state. Call this after cps_detect_prebuild_state when the user wants a human-readable checklist.",
-      inputSchema: {
-        workspaceRoot: z
-          .string()
-          .min(1)
-          .describe("Absolute path to the workspace root."),
-      },
-    },
-    async ({ workspaceRoot }: { workspaceRoot: string }) => {
-      const { spec, architecture, docs } = await readRequirements(workspaceRoot);
-      if (!architecture) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: "No architecture.md found. Run the Architect phase first.",
-            },
-          ],
-          isError: true as const,
-        };
-      }
-      const state = await detectPreBuildState(workspaceRoot, architecture);
-      const report = composePreBuildReport(spec, architecture, docs, state);
-      return markdownContent(report);
-    },
-  );
 
   reg.registerTool(
     "cps_generate_topic_scaffolds",

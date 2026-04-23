@@ -35,12 +35,7 @@ export interface AgentSnapshot {
  * A model tool reference found in an agent's actions folder or settings.
  * Covers connector tools, Power Automate flows, and MCP servers.
  */
-export type AgentToolKind =
-  | "connector"
-  | "flow"
-  | "mcp"
-  | "prompt"
-  | "unknown";
+export type AgentToolKind = "connector" | "flow" | "mcp" | "prompt" | "unknown";
 
 export interface AgentTool {
   /** File name the tool was defined in (e.g. `lookup_customer.mcs.yml`) */
@@ -91,10 +86,7 @@ export interface AgentTrigger {
   description: string;
 }
 
-export type AgentOrchestrationMode =
-  | "generative"
-  | "classic"
-  | "unknown";
+export type AgentOrchestrationMode = "generative" | "classic" | "unknown";
 
 /**
  * Structured view of one agent, derived from parsing its YAML files.
@@ -218,34 +210,6 @@ export interface AssessmentReport {
 }
 
 // ────────────────────────────────────────────────────────────
-//  Pre-build check
-// ────────────────────────────────────────────────────────────
-
-export interface PreBuildMissingItem {
-  kind: "topic" | "tool" | "knowledge-source" | "trigger" | "agent";
-  name: string;
-  agent?: string;
-  reason: string;
-}
-
-export interface ManualPortalStep {
-  /** Short, imperative title (e.g. "Enable content moderation") */
-  title: string;
-  /** What the developer must do in the CPS portal */
-  instruction: string;
-  /** Why this must be done in the portal instead of YAML */
-  reason: string;
-}
-
-export interface PreBuildCheck {
-  generatedAt: string;
-  missing: PreBuildMissingItem[];
-  manualPortalSteps: ManualPortalStep[];
-  /** Free-form flags/observations that don't fit the above */
-  flags: string[];
-}
-
-// ────────────────────────────────────────────────────────────
 //  Knowledge retrieval
 // ────────────────────────────────────────────────────────────
 
@@ -320,7 +284,11 @@ export interface ArchitectureDraft {
   agents: ArchitectureAgentSummary[];
   routingLogic: string;
   knowledgeSources: Array<{ name: string; type: string; scope: string }>;
-  manualPortalSteps: ManualPortalStep[];
+  manualPortalSteps: Array<{
+    title: string;
+    instruction: string;
+    reason: string;
+  }>;
   generalKnowledgeStance: "enabled" | "disabled" | "mixed";
   appliedConstraints: string[];
 }

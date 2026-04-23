@@ -2,7 +2,7 @@
   "name": "cpsagentkit",
   "displayName": "Copilot Studio Agent Kit",
   "description": "Turns GitHub Copilot into a Copilot Studio expert — scaffolds CPS agent projects, syncs platform knowledge, and generates copilot-instructions.md for deep CPS awareness.",
-  "version": "0.12.0",
+  "version": "0.13.1",
   "publisher": "nicklj",
   "license": "MIT",
   "engines": {
@@ -90,11 +90,6 @@
         "category": "CPSAgentKit"
       },
       {
-        "command": "cpsAgentKit.preBuild",
-        "title": "Run Pre-Build Checklist",
-        "category": "CPSAgentKit"
-      },
-      {
         "command": "cpsAgentKit.buildDemo",
         "title": "Build Demo",
         "category": "CPSAgentKit"
@@ -157,7 +152,7 @@
     "package": "npm run bundle && vsce package --no-dependencies"
   },
   "dependencies": {
-    "@cpsagentkit/core": "0.12.0"
+    "@cpsagentkit/core": "0.13.1"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

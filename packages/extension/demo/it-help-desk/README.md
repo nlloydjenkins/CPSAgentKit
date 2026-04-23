@@ -97,15 +97,7 @@ This creates `.cpsagentkit/`, `.github/copilot-instructions.md`, and template fi
 
 **Review (optional):** Open the generated files and check they reflect the multi-agent design with Dataverse MCP on the parent, Knowledge Specialist child, and Notification Specialist child.
 
-### Step 6: Run Pre-Build Validation
-
-1. Open Command Palette → **CPSAgentKit: Run Pre-Build**
-2. Select the output format (checklist or gap report)
-3. Review the generated pre-build checklist in `Requirements/`
-
-This flags what's ready, what needs portal work, and which CPS constraints apply.
-
-### Step 7: Manual Portal Steps (Required)
+### Step 6: Manual Portal Steps (Required)
 
 These steps cannot be automated — the CPS extension requires agents to be created in the portal first:
 
@@ -126,7 +118,7 @@ These steps cannot be automated — the CPS extension requires agents to be crea
 
 4. **Sync to local** — Use `Copilot Studio: Get Changes` to pull the agent YAML into the workspace
 
-### Step 8: Build Agent (Autonomous)
+### Step 7: Build Agent (Autonomous)
 
 1. Open Command Palette → **CPSAgentKit: Build Agent**
 2. Select **"Full build"**
@@ -135,7 +127,7 @@ These steps cannot be automated — the CPS extension requires agents to be crea
 5. Apply the generated changes to the YAML files
 6. Use `Copilot Studio: Apply Changes` to push to the portal
 
-### Step 9: Test
+### Step 8: Test
 
 1. Open the test pane in Copilot Studio portal
 2. Try the sample interactions from `Requirements/docs/sample-interactions.md`:
@@ -183,7 +175,6 @@ Pre-built ticket records covering all statuses:
 | Create Teams team/channel      |        | ✅ (via PnP MCP)     |
 | Initialise project             |        | ✅ (one command)     |
 | Generate spec + architecture   |        | ✅ (one Enter press) |
-| Run pre-build                  |        | ✅ (one command)     |
 | Create agents in portal        | ✋     |                      |
 | Add tools/connectors in portal | ✋     |                      |
 | Sync YAML locally              | ✋     |                      |

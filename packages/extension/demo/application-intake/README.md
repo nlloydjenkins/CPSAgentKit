@@ -117,20 +117,7 @@ This creates `.cpsagentkit/`, `.github/copilot-instructions.md`, and template fi
 - General knowledge disabled
 - Content moderation flagged as a manual portal step
 
-### Step 7: Run Pre-Build Validation
-
-1. Open Command Palette → **CPSAgentKit: Run Pre-Build**
-2. Review the generated pre-build checklist
-
-This flags what's ready, what needs portal work, and which CPS constraints apply. For this demo, expect flags for:
-
-- Shared mailbox trigger configuration (portal)
-- Pre-bound Dataverse actions per table (portal)
-- Prompt tool creation (portal)
-- Content moderation setting (portal)
-- Knowledge source upload (portal)
-
-### Step 8: Manual Portal Steps (Required)
+### Step 7: Manual Portal Steps (Required)
 
 These steps cannot be automated — the CPS extension requires agents to be created in the portal first. You only need to create the shells and connections here — the **Build Agent** command (Step 9) generates all instructions, descriptions, and tool configurations.
 
@@ -170,7 +157,7 @@ These steps cannot be automated — the CPS extension requires agents to be crea
 
 7. **Sync to local** — `Copilot Studio: Get Changes` to pull the agent YAML into the workspace
 
-### Step 9: Build Agent (Autonomous)
+### Step 8: Build Agent (Autonomous)
 
 1. Open Command Palette → **CPSAgentKit: Build Agent**
 2. Select **"Full build"**
@@ -185,7 +172,7 @@ These steps cannot be automated — the CPS extension requires agents to be crea
 5. Apply the generated changes to the YAML files
 6. Use `Copilot Studio: Apply Changes` to push to the portal
 
-### Step 10: Seed Dataverse
+### Step 9: Seed Dataverse
 
 Load the 5 sample application records from `sample-data/dataverse-seed-data.md` into the `cr85a_applications` table. You can:
 
@@ -193,7 +180,7 @@ Load the 5 sample application records from `sample-data/dataverse-seed-data.md` 
 - Manually create records in the Dataverse table editor
 - Use Power Apps model-driven app
 
-### Step 11: Test
+### Step 10: Test
 
 Test the pipeline by sending emails to the shared mailbox. Use the scenarios from `Requirements/docs/sample-interactions.md`:
 
@@ -247,7 +234,6 @@ Pre-built records covering all key statuses:
 | Create Teams channel + mailbox    | ✋     |                      |
 | Initialise project                |        | ✅ (one command)     |
 | Generate spec + architecture      |        | ✅ (one Enter press) |
-| Run pre-build                     |        | ✅ (one command)     |
 | Create agent shells in portal     | ✋     |                      |
 | Add tools/connectors/knowledge    | ✋     |                      |
 | Create Dataverse tables + trigger | ✋     |                      |

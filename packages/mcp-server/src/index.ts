@@ -8,7 +8,6 @@ export type {
   AgentConfig,
   KnowledgeDocument,
   KnowledgeTopic,
-  PreBuildCheck,
 } from "@cpsagentkit/core";
 
-export const MCP_SERVER_VERSION = "0.12.0";
+export const MCP_SERVER_VERSION = "0.13.1";

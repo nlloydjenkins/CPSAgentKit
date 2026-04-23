@@ -20,7 +20,7 @@ An agent has already been built and cloned via the CPS extension. Before any new
   - **What it should NOT do:** infer from explicit exclusions in instructions or topic boundaries
   - **What success looks like:** infer from expected outputs visible in message nodes and tool descriptions
   - **Users and Channel:** infer from auth settings and channel configuration
-  - **Domain knowledge:** list knowledge sources found in knowledge/*.yaml
+  - **Domain knowledge:** list knowledge sources found in knowledge/\*.yaml
   - **CPS Constraints:** flag any constraints visible in the current configuration (tool count, MCP usage, general knowledge stance)
 - Use the template in `/templates/spec-template.md` for structure
 - Then reverse-engineer `Requirements/architecture.md`:
@@ -123,6 +123,10 @@ When the developer pastes test output from the CPS portal test pane:
 
 ## Rules
 
+### Knowledge File Usage
+
+Every knowledge file in `.cpsagentkit/knowledge/` exists for a reason. Read the relevant file **before** making a decision in that domain:
+
 - Always respect CPS platform constraints documented in `.cpsagentkit/knowledge/constraints.md`
 - When designing multi-agent solutions, follow patterns in `.cpsagentkit/knowledge/multi-agent-patterns.md`
 - Write all agent instructions following `.cpsagentkit/knowledge/prompt-engineering.md`
@@ -130,6 +134,32 @@ When the developer pastes test output from the CPS portal test pane:
 - Design knowledge sources following `.cpsagentkit/knowledge/knowledge-sources.md`
 - Avoid anti-patterns documented in `.cpsagentkit/knowledge/anti-patterns.md`
 - When troubleshooting, reference `.cpsagentkit/knowledge/troubleshooting.md`
+- When editing or generating any YAML (topics, actions, settings, triggers), follow `.cpsagentkit/knowledge/yaml-syntax.md`
+- When setting up Dataverse MCP connections, follow `.cpsagentkit/knowledge/dataverse-mcp-setup.md`
+- When building declarative agents or M365 Copilot extensions, follow `.cpsagentkit/knowledge/declarative-agents.md`
+- When configuring Direct Line API channels or custom clients, reference `.cpsagentkit/knowledge/direct-line-api.md`
+- When designing sequential, pipeline, or autonomous workflows, follow `.cpsagentkit/knowledge/pipeline-patterns.md`
+- When syncing prompts between AI Hub/CPS and the local workspace, reference `.cpsagentkit/knowledge/prompt-sync.md`
+- Use `.cpsagentkit/knowledge/reference-patterns.md` for proven architecture patterns and working examples
+- Use `.cpsagentkit/knowledge/reference-library.md` for quick lookups on CPS capabilities, limits, and API references
+- Use `.cpsagentkit/knowledge/cheat-sheet.md` as a quick reference for CPS development shortcuts and common patterns
+
+### Best Practice Usage
+
+Best practice files in `.cpsagentkit/bestpractices/` contain tested, production-proven guidance. **Read the relevant file before generating any agent build output:**
+
+- `.cpsagentkit/bestpractices/part1-platform.md` — platform capabilities, limitations, and feature constraints. Read when assessing feasibility or choosing platform features
+- `.cpsagentkit/bestpractices/part2-alm-governance-security.md` — ALM, governance, DLP, and security. Read when designing deployment pipelines, environments, or security controls
+- `.cpsagentkit/bestpractices/part3-agent-design.md` — agent design, prompt engineering, and conversation patterns. Read when writing agent instructions, topic descriptions, or designing conversation flows
+- `.cpsagentkit/bestpractices/part4-tools-multiagent.md` — tool design and multi-agent orchestration. Read when designing tools, connectors, MCP servers, or parent-child agent architectures
+- `.cpsagentkit/bestpractices/part5-gotchas-bugs.md` — known gotchas, bugs, and workarounds. Read when troubleshooting unexpected behaviour or before finalising a build
+
+### Reference Architecture Templates
+
+Example agent architectures in `.cpsagentkit/templates/` provide proven multi-agent designs. Reference these when proposing architectures to see working patterns for similar problems.
+
+### General Rules
+
 - Read all documents in `Requirements/docs/` as additional domain context — these contain agent-specific requirements, reference material, and documentation provided by the developer. **Always read these before creating or updating the spec or architecture.** They may contain scoring frameworks, regulatory rules, brand guidelines, sample outputs, or other material that directly shapes agent design. Do not ask the developer to repeat information that is already in these documents.
 - If the developer's approach will hit a platform constraint, say so immediately and suggest the workaround
 - If a single agent is sufficient, do not over-engineer a multi-agent solution

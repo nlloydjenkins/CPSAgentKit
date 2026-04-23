@@ -7,6 +7,7 @@ const GITHUB_DIR = ".github";
 const INSTRUCTIONS_FILE = "copilot-instructions.md";
 const KNOWLEDGE_DIR = path.join(".cpsagentkit", "knowledge");
 const BEST_PRACTICES_DIR = path.join(".cpsagentkit", "bestpractices");
+const TEMPLATES_DIR = path.join(".cpsagentkit", "templates");
 
 /**
  * Determine which workflow phase the project is in based on file existence.
@@ -95,12 +96,32 @@ export async function generateInstructions(
   // List knowledge files (by name only — content is read on demand by Copilot)
   const knowledgeDir = path.join(workspaceRoot, KNOWLEDGE_DIR);
   const knowledgeFiles = await readMarkdownFiles(knowledgeDir);
-  const knowledgeFileList = knowledgeFiles.map(({ filename }) => `- \`.cpsagentkit/knowledge/${filename}\``);
+  const knowledgeFileList = knowledgeFiles.map(
+    ({ filename }) => `- \`.cpsagentkit/knowledge/${filename}\``,
+  );
 
   // List best practices files
   const bpDir = path.join(workspaceRoot, BEST_PRACTICES_DIR);
   const bestPracticesFiles = await readMarkdownFiles(bpDir);
-  const bestPracticesFileList = bestPracticesFiles.map(({ filename }) => `- \`.cpsagentkit/bestpractices/${filename}\``);
+  const bestPracticesFileList = bestPracticesFiles.map(
+    ({ filename }) => `- \`.cpsagentkit/bestpractices/${filename}\``,
+  );
+
+  // List reference architecture template directories
+  const tplDir = path.join(workspaceRoot, TEMPLATES_DIR);
+  let templateDirNames: string[] = [];
+  try {
+    const tplEntries = await fs.readdir(tplDir, { withFileTypes: true });
+    templateDirNames = tplEntries
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name)
+      .sort();
+  } catch {
+    // Templates directory doesn't exist yet
+  }
+  const templateDirList = templateDirNames.map(
+    (name) => `- \`.cpsagentkit/templates/${name}/\``,
+  );
 
   // Build project state section
   const projectStateSection = buildProjectStateSection(state);
@@ -134,6 +155,17 @@ export async function generateInstructions(
       "Read these files when designing, building, or reviewing agents:",
       "",
       ...bestPracticesFileList,
+    );
+  }
+
+  if (templateDirList.length > 0) {
+    parts.push(
+      "",
+      "## Available Reference Architecture Templates",
+      "",
+      "Read these directories for proven multi-agent designs and working examples when proposing architectures:",
+      "",
+      ...templateDirList,
     );
   }
 
