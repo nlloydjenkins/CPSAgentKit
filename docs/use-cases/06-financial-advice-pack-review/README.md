@@ -11,6 +11,7 @@ This folder contains the use case requirements document plus the five knowledge 
   - [knowledge/grading-rubric.md](knowledge/grading-rubric.md) — 5-pillar weighted scoring rubric → Grading Rubric
   - [knowledge/required-disclosures.md](knowledge/required-disclosures.md) — prescribed disclosure wording → Disclosure Checker
   - [knowledge/advice-type-taxonomy.md](knowledge/advice-type-taxonomy.md) — advice type definitions → Pack Classifier + Suitability Policy Evaluator
+- **Sample advice pack** ([sample-pack/](sample-pack/README.md)) — 5 generated PDFs for a fictional client (Mrs K. Chen pension transfer) you can upload in the test pane or Teams to exercise the agent end-to-end. Includes deliberate flaws (outdated FSCS limit, missing 10-year cost projection) so the agent has realistic issues to flag.
 
 ## How to use
 
