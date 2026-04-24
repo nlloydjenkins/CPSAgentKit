@@ -325,7 +325,7 @@ def build_atr():
     story.append(p("Attitude to Risk Assessment", "DocTitle"))
     story.append(p(
         f"Client: <b>{CLIENT}</b> &nbsp;&nbsp; Adviser: <b>{ADVISER}</b> &nbsp;&nbsp; "
-        f"Assessment date: 14 March 2026 &nbsp;&nbsp; Questionnaire: FinaMetrica v9.2",
+        f"Assessment date: 14 March 2026 &nbsp;&nbsp; Questionnaire: Dynamic Planner v20",
         "Body",
     ))
 
@@ -487,7 +487,7 @@ def build_suitability():
         "<b>Keeping the DB scheme:</b> would provide guaranteed income but no flexibility or "
         "inheritance benefit for your nieces. You have stated these matter more to you.<br/>"
         "<b>Partial transfer:</b> not available under the Meridian scheme rules.<br/>"
-        "<b>Alternative DC provider (e.g. AJ Bell, Fidelity):</b> Aviva selected as the "
+        "<b>Alternative DC provider (e.g. AJ Bell, Hargreaves Lansdown):</b> Aviva selected as the "
         "receiving scheme on the basis of platform cost, investment choice (access to the "
         "Helios model portfolio), service quality, and your existing relationship with "
         "Aviva's admin (you have an existing Aviva personal pension which will be consolidated "
