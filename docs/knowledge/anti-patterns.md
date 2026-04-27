@@ -34,6 +34,8 @@
 
 **Template-line reinforcements ("MUST include X") at the end of criterion definitions.** Appending emphatic reinforcements to criterion definitions consistently fails to produce adoption — tested 0 of 3 successful adoptions across a production build. The fix is structural: put a literal template in the body of the prompt with a worked example of correct output and a negative example showing the compressed form that must not appear. Show don't tell. See Output Format Enforcement in prompt-engineering.md.
 
+**Combined output fields for distinct data points.** Defining a single output field that combines multiple values (e.g. "Reading age/grade: [combined]") causes models to merge, omit, or inconsistently format the individual values. Use separate sub-fields with their own labels (e.g. "Estimated reading age: [value]" and "Grade level: [value]" on separate lines). Each distinct data point should be a structurally separate field in the prompt template.
+
 **Vague tool/topic descriptions.** "Helper tool" or "Support topic" gives the orchestrator nothing to route on. Descriptions need specific intents AND explicit exclusions.
 
 **Duplicate/overlapping descriptions.** Two tools described as "handles account queries" = coin flip routing. One must be differentiated or restricted to explicit invocation.

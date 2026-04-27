@@ -65,6 +65,39 @@ Each specialist consumes the prior blocks it needs (passed as prompt tool input 
 - Specialists need to be reused across parent agents — use connected agents
 - The pipeline spans multiple user turns with complex state — use topics with variables or an agent flow
 
+---
+
+## Supplementary Pipeline Patterns
+
+### Disclosure Inventory Pre-Scan
+
+When a pipeline performs compliance or regulatory assessment against a document, pre-scan the document content for existing disclaimers, disclosures, and compliance statements before running the compliance assessment step. Build a structured `DISCLOSURE_INVENTORY` and pass it as input to the compliance specialist.
+
+Without this, compliance tools classify already-present disclosures as "Missing" — a persistent false-positive pattern that degrades trust in the output.
+
+```
+Preprocessing → Document HTML
+    → Pre-scan: extract existing disclaimers → DISCLOSURE_INVENTORY
+    → Compliance Assessment (document_html + DISCLOSURE_INVENTORY)
+```
+
+### Two-Phase Assessment and Enrichment
+
+For regulatory or citation-heavy domains, split assessment into two sequential prompt tools:
+
+1. **Assessment phase** — flags statements, classifies issues, produces raw findings
+2. **Enrichment phase** — validates and enriches citations, adds specific rule references, structures as JSON
+
+This separation improves citation accuracy. A single combined step tends to default to generic rule references (e.g. citing the parent regulation instead of the specific sub-provision). The enrichment phase, receiving the raw findings as structured input, can focus entirely on citation precision.
+
+### "Not Verified From This Input" Pattern
+
+When a pipeline converts documents from their original format (PDF/DOCX → HTML/text) for analysis, some assessment criteria depend on the original visual format — colour contrast, line lengths, visual hierarchy, layout spacing. These cannot be reliably assessed from text-converted content.
+
+Rather than guessing or falsely marking such criteria as Met/Not Met, instruct specialist tools to output: **"Not verified from this input — manual review of original document required."**
+
+This prevents false confidence in scores derived from format-dependent criteria and makes the pipeline output honest about its limitations. Include a document metadata block (original format, page count, image count) so specialists know what the original source was.
+
 ### Preprocessing uploaded files
 
 If the pipeline consumes uploaded documents, add a preprocessing prompt tool (code interpreter enabled) as the first stage that converts the file to text, HTML, or Markdown before passing to specialists. Do not assume downstream prompt tools can reason over raw binary file references.

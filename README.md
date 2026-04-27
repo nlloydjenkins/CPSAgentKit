@@ -1,72 +1,44 @@
 # CPSAgentKit
 
-Turn any MCP-aware LLM into a Copilot Studio expert.
+Turn any LLM into a Copilot Studio expert.
 
-CPSAgentKit provides curated CPS platform knowledge, agent parsing, and best-practice assessment. It ships as two packages — a **VS Code extension** for GitHub Copilot users and a standalone **MCP server** for Claude Desktop, Cursor, or any other MCP client.
+CPSAgentKit ships as three packages sharing a common core:
 
-Both packages share the same core library and knowledge base.
+| Package | Surface | Install |
+|---------|---------|---------|
+| `@cpsagentkit/core` | Shared library | Internal dependency |
+| `cpsagentkit` | VS Code extension | [VSIX from Releases](https://github.com/nlloydjenkins/CPSAgentKit/releases) |
+| `@cpsagentkit/mcp-server` | MCP server | `npx @cpsagentkit/mcp-server` |
 
----
-
-## VS Code Extension
-
-### Prerequisites
-
-- [Copilot Studio VS Code extension](https://marketplace.visualstudio.com/items?itemName=microsoft-IsvExpTools.powerplatform-vscode) (pre-release)
-- GitHub Copilot
-- A Copilot Studio environment with agents to work on
-
-### Install
-
-Download the latest `.vsix` from [Releases](https://github.com/nlloydjenkins/CPSAgentKit/releases), then:
-
-```bash
-code --install-extension cpsagentkit-*.vsix
 ```
-
-Or build from source:
-
-```bash
-git clone https://github.com/nlloydjenkins/CPSAgentKit.git
-cd CPSAgentKit
-npm install
-npm run compile
-npm run package:extension
-npm run install:vsix
+┌──────────────────────────────────────────────┐
+│              @cpsagentkit/core               │
+│  knowledge · parsing · assessment · build    │
+├──────────────┬───────────────────────────────┤
+│  VS Code     │  MCP Server                   │
+│  Extension   │  (stdio / http)               │
+│              │                               │
+│  Sidebar +   │  Claude Desktop, Cursor,      │
+│  Copilot     │  VS Code MCP, Claude Code,    │
+│  Chat        │  any MCP client               │
+└──────────────┴───────────────────────────────┘
 ```
-
-### Usage
-
-1. Clone an agent using the CPS extension. Agent components become YAML files in the workspace.
-2. Run **Initialise CPS Project** from the sidebar or command palette.
-3. The extension scaffolds the folder structure, pulls the latest knowledge, and writes `.github/copilot-instructions.md`.
-4. Add your requirements docs to `Requirements/docs/`, then run **Create Plan**.
-5. Run **Build Agent** to generate agent configs.
-6. Apply changes via the CPS extension, test in the portal, paste output back into Copilot Chat.
-7. Run **Agent Assessment** or **Solution Assessment** to review against best practices.
 
 ---
 
 ## MCP Server
 
-Use CPSAgentKit with Claude Desktop, Cursor, VS Code MCP, or any MCP-aware client — no extension install needed.
+Works with Claude Desktop, Cursor, Claude Code, VS Code, or any MCP-aware client.
 
-### Quick start (no install)
+### Setup
+
+**npx (no install):**
 
 ```bash
 npx @cpsagentkit/mcp-server --transport=stdio
 ```
 
-### Global install
-
-```bash
-npm install -g @cpsagentkit/mcp-server
-cpsagentkit-mcp --transport=stdio
-```
-
-### Claude Desktop
-
-Add to your `claude_desktop_config.json` (typically `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+**Claude Desktop** — add to `claude_desktop_config.json`:
 
 ```json
 {
@@ -79,23 +51,13 @@ Add to your `claude_desktop_config.json` (typically `~/Library/Application Suppo
 }
 ```
 
-Restart Claude Desktop. The CPS tools will appear in the tool list.
-
-### Claude Code
+**Claude Code:**
 
 ```bash
 claude mcp add cpsagentkit -- npx -y @cpsagentkit/mcp-server --transport=stdio
 ```
 
-This registers the server for the current project. Use `--scope user` to make it available globally:
-
-```bash
-claude mcp add --scope user cpsagentkit -- npx -y @cpsagentkit/mcp-server --transport=stdio
-```
-
-### VS Code (MCP config)
-
-Add to `.vscode/mcp.json` in your workspace:
+**VS Code** — add to `.vscode/mcp.json`:
 
 ```json
 {
@@ -108,155 +70,83 @@ Add to `.vscode/mcp.json` in your workspace:
 }
 ```
 
-### HTTP transport
-
-For clients that connect to a long-running server:
+**HTTP transport** (for remote clients):
 
 ```bash
-cpsagentkit-mcp --transport=http --host=127.0.0.1 --port=3333
+npx @cpsagentkit/mcp-server --transport=http --port=3333
 ```
 
-The endpoint is `POST /mcp` (MCP Streamable HTTP spec).
+Endpoint: `POST http://127.0.0.1:3333/mcp`
 
-### Available tools
+### Tools
 
-| Category       | Tools                                                                                                               |
-| -------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Knowledge**  | `cps_list_knowledge_topics`, `cps_get_knowledge`, `cps_get_best_practice`                                           |
-| **Parsing**    | `cps_detect_project_state`, `cps_list_agents`, `cps_parse_agent`, `cps_parse_solution`, `cps_find_solution_folders` |
-| **Assessment** | `cps_validate_tool_description`, `cps_compose_review_prompt`                                                        |
-| **Build**      | `cps_generate_topic_scaffolds`, `cps_detect_dataverse_mcp`                                                          |
+| Category | Tools |
+|----------|-------|
+| **Knowledge** | `cps_list_knowledge_topics`, `cps_get_knowledge`, `cps_get_best_practice` |
+| **Parsing** | `cps_detect_project_state`, `cps_list_agents`, `cps_parse_agent`, `cps_parse_solution`, `cps_find_solution_folders` |
+| **Assessment** | `cps_validate_tool_description`, `cps_compose_review_prompt` |
+| **Build** | `cps_generate_topic_scaffolds`, `cps_detect_dataverse_mcp` |
 
-All bundled knowledge and best-practice documents are also exposed as MCP resources (`cpsagentkit://<category>/<slug>`).
+All knowledge and best-practice documents are also exposed as MCP resources (`cpsagentkit://<category>/<slug>`).
 
 ### Deploy to Azure
 
-You can host the MCP server on Azure App Service so remote MCP clients can connect over HTTPS. Infrastructure files are included in `packages/mcp-server/`.
-
-**Prerequisites:** [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) and [Azure Developer CLI (azd)](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd).
-
 ```bash
 cd packages/mcp-server
-azd auth login
-azd init
-azd up
+azd auth login && azd init && azd up
 ```
 
-This provisions a Linux App Service plan and deploys the MCP server. The output includes the endpoint URL:
-
-```
-mcpEndpoint = https://<app-name>.azurewebsites.net/mcp
-```
-
-Point any MCP client at that URL using the Streamable HTTP transport. For example, in Claude Desktop:
-
-```json
-{
-  "mcpServers": {
-    "cpsagentkit": {
-      "url": "https://<app-name>.azurewebsites.net/mcp"
-    }
-  }
-}
-```
+Provisions an App Service and outputs the endpoint URL. Point any MCP client at `https://<app-name>.azurewebsites.net/mcp`.
 
 ---
 
-## Sidebar
+## VS Code Extension
 
-The extension adds a **CPSAgentKit** activity bar panel with commands organised into four sections. Commands enable progressively as you complete each stage.
+### Setup
 
-| Section    | Commands                                      |
-| ---------- | --------------------------------------------- |
-| **Setup**  | Initialise Project, Sync Knowledge            |
-| **Plan**   | Add Requirements, Create Plan                 |
-| **Build**  | Build Agent                                   |
-| **Assess** | Run Agent Assessment, Run Solution Assessment |
+**Prerequisites:** [Copilot Studio VS Code extension](https://marketplace.visualstudio.com/items?itemName=microsoft-IsvExpTools.powerplatform-vscode) (pre-release) and GitHub Copilot.
 
-## Commands
+**Install from release:**
 
-All commands are also available from the VS Code command palette under the **CPSAgentKit** category.
+```bash
+code --install-extension cpsagentkit-*.vsix
+```
 
-### Initialise CPS Project
+**Build from source:**
 
-Scaffolds the project folder structure, pulls the latest CPS platform knowledge from the central repo, and generates `.github/copilot-instructions.md`. If a CPS agent already exists in the workspace, it initialises around it non-destructively.
+```bash
+git clone https://github.com/nlloydjenkins/CPSAgentKit.git
+cd CPSAgentKit && npm install && npm run compile
+npm run package:extension && npm run install:vsix
+```
 
-### Sync Knowledge
+### Usage
 
-Pulls the latest knowledge, templates, and best practices from the central repo. Overwrites the local knowledge folder and regenerates `copilot-instructions.md`. Runs automatically on workspace open if `cpsAgentKit.syncOnOpen` is enabled.
+1. Clone an agent using the CPS extension (agent YAML appears in the workspace).
+2. Run **Initialise CPS Project** — scaffolds folders, syncs knowledge, writes `copilot-instructions.md`.
+3. Add requirements to `Requirements/docs/`, then run **Create Plan**.
+4. Run **Build Agent** — generates agent configs via Copilot Chat.
+5. Apply changes via the CPS extension, test in the portal, paste output back.
+6. Run **Agent Assessment** or **Solution Assessment** to review against best practices.
 
-### Create Plan
+### Sidebar
 
-Offers three modes for creating `Requirements/spec.md` and `Requirements/architecture.md`:
+| Section | Commands |
+|---------|----------|
+| **Setup** | Initialise Project, Sync Knowledge |
+| **Plan** | Add Requirements, Create Plan |
+| **Build** | Build Agent |
+| **Assess** | Agent Assessment, Solution Assessment |
 
-- **Guided wizard** — answer prompts step by step to build both documents interactively.
-- **Generate from requirements docs** — reads documents in `Requirements/docs/` and generates both files via Copilot Chat.
-- **Generate from existing agent** — reads the cloned CPS agent YAML (settings, topics, actions, knowledge) and reverse-engineers both documents via Copilot Chat. Only appears when a CPS agent is detected in the workspace.
+### Settings
 
-### Build Agent
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `cpsAgentKit.knowledgeRepoUrl` | `https://github.com/nlloydjenkins/CPSAgentKit` | Knowledge repo URL |
+| `cpsAgentKit.knowledgeRepoBranch` | `main` | Branch to pull from |
+| `cpsAgentKit.syncOnOpen` | `true` | Auto-sync on workspace open |
 
-Composes a build prompt from spec + architecture + knowledge and copies it to the clipboard. Paste into Copilot Chat to generate or update agent configurations.
-
-### Run Agent Assessment
-
-Scans all CPS agent folders in the workspace, reads their YAML configuration, and composes a best-practice assessment prompt. Supports four review scopes:
-
-- **Full** — comprehensive review across all dimensions
-- **Prompts & Instructions** — focused on instruction quality, structure, and prompt engineering
-- **Descriptions & Routing** — focused on routing quality and orchestrator guidance
-- **Architecture** — multi-agent decomposition, routing patterns, and output preservation
-
-The assessment prompt includes the full solution snapshot, all knowledge rules, and any requirements documents. Paste it into Copilot Chat to get a prioritised report with findings, remediation actions, and architecture observations.
-
-### Run Solution Assessment
-
-Parses an exported (unmanaged) CPS solution folder — `bot.xml`, `botcomponents/`, and `Workflows/` — and composes a review prompt against best-practice rules. Use this for solutions exported from the portal rather than cloned via the CPS extension.
-
-### Build Demo
-
-Scaffolds one of the included demo projects into your workspace and opens a guided walkthrough prompt in Copilot Chat.
-
-| Demo                   | Description                                                                                                         |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **IT Help Desk**       | Interactive multi-agent Teams chatbot — Dataverse MCP, SharePoint knowledge, Teams notifications                    |
-| **Application Intake** | Autonomous mailbox-triggered pipeline — 6 agents, email processing, compliance, accessibility, Dataverse connectors |
-
-### Generate Repo Copilot Instructions
-
-Regenerates the repo-maintenance instruction file at `.github/copilot-instructions.md` from the source material in `templates/copilot-instructions-template.md`, `docs/knowledge/`, and `docs/bestpractices/`.
-
-Use this in the CPSAgentKit repo itself after changing knowledge docs, best-practice docs, or the instructions template.
-
-CLI fallback: `npm run generate:repo-instructions`
-
-## Context menus
-
-- **Run Agent Assessment** — right-click any folder in the explorer to assess the CPS agent(s) inside it.
-- **Run Solution Assessment** — right-click any `.yaml` or `.yml` file to assess an exported solution.
-
-## Knowledge base
-
-The extension syncs a curated knowledge base covering CPS platform constraints, patterns, and best practices. Key topics:
-
-- Platform constraints and limits
-- Multi-agent orchestration patterns
-- Prompt engineering for CPS
-- Tool and connector descriptions
-- Knowledge source configuration
-- YAML syntax reference
-- Anti-patterns and troubleshooting
-- Declarative agents and Direct Line API
-- Dataverse MCP setup
-
-Best-practice guides cover platform fundamentals, ALM/governance/security, agent design, tools and multi-agent patterns, and known gotchas.
-
-## Settings
-
-| Setting                           | Default                                        | Description                                           |
-| --------------------------------- | ---------------------------------------------- | ----------------------------------------------------- |
-| `cpsAgentKit.knowledgeRepoUrl`    | `https://github.com/nlloydjenkins/CPSAgentKit` | GitHub repo URL for the CPS knowledge base            |
-| `cpsAgentKit.knowledgeRepoBranch` | `main`                                         | Branch to pull knowledge from                         |
-| `cpsAgentKit.syncOnOpen`          | `true`                                         | Sync knowledge automatically when the workspace opens |
+---
 
 ## License
 

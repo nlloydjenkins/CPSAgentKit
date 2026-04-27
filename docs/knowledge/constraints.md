@@ -102,6 +102,7 @@ For autonomous pipelines (no user to prompt), every input must be either "Dynami
 ## Code Interpreter
 
 - **Stdlib-only sandbox.** The code interpreter available to prompt tools runs a Python sandbox restricted to the standard library. External packages (`bs4`, `pandas`, `nltk`, `numpy`, `requests`, etc.) are not installed. Prompts that instruct execution requiring third-party libraries crash with `No module named 'X'`.
+- **Exception: PyMuPDF (`fitz`) is available** and is the preferred library for PDF-to-text/HTML conversion (10-20x faster than alternatives). `pdfminer.six` is also available but extremely slow (3-5 minutes for 10 pages). Always test library availability in the sandbox before committing to a code-interpreter-dependent design.
 - This is a hard sandbox constraint, not a prompt problem. Four production mitigations all failed: stdlib-only constraint in the prompt, exact code block provided, explicit prohibition on imports, and positive-only framing listing allowed libraries. The sandbox does not install packages on demand.
 - **Workaround:** revert to qualitative assessment in the prompt, or perform the calculation in a Power Automate flow (which can call external services), or use a prompt tool without code interpreter and let the model reason about the inputs.
 - Do not rely on code interpreter for HTML parsing, dataframe operations, statistical libraries, or anything beyond what stdlib (`json`, `re`, `math`, `statistics`, `datetime`, `collections`, `itertools`, `csv`, `string`) provides.
