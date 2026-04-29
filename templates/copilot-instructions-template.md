@@ -81,7 +81,7 @@ If `Requirements/spec.md` or `Requirements/architecture.md` declare a dependency
   2. Create lookup/relationship columns after both endpoint tables exist.
   3. Insert sample / seed records via `create_record` only after the schema is in place.
   4. Verify with `read_query` and record what was provisioned in the Build State section of `Requirements/architecture.md`.
-- **Prompt tool instructions** stored in `msdyn_aiconfigurations` are updated via the Dataverse MCP using the flow in *Updating Prompt Tool Instructions* below — never by hand-editing the JSON.
+- **Prompt tool instructions** stored in `msdyn_aiconfigurations` are updated via the Dataverse MCP using the flow in _Updating Prompt Tool Instructions_ below — never by hand-editing the JSON.
 - **If the Dataverse MCP is NOT configured**, do not invent another path. Stop and tell the developer to configure it (see `.cpsagentkit/knowledge/dataverse-mcp-setup.md`), then resume.
 - **Never** use the Dataverse MCP to drop tables or delete records as a "shortcut" to fix a schema mismatch — reconcile in place. Destructive actions require explicit developer confirmation.
 
