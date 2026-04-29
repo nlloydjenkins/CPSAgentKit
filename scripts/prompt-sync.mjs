@@ -199,7 +199,9 @@ async function cmdPull(opts) {
       `<!-- DO NOT EDIT this header. Slug "${slug}" maps to msdyn_aiconfigurationid ${row.msdyn_aiconfigurationid}. -->\n\n` +
       segmentsToMarkdown(parsed.prompts);
     await fs.writeFile(target, body, "utf8");
-    console.log(`pulled ${slug} → ${target}  (${parsed.prompts.length} segments, placeholders: ${parsed.placeholders.join(", ") || "(none)"})`);
+    console.log(
+      `pulled ${slug} → ${target}  (${parsed.prompts.length} segments, placeholders: ${parsed.placeholders.join(", ") || "(none)"})`,
+    );
   }
 }
 
@@ -243,14 +245,23 @@ async function cmdPush(opts) {
       console.warn(`warn ${slug}: ${result.validation.warnings.join("; ")}`);
     }
     if (opts.dryRun) {
-      console.log(`(dry-run) would push ${slug}  (${result.validation.segmentCountAfter} segments)`);
+      console.log(
+        `(dry-run) would push ${slug}  (${result.validation.segmentCountAfter} segments)`,
+      );
     } else {
-      await patchPromptTool(env, token, row.msdyn_aiconfigurationid, result.newCustomConfiguration);
+      await patchPromptTool(
+        env,
+        token,
+        row.msdyn_aiconfigurationid,
+        result.newCustomConfiguration,
+      );
       console.log(`pushed ${slug}`);
     }
     pushed += 1;
   }
-  console.log(`\nDone. ${opts.dryRun ? "would push" : "pushed"}: ${pushed}, failed: ${failed}`);
+  console.log(
+    `\nDone. ${opts.dryRun ? "would push" : "pushed"}: ${pushed}, failed: ${failed}`,
+  );
   if (failed > 0) process.exit(1);
 }
 

@@ -22,7 +22,7 @@ An agent has already been built and cloned via the CPS extension. Before any new
   - **What it should NOT do:** infer from explicit exclusions in instructions or topic boundaries
   - **What success looks like:** infer from expected outputs visible in message nodes and tool descriptions
   - **Users and Channel:** infer from auth settings and channel configuration
-  - **Domain knowledge:** list knowledge sources found in knowledge/*.yaml
+  - **Domain knowledge:** list knowledge sources found in knowledge/\*.yaml
   - **CPS Constraints:** flag any constraints visible in the current configuration (tool count, MCP usage, general knowledge stance)
 - Use the template in `/templates/spec-template.md` for structure
 - Then reverse-engineer `Requirements/architecture.md`:
@@ -240,7 +240,6 @@ The `.cpsagentkit/knowledge/` folder contains detailed platform knowledge files.
 - Test pane uses maker credentials — always test in the target channel with real users
 - Generative orchestration is English-only
 - Agent instructions are treated like code — debug by removing all and adding back one at a time
-
 
 ---
 

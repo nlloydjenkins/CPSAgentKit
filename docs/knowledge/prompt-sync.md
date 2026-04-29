@@ -6,9 +6,9 @@ Prompt tool instruction text is authoritative in **Dataverse**, not in the CPS a
 
 ## Where prompt text actually lives
 
-| Location | What it contains | Editable? |
-| --- | --- | --- |
-| Workspace `actions/*.yaml` → `modelDescription` | Short orchestrator routing description (how the planner decides when to call the prompt tool) | Yes — portal or YAML |
+| Location                                                                    | What it contains                                                                                                                 | Editable?                                                 |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Workspace `actions/*.yaml` → `modelDescription`                             | Short orchestrator routing description (how the planner decides when to call the prompt tool)                                    | Yes — portal or YAML                                      |
 | Dataverse `msdyn_aiconfiguration` table, `msdyn_customconfiguration` column | JSON blob containing the actual prompt instruction text, code segments, input definitions, model parameters, settings, signature | Yes — portal AI Hub / prompt editor, or via Dataverse API |
 
 **Common confusion:** editing `modelDescription` in the action YAML does **not** edit the prompt tool's instruction text. They are two different fields in two different places. The `modelDescription` is what the orchestrator reads to decide whether to call the tool; the prompt instructions in `msdyn_customconfiguration` are what the model actually executes when the tool runs.
@@ -17,14 +17,14 @@ Prompt tool instruction text is authoritative in **Dataverse**, not in the CPS a
 
 The JSON blob contains several segments. Only the prompt text segments are authored content; everything else is platform-generated or model-configuration:
 
-| Segment | What it is | Edit? |
-| --- | --- | --- |
-| `prompt` | The instruction text segments the model runs | Yes — this is the authoring target |
-| `code` | Generated code (e.g. code interpreter scaffolding) | No |
-| `definitions` | Input/output parameter schema | No — portal-managed |
-| `modelParameters` | Model, temperature, max tokens, etc. | Portal only |
-| `settings` | Tool-level settings | Portal only |
-| `signature` | Platform signature | No — do not modify |
+| Segment           | What it is                                         | Edit?                              |
+| ----------------- | -------------------------------------------------- | ---------------------------------- |
+| `prompt`          | The instruction text segments the model runs       | Yes — this is the authoring target |
+| `code`            | Generated code (e.g. code interpreter scaffolding) | No                                 |
+| `definitions`     | Input/output parameter schema                      | No — portal-managed                |
+| `modelParameters` | Model, temperature, max tokens, etc.               | Portal only                        |
+| `settings`        | Tool-level settings                                | Portal only                        |
+| `signature`       | Platform signature                                 | No — do not modify                 |
 
 **Critical:** when writing back to Dataverse, replace only the `prompt` segments. Preserve `code`, `definitions`, `modelParameters`, `settings`, `signature` exactly as read. A write that overwrites other segments can break the tool.
 
@@ -98,15 +98,15 @@ Dataverse remains authoritative. The `.md` files are a convenience for editing a
 
 Use **both**, not either/or:
 
-| Use case | Tool |
-| --- | --- |
-| Browsing prompt tools, inspecting schema, one-off reads | Dataverse MCP |
-| Editing a single prompt interactively during active iteration | Dataverse MCP |
-| Bulk pull of all prompts into `prompt-text/*.md` for git tracking | Script |
-| Bulk push of edited `prompt-text/*.md` back to Dataverse | Script |
-| CI / automated promotion between dev, test, prod | Script (service principal) |
-| Cross-environment diff and review | Script |
-| Ensuring structural integrity of `msdyn_customconfiguration` | Script with enforced preservation rules |
+| Use case                                                          | Tool                                    |
+| ----------------------------------------------------------------- | --------------------------------------- |
+| Browsing prompt tools, inspecting schema, one-off reads           | Dataverse MCP                           |
+| Editing a single prompt interactively during active iteration     | Dataverse MCP                           |
+| Bulk pull of all prompts into `prompt-text/*.md` for git tracking | Script                                  |
+| Bulk push of edited `prompt-text/*.md` back to Dataverse          | Script                                  |
+| CI / automated promotion between dev, test, prod                  | Script (service principal)              |
+| Cross-environment diff and review                                 | Script                                  |
+| Ensuring structural integrity of `msdyn_customconfiguration`      | Script with enforced preservation rules |
 
 For small teams iterating on a few prompts, Dataverse MCP alone is often sufficient. As the number of prompts grows or the workflow needs reproducible environment promotion, introduce a script.
 
@@ -116,9 +116,9 @@ For small teams iterating on a few prompts, Dataverse MCP alone is often suffici
 
 The CPSAgentKit MCP server exposes two helpers that wrap the structural-integrity rules. The Build Agent uses these so that prompt-text edits proposed during a build are written safely.
 
-| Tool | Purpose |
-| --- | --- |
-| `cps_parse_prompt_config` | Parse the `msdyn_customconfiguration` JSON returned by Dataverse MCP. Returns `prompts` (segments), `placeholders`, `topLevelKeys`, `segmentCount`. |
+| Tool                      | Purpose                                                                                                                                                                                                                                                                                                                           |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cps_parse_prompt_config` | Parse the `msdyn_customconfiguration` JSON returned by Dataverse MCP. Returns `prompts` (segments), `placeholders`, `topLevelKeys`, `segmentCount`.                                                                                                                                                                               |
 | `cps_build_prompt_update` | Given the original `msdyn_customconfiguration` and a new array of prompt segments, return a new JSON string ready to PATCH back. Validates segment count, segment roles, placeholder set, and top-level keys. **No payload is returned when validation fails** — so the Build Agent cannot accidentally write a corrupting PATCH. |
 
 ### Build Agent workflow

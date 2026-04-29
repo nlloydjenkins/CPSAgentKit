@@ -536,7 +536,9 @@ export async function createServer(): Promise<McpServer> {
                 .describe("Segment role (e.g. 'system', 'user')."),
               content: z
                 .string()
-                .describe("Segment instruction text. May contain {{placeholders}}."),
+                .describe(
+                  "Segment instruction text. May contain {{placeholders}}.",
+                ),
             }),
           )
           .min(1)
