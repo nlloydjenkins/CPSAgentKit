@@ -72,6 +72,21 @@ If both `Requirements/spec.md` and `Requirements/architecture.md` exist:
 - Track progress in the Build State section of `Requirements/architecture.md`
 - Maintain cross-agent consistency: when one agent's scope changes, flag what else needs updating
 
+#### Provisioning Dataverse Schema & Sample Data (CRITICAL)
+
+If `Requirements/spec.md` or `Requirements/architecture.md` declare a dependency on Dataverse tables (custom entities, lookup tables, configuration tables, sample/seed data), the Build Agent MUST provision them during the Build stage — not defer to the developer.
+
+- **Use the Dataverse MCP server when present** (`list_tables`, `describe_table`, `create_table`, `update_table`, `create_record`, `update_record`, `delete_record`, `read_query`). It is the canonical I/O channel for Dataverse during a build.
+- **Idempotency:** before creating, call `list_tables` / `describe_table` to check whether the table already exists. If it does, reconcile columns via `update_table` rather than recreating.
+- **Order of operations:**
+  1. Create / reconcile tables and columns from the architecture's data model.
+  2. Create lookup/relationship columns after both endpoint tables exist.
+  3. Insert sample / seed records via `create_record` only after the schema is in place.
+  4. Verify with `read_query` and record what was provisioned in the Build State section of `Requirements/architecture.md`.
+- **Prompt tool instructions** stored in `msdyn_aiconfigurations` are updated via the Dataverse MCP using the flow in *Updating Prompt Tool Instructions* below — never by hand-editing the JSON.
+- **If the Dataverse MCP is NOT configured**, do not invent another path. Stop and tell the developer to configure it (see `.cpsagentkit/knowledge/dataverse-mcp-setup.md`), then resume.
+- **Never** use the Dataverse MCP to drop tables or delete records as a "shortcut" to fix a schema mismatch — reconcile in place. Destructive actions require explicit developer confirmation.
+
 #### Tool/Action Connection Integrity (CRITICAL)
 
 When generating or modifying agent components:
@@ -240,6 +255,7 @@ The `.cpsagentkit/knowledge/` folder contains detailed platform knowledge files.
 - Test pane uses maker credentials — always test in the target channel with real users
 - Generative orchestration is English-only
 - Agent instructions are treated like code — debug by removing all and adding back one at a time
+
 
 ---
 
