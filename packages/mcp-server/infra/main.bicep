@@ -52,6 +52,10 @@ resource appService 'Microsoft.Web/sites@2023-12-01' = {
           value: 'true'
         }
         {
+          name: 'NPM_CONFIG_PRODUCTION'
+          value: 'true'
+        }
+        {
           name: 'NODE_ENV'
           value: 'production'
         }
