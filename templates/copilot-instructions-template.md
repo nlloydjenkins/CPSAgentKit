@@ -93,6 +93,25 @@ This applies to ALL tool types: MCP servers (`InvokeExternalAgentTaskAction` / `
 
 When asked to update a tool description, edit ONLY the `modelDescription` field. When asked to add a new tool, tell the developer to create it in the CPS portal and sync — do not generate action YAML from scratch.
 
+#### Updating Prompt Tool Instructions (CRITICAL)
+
+Prompt tool **instructions** (the actual text the model executes) live in Dataverse — NOT in the action YAML. They are stored in the `msdyn_aiconfigurations` table, in the `msdyn_customconfiguration` column, as a JSON blob. Editing `modelDescription` in the action YAML does not change the prompt instructions; it only changes what the orchestrator reads to decide whether to call the tool.
+
+When the Build Agent needs to update a prompt tool's instruction text:
+
+1. Use the Dataverse MCP server (already configured in the workspace) to read the row from `msdyn_aiconfigurations` matching the prompt tool's name. Capture the `msdyn_customconfiguration` value as a string.
+2. Call `cps_parse_prompt_config` (CPSAgentKit MCP) to inspect the current segments and `{{placeholder}}` set.
+3. Edit the prompt segment text. **Preserve every `{{placeholder}}` exactly as-is** — placeholders are bound to the prompt tool's input definitions in the portal; renaming or removing one breaks the tool.
+4. Call `cps_build_prompt_update` (CPSAgentKit MCP) with the original `msdyn_customconfiguration` and the new segments. If `validation.ok === false`, fix the segments and retry. If `validation.ok === true`, take `newCustomConfiguration`.
+5. Use Dataverse MCP `update_record` to PATCH `msdyn_customconfiguration` with the value from step 4.
+6. Re-read the record to verify.
+
+**Never** construct or hand-edit the `msdyn_customconfiguration` JSON yourself, and never overwrite it with only the prompt segments — `cps_build_prompt_update` preserves the `code`, `definitions`, `modelParameters`, `settings`, and `signature` segments byte-equivalently. Skipping that step destroys the prompt tool.
+
+For headless / CI promotion of prompt text between environments, use `scripts/prompt-sync.mjs pull|push` (service-principal auth via `DATAVERSE_URL`, `DATAVERSE_TENANT_ID`, `DATAVERSE_CLIENT_ID`, `DATAVERSE_CLIENT_SECRET`). It uses the same validation rules as the MCP tools.
+
+See `.cpsagentkit/knowledge/prompt-sync.md` for the full design and rationale.
+
 #### Tool-First Rule (CRITICAL)
 
 When an agent has tools (MCP servers, connectors, Power Automate flows):

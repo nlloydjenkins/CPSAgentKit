@@ -112,6 +112,48 @@ For small teams iterating on a few prompts, Dataverse MCP alone is often suffici
 
 ---
 
+## CPSAgentKit MCP tools (recommended for the Build Agent)
+
+The CPSAgentKit MCP server exposes two helpers that wrap the structural-integrity rules. The Build Agent uses these so that prompt-text edits proposed during a build are written safely.
+
+| Tool | Purpose |
+| --- | --- |
+| `cps_parse_prompt_config` | Parse the `msdyn_customconfiguration` JSON returned by Dataverse MCP. Returns `prompts` (segments), `placeholders`, `topLevelKeys`, `segmentCount`. |
+| `cps_build_prompt_update` | Given the original `msdyn_customconfiguration` and a new array of prompt segments, return a new JSON string ready to PATCH back. Validates segment count, segment roles, placeholder set, and top-level keys. **No payload is returned when validation fails** — so the Build Agent cannot accidentally write a corrupting PATCH. |
+
+### Build Agent workflow
+
+1. Build Agent decides a prompt tool needs an instruction change (e.g. spec changed, new boundary rule needed).
+2. Build Agent calls Dataverse MCP `read_query` (or equivalent) to read the row from `msdyn_aiconfigurations` for that prompt tool — captures `msdyn_customconfiguration` as a string.
+3. Build Agent calls `cps_parse_prompt_config` to inspect the current segments and placeholders.
+4. Build Agent edits the segment text locally, preserving every `{{placeholder}}` exactly as-is.
+5. Build Agent calls `cps_build_prompt_update` with the original string and the new segments. If `validation.ok === false`, the Build Agent revises and retries. If `validation.ok === true`, it takes `newCustomConfiguration`.
+6. Build Agent calls Dataverse MCP `update_record` with the returned `newCustomConfiguration` string.
+7. Build Agent re-reads the record to verify the round-trip wrote what it expected.
+
+This loop never has to construct or hand-edit `msdyn_customconfiguration` JSON itself. The CPSAgentKit tools own the rules; Dataverse MCP owns the I/O.
+
+---
+
+## CI / headless promotion (`scripts/prompt-sync.mjs`)
+
+The repo also ships a script for environments where MCP is not available — CI pipelines, automated promotion between dev/test/prod, or git-tracked review of prompt text changes.
+
+```sh
+# Bulk pull all prompt tools to prompt-text/<slug>.md
+node scripts/prompt-sync.mjs pull --out prompt-text/
+
+# Push edited files back, refusing any unsafe change
+node scripts/prompt-sync.mjs push --in prompt-text/ --dry-run
+node scripts/prompt-sync.mjs push --in prompt-text/
+```
+
+Auth: service-principal (client credentials flow) via four environment variables — `DATAVERSE_URL`, `DATAVERSE_TENANT_ID`, `DATAVERSE_CLIENT_ID`, `DATAVERSE_CLIENT_SECRET`. The script reuses the same `parsePromptConfig` / `buildPromptUpdate` helpers as the MCP tools, so structural-integrity guarantees are identical.
+
+Each pulled file embeds an HTML comment with the record's `msdyn_aiconfigurationid` — that ID is the link back to the row on push. Do not delete that comment.
+
+---
+
 ## Do not
 
 - Do **not** edit prompt instructions by editing `modelDescription` in the action YAML — wrong field, wrong file.

@@ -12,6 +12,7 @@ export * from "./parsers/projectState.js";
 export * from "./parsers/solutionFileParser.js";
 export * from "./parsers/agentSnapshot.js";
 export * from "./parsers/markdown.js";
+export * from "./parsers/promptConfig.js";
 
 // Assessors
 export * from "./assessors/connectorCatalog.js";

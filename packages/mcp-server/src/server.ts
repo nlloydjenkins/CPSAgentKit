@@ -19,6 +19,9 @@ import {
   detectDataverseMcp,
   readRequirements,
   generateTopicScaffolds,
+  parsePromptConfig,
+  buildPromptUpdate,
+  type PromptSegment,
 } from "@cpsagentkit/core";
 
 import { MCP_SERVER_VERSION } from "./index.js";
@@ -462,6 +465,128 @@ export async function createServer(): Promise<McpServer> {
     }) => {
       const status = await detectDataverseMcp(workspaceRoot, extraServers);
       return jsonContent(status);
+    },
+  );
+
+  // ── Prompt-config tools ────────────────────────────────────
+  // Prompt tool instruction text lives in Dataverse table msdyn_aiconfiguration,
+  // column msdyn_customconfiguration (a JSON blob). The Build Agent reads it
+  // via the user's Dataverse MCP session, transforms it via the tools below,
+  // and writes the result back through Dataverse MCP. These tools never call
+  // Dataverse themselves — they are pure transformations that enforce the
+  // structural-integrity rules from docs/knowledge/prompt-sync.md.
+
+  reg.registerTool(
+    "cps_parse_prompt_config",
+    {
+      title: "Parse a Dataverse prompt-tool configuration",
+      description:
+        "Parses a msdyn_customconfiguration JSON string (read from the msdyn_aiconfiguration row of a CPS prompt tool, typically via the Dataverse MCP server). Returns the prompt segments (role + content), the unique {{placeholder}} set, and the list of top-level keys present. Use this to inspect a prompt tool's instruction text before proposing edits with cps_build_prompt_update.",
+      inputSchema: {
+        customConfiguration: z
+          .string()
+          .min(1)
+          .describe(
+            "The full msdyn_customconfiguration value, exactly as returned by Dataverse (a JSON-encoded string). Do not pre-parse.",
+          ),
+      },
+    },
+    async ({ customConfiguration }: { customConfiguration: string }) => {
+      try {
+        const parsed = parsePromptConfig(customConfiguration);
+        return jsonContent({
+          prompts: parsed.prompts,
+          placeholders: parsed.placeholders,
+          topLevelKeys: parsed.keys,
+          segmentCount: parsed.prompts.length,
+        });
+      } catch (err) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: err instanceof Error ? err.message : String(err),
+            },
+          ],
+          isError: true as const,
+        };
+      }
+    },
+  );
+
+  reg.registerTool(
+    "cps_build_prompt_update",
+    {
+      title: "Build a safe prompt-tool update payload",
+      description:
+        "Produces a new msdyn_customconfiguration JSON string with prompt-segment contents replaced. Preserves every other top-level key (code, definitions, modelParameters, settings, signature) byte-equivalently. Validates that segment count, segment roles, and the {{placeholder}} set are unchanged unless explicitly allowed. When validation fails, no payload is returned (so it cannot be PATCHed by mistake). Use this before writing back to Dataverse via the Dataverse MCP server's update-record tool.",
+      inputSchema: {
+        originalCustomConfiguration: z
+          .string()
+          .min(1)
+          .describe(
+            "The current msdyn_customconfiguration value, exactly as just-read from Dataverse. Re-read immediately before building the update to avoid lost-update races.",
+          ),
+        newPrompts: z
+          .array(
+            z.object({
+              role: z
+                .string()
+                .min(1)
+                .describe("Segment role (e.g. 'system', 'user')."),
+              content: z
+                .string()
+                .describe("Segment instruction text. May contain {{placeholders}}."),
+            }),
+          )
+          .min(1)
+          .describe(
+            "The full ordered set of prompt segments to write. Edit the segment contents you want to change and copy the rest unchanged from cps_parse_prompt_config output.",
+          ),
+        allowSegmentShapeChange: z
+          .boolean()
+          .optional()
+          .describe(
+            "Allow the segment count or segment roles to differ from the original. Defaults to false. Setting to true is rare and usually wrong — segment shape is usually fixed by the prompt tool's portal definition.",
+          ),
+        allowPlaceholderChange: z
+          .boolean()
+          .optional()
+          .describe(
+            "Allow the {{...}} placeholder set to differ from the original. Defaults to false. Setting to true requires a matching change to the prompt tool's input definitions in the CPS / AI Hub portal — the model cannot resolve a placeholder that has no matching input.",
+          ),
+      },
+    },
+    async ({
+      originalCustomConfiguration,
+      newPrompts,
+      allowSegmentShapeChange,
+      allowPlaceholderChange,
+    }: {
+      originalCustomConfiguration: string;
+      newPrompts: PromptSegment[];
+      allowSegmentShapeChange?: boolean;
+      allowPlaceholderChange?: boolean;
+    }) => {
+      try {
+        const result = buildPromptUpdate({
+          originalCustomConfiguration,
+          newPrompts,
+          allowSegmentShapeChange,
+          allowPlaceholderChange,
+        });
+        return jsonContent(result);
+      } catch (err) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: err instanceof Error ? err.message : String(err),
+            },
+          ],
+          isError: true as const,
+        };
+      }
     },
   );
 
