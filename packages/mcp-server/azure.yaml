@@ -18,9 +18,14 @@ services:
             cd ../..
             npm ci
             npm run bundle:mcp
+            # Strip devDependencies from the shipped package.json so Oryx's
+            # remote `npm install` only resolves real runtime deps. The bundle
+            # already inlines @cpsagentkit/core via esbuild.
+            node -e "const fs=require('fs'),p='packages/mcp-server/package.json',j=JSON.parse(fs.readFileSync(p));delete j.devDependencies;delete j.scripts;fs.writeFileSync(p,JSON.stringify(j,null,2));"
         windows:
           shell: pwsh
           run: |
             Set-Location ../..
             npm ci
             npm run bundle:mcp
+            node -e "const fs=require('fs'),p='packages/mcp-server/package.json',j=JSON.parse(fs.readFileSync(p));delete j.devDependencies;delete j.scripts;fs.writeFileSync(p,JSON.stringify(j,null,2));"
