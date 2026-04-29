@@ -9,3 +9,18 @@ services:
     project: .
     language: js
     host: appservice
+    hooks:
+      prepackage:
+        posix:
+          shell: sh
+          run: |
+            set -e
+            cd ../..
+            npm ci
+            npm run bundle:mcp
+        windows:
+          shell: pwsh
+          run: |
+            Set-Location ../..
+            npm ci
+            npm run bundle:mcp

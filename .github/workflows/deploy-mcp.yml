@@ -1,0 +1,93 @@
+name: Deploy MCP server to Azure
+
+# Builds the MCP server and deploys it to Azure App Service via azd.
+#
+# Required GitHub repository secrets (OIDC federated credentials — no client secret):
+#   AZURE_CLIENT_ID        — App registration / user-assigned MI client ID with
+#                            "Contributor" on the target subscription (so azd can
+#                            create the resource group and App Service resources).
+#                            If the RG already exists, "Contributor" on the RG is enough.
+#   AZURE_TENANT_ID        — Entra ID tenant ID
+#   AZURE_SUBSCRIPTION_ID  — Target subscription ID
+#
+# Required GitHub repository variables:
+#   AZURE_ENV_NAME         — azd environment name (e.g. "cpsagentkit-prod")
+#   AZURE_LOCATION         — Azure region (e.g. "uksouth", "eastus")
+#
+# The federated credential on AZURE_CLIENT_ID must trust this repo's
+# `main` branch and (optionally) the `manual` workflow_dispatch event.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/mcp-server/**"
+      - "packages/core/**"
+      - "docs/**"
+      - "scripts/copy-shared-assets.js"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/deploy-mcp.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-mcp-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile workspaces
+        run: npm run compile
+
+      - name: Bundle MCP server
+        run: npm run bundle:mcp
+
+      - name: Smoke-test bundled MCP server
+        run: npm run smoke:mcp:bundle
+
+      - name: Install azd
+        uses: Azure/setup-azd@v2
+
+      - name: Azure login (OIDC federated)
+        run: |
+          azd auth login \
+            --client-id "$AZURE_CLIENT_ID" \
+            --federated-credential-provider github \
+            --tenant-id "$AZURE_TENANT_ID"
+        working-directory: packages/mcp-server
+
+      - name: Provision Azure infrastructure
+        run: azd provision --no-prompt
+        working-directory: packages/mcp-server
+
+      - name: Deploy MCP server
+        run: azd deploy --no-prompt
+        working-directory: packages/mcp-server
+
+      - name: Show endpoint
+        run: |
+          azd env get-values | grep -E '^(appServiceUrl|mcpEndpoint)=' || true
+        working-directory: packages/mcp-server
