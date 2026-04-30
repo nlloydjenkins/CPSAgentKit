@@ -1,2 +1,2 @@
 /** Shared package version constant (synced with root package.json). */
-export const CORE_VERSION = "0.13.1";
+export const CORE_VERSION = "0.13.3";

@@ -10,4 +10,4 @@ export type {
   KnowledgeTopic,
 } from "@cpsagentkit/core";
 
-export const MCP_SERVER_VERSION = "0.13.1";
+export const MCP_SERVER_VERSION = "0.13.3";

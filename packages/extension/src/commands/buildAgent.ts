@@ -15,7 +15,7 @@ import { configDirPath } from "../services/config.js";
 
 /**
  * Build Agent command — reads spec.md + architecture.md + knowledge,
- * composes a build prompt, and sends it to Copilot Chat.
+ * composes a staged build prompt, and sends it to Copilot Chat.
  */
 export async function buildAgentCommand(): Promise<void> {
   const root = requireWorkspaceRoot();
@@ -165,9 +165,9 @@ export async function buildAgentCommand(): Promise<void> {
   // Load the build prompt into GitHub Copilot Chat and notify
   await openPromptAndNotify(
     prompt,
-    dataverseBuildPrompt
-      ? "CPSAgentKit: Build prompt loaded into GitHub Copilot Chat. Press Enter to run the full build, including Dataverse table creation first."
-      : "CPSAgentKit: Build prompt loaded into GitHub Copilot Chat. Press Enter to generate the agent.",
+    scope.detail === "full"
+      ? "CPSAgentKit: Build prompt loaded into GitHub Copilot Chat. Press Enter to start the staged build. Copilot will create Dataverse tables first when needed, then give portal setup steps and wait for confirmation before editing YAML."
+      : "CPSAgentKit: Build prompt loaded into GitHub Copilot Chat. Press Enter to continue.",
   );
 }
 
@@ -237,24 +237,22 @@ function composeBuildPrompt(
     scope === "full" && dataverseBuildPrompt
       ? [
           "",
-          "## Dataverse Table Creation",
+          "## Dataverse Table Creation First",
           "",
-          "If the architecture uses Dataverse, Build owns table creation.",
-          "This is a required first build action. Do not wait for the developer to prompt you. Do not defer it. Create the Dataverse tables before any other build step that depends on Dataverse.",
-          "Run this Dataverse MCP task first, then continue with the rest of the build using the real logical names you created:",
+          "If the architecture uses Dataverse tables that connectors/actions will bind to, create the Dataverse schema before telling the developer to create connector actions in the Copilot Studio portal.",
+          "Reason: connector action setup needs the target Dataverse tables, columns, and choice definitions to exist before the maker can select them and sync valid action YAML.",
+          "Use the Dataverse MCP Server in GitHub Copilot to create the required tables, columns, relationships, choices, and required startup/reference records first. Do not ask the developer to create these tables manually when the Dataverse MCP task is available.",
+          "Run this Dataverse MCP task before portal setup instructions:",
           "",
           "```text",
           dataverseBuildPrompt,
           "```",
           "",
-          "After the tables exist, run a Dataverse sample-data stage and insert the required startup records that let the agent work immediately, such as SLA policies, routing rules, lookup values, or known issues when those are implied by the spec or architecture.",
-          "Do not leave required sample data as a suggested next step.",
-          "After the tables exist, update Dataverse action modelDescriptions with the real table names, real logical field names, and one valid OData example per use case.",
-          "After the Dataverse MCP server confirms the live schema, align Dataverse action descriptions, OData examples, and topic logic to the exact live logical field names immediately.",
-          "For choice/option-set columns, the Dataverse MCP Server requires integer values — passing text labels (e.g. 'High') causes a FormatException. After table creation, inspect the choice definitions and include the integer mappings (e.g. High=100000002) in agent instructions and tool descriptions so the agent passes valid values.",
-          "Do not leave live field-name alignment as a suggested next step.",
-          "Do not ask the developer to create Dataverse tables manually when the Dataverse MCP task above is present.",
-          "Do not report the build as complete, or move on to Dataverse connector descriptions, until the tables, columns, relationships, required sample data, and live field-name alignment are complete.",
+          "After table creation, report the created table logical names, column logical names, relationships, choice integer mappings, and any startup/reference records inserted.",
+          "Then tell the developer to create/attach the Dataverse connector actions in the Copilot Studio portal against those live tables, plus any agents, prompt tools, knowledge sources, triggers, and settings from the architecture.",
+          "For choice/option-set columns, the Dataverse MCP Server requires integer values — passing text labels (e.g. 'High') causes a FormatException. Include the integer mappings (e.g. High=100000002) in the portal connector guidance, later agent instructions, and action modelDescriptions so the agent passes valid values.",
+          "After the developer confirms portal setup and Get Changes sync are complete, inspect the synced YAML and use the real logical names in Dataverse action descriptions, OData examples, topic logic, and agent instructions.",
+          "Do not report the implementation as complete until the schema, sample data, action descriptions, OData examples, and topic logic are aligned to the synced configuration.",
         ].join("\n")
       : "";
 
@@ -291,16 +289,22 @@ function composeBuildPrompt(
     "- When asked to update a tool description, edit ONLY the modelDescription field. Do not touch any other field.",
     "- When asked to add a new tool, tell the developer to create it in the CPS portal and sync — do not generate action YAML from scratch.",
     "",
+    "### CRITICAL: Staged Build Protocol",
+    "- For a full build, do NOT edit files in your first response.",
+    "- First, produce a complete implementation plan from spec.md and architecture.md.",
+    "- If Dataverse tables are required for connector/action setup, create the Dataverse schema through the Dataverse MCP Server before giving portal connector setup instructions. Connectors cannot be properly created against tables that do not exist yet.",
+    "- The plan must include: agents to create, tools/connectors/prompt tools to scaffold in the CPS portal, knowledge sources to add, triggers to configure, manual settings, expected synced YAML folders/files, and validation checks.",
+    "- Then give the developer exact portal instructions in the required order. Be specific: agent names, tool names, connector/action names, prompt tool names, settings, authentication, and sync steps. For Dataverse connector actions, reference the real table/column names created by the Dataverse MCP step.",
+    "- End the first response with a clear stop condition: 'Stop here. Complete the portal steps, run Get Changes to sync YAML locally, then reply DONE.'",
+    "- Only after the developer replies that the portal setup and sync are complete should you create or update local YAML files, prompts, topic descriptions, instructions, action modelDescriptions, and settings.",
+    "- After the implementation pass, validate every /ToolName reference, action modelDescription, settings flag, and Build State item before reporting completion.",
+    "",
     "### Build Rules",
     '- If the agent has tools (MCP servers, connectors, flows): instructions MUST say "Always use [exact tool name] to answer questions. Do not use general knowledge when the tool can provide the answer."',
     "- Reference tools by exact name using /ToolName syntax in instructions",
     '- Consider recommending "Use general knowledge" be DISABLED if tools cover the full domain',
-    "- If the Dataverse Table Creation section is present, create the Dataverse tables immediately as the first build action before doing any other Dataverse-dependent work.",
-    "- Do not wait for the developer to say 'create the Dataverse tables'. The presence of the Dataverse Table Creation section means you must perform that step now.",
-    "- For Dataverse-backed solutions, run a sample-data stage before closing the Dataverse portion of the build when the solution depends on startup reference data.",
-    "- For Dataverse-backed solutions, align action descriptions, OData examples, and topic logic to the exact live logical field names after the Dataverse MCP server confirms the schema.",
-    "- If CPS agent YAML files exist in the workspace, perform the build by editing those files directly. Do NOT answer with instructions telling the developer to paste content into Overview pages, topic editors, or tool descriptions.",
-    "- Do NOT tell the developer to run Get Changes as part of Build when the cloned YAML files already exist locally. Build should modify the local files directly.",
+    "- If CPS agent YAML files exist in the workspace AFTER the developer has completed portal setup and sync, perform the implementation by editing those files directly. Do NOT answer with instructions telling the developer to paste content into Overview pages, topic editors, or tool descriptions at that stage.",
+    "- Do NOT hand-author action YAML for new tools. New tools, connectors, prompt tools, MCP servers, knowledge sources, and triggers must be created or attached in the CPS portal first, then synced locally before YAML-safe edits.",
     "- Child agents use a different YAML shape from top-level agents. A child agent file typically has `kind: AgentDialog` and its instructions live at `settings.instructions` inside `agents/*/agent.mcs.yml`.",
     "- When updating child agents, edit `settings.instructions` in the child agent YAML directly. Do NOT treat child-agent instructions as top-level `instructions:` fields or as manual Overview-page paste blocks.",
     "- In Copilot Studio, implement parent orchestration through the parent agent instructions plus Topics, child agents, tools, and triggers. Do NOT describe this as a workflow to scaffold.",
@@ -370,16 +374,49 @@ function composeBuildPrompt(
         multiAgentRules +
         autonomousPipelineRules +
         [
-          "## Task: Full Build",
-          "Generate ALL of the following for each agent in the architecture:",
+          "## Task: Full Build (Plan → Portal Setup → Synced YAML Implementation)",
+          "",
+          "You must run this as a staged build. The first response plans the build, creates Dataverse tables first if the architecture requires Dataverse-backed connector actions, then gives portal setup instructions. Do not edit local YAML files until the developer confirms that portal setup is complete and YAML has been synced locally.",
+          "",
+          "### Stage 1 — Complete implementation plan",
+          "",
+          "From spec.md and architecture.md, produce a concise but complete plan covering:",
+          "1. Agent inventory — every parent, child, or connected agent to create, with exact names and purpose.",
+          "2. Tool inventory — every connector, MCP server, prompt tool, flow, or existing tool to add, with exact display names to use in the portal.",
+          "3. Topic inventory — every custom/system topic to create or update and why it exists.",
+          "4. Knowledge inventory — sources to attach, descriptions to use, and routing intent.",
+          "5. Settings — generative orchestration, general knowledge, web browsing, semantic search, file analysis, auth, content moderation, and channel settings.",
+          "6. Manual portal steps — exact portal work the developer must complete before YAML implementation can start.",
+          "7. Expected synced files — agent folders, topics, actions, triggers, knowledge files, and settings files you expect after the developer runs Get Changes.",
+          "8. Validation gates — what you will check after sync before making edits.",
+          "",
           ...(dataverseBuildPrompt
             ? [
-                "0. **Dataverse tables first** — this is a required first build action. Create the Dataverse tables, columns, and relationships using the Dataverse Table Creation section above before updating Dataverse connector descriptions, generating final Dataverse guidance, or reporting build completion.",
-                "0a. Do this immediately when you start the build. Do not wait for any additional developer prompt.",
-                "0b. Run the Dataverse sample-data stage before leaving the Dataverse step. Do not return sample data as a later suggestion when the solution depends on it.",
-                "0c. After the Dataverse MCP server confirms the live schema, align all Dataverse action descriptions, OData examples, and topic logic to the exact live logical names before continuing.",
+                "### Stage 1a — Dataverse MCP schema creation",
+                "",
+                "Before portal connector/action setup, use the Dataverse MCP Server to create the required tables, columns, relationships, choices, and required startup/reference data from the architecture.",
+                "Do this before telling the developer to create Dataverse connector actions in the Copilot Studio portal, because those actions must bind to existing tables and columns.",
+                "After creation, list the exact table logical names, column logical names, relationship names, and choice integer mappings the developer must use in the portal.",
+                "",
               ]
             : []),
+          "### Stage 2 — Portal setup instructions",
+          "",
+          "Give exact portal instructions in the required order. Include:",
+          "- Create/attach each agent with exact name and role.",
+          "- Create/attach each connector/action, MCP server, prompt tool, Power Automate flow, knowledge source, and trigger.",
+          "- For Dataverse connector actions, create/attach them only after Dataverse MCP schema creation is complete, and bind them to the real tables created in Stage 1a.",
+          "- Use standard connector action names. Do not ask the developer to rename standard connector actions to business-specific function names.",
+          "- Specify authentication/run-as choices and any service-account or delegated identity requirements.",
+          "- Specify content moderation and DLP/channel settings that are portal-only.",
+          "- Tell the developer to run Copilot Studio Get Changes after portal setup so the generated YAML appears locally.",
+          "",
+          "End Stage 2 with exactly this instruction:",
+          "Stop here. Complete the portal steps, run Get Changes to sync YAML locally, then reply DONE.",
+          "",
+          "### Stage 3 — Implementation after developer replies DONE",
+          "",
+          "After the developer replies DONE, read the synced YAML files and generate/update ALL of the following for each agent in the architecture:",
           "1. **Agent instructions** — update the relevant agent YAML directly. For top-level agents, update the top-level instructions field in the agent YAML. For child agents (`kind: AgentDialog`), update `settings.instructions` in `agents/*/agent.mcs.yml`. Use /ToolName syntax referencing EXACT modelDisplayName from action YAML files (including ` 1` suffixes on child agent tools).",
           "2. **Suggested prompts** — for each top-level agent, generate concise, high-value suggested prompts derived from the spec and architecture and update the top-level `conversationStarters` field in the agent YAML. Use this exact YAML shape:",
           "   conversationStarters:",
@@ -397,10 +434,7 @@ function composeBuildPrompt(
           "8. **Manual portal steps** — anything that must be configured in the CPS portal UI. Explicitly flag content moderation as portal-only (no YAML surface).",
           "9. **Settings coherence (mandatory)** — After generating all agent config, validate settings.mcs.yml against the architecture spec. Check: useModelKnowledge, webBrowsing, isSemanticSearchEnabled, isFileAnalysisEnabled, optInUseLatestModels vs modelNameHint, authenticationMode, GenerativeActionsEnabled. Flag portal defaults that contradict the architecture. If useModelKnowledge is false, note that follow-up clarifying questions are disabled.",
           "",
-          "If CPS agent YAML files exist in the workspace, modify them directly and report the file changes you made. Only provide portal-ready text when there are no local CPS YAML files to edit.",
-          dataverseBuildPrompt
-            ? "For Dataverse-backed solutions, do not stop at schema advice. Actually create the tables first using the Dataverse MCP task above, load the required sample data, then continue the build with the real schema names you created and aligned live field names."
-            : "",
+          "If CPS agent YAML files exist in the workspace after the developer has completed portal setup and sync, modify them directly and report the file changes you made. If required YAML files are still missing, stop and identify the missing portal/sync steps instead of inventing files.",
           "Do not return a plan that tells the developer to paste child-agent instruction blocks into Overview pages when those child-agent YAML files already exist in the workspace.",
           "When you find a child agent with YAML shaped like `kind: AgentDialog` plus `settings.instructions`, update that `settings.instructions` field directly.",
           "If the parent needs deterministic status lookup or a one-question clarification loop, create or update the relevant parent Topic(s) and wire that logic there. Do not describe this as a workflow to scaffold.",
