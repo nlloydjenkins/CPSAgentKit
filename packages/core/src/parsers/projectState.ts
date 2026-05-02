@@ -18,23 +18,61 @@ const CPS_ARCHITECT_DIR = ".cpsagentkit";
 const KNOWLEDGE_DIR = "knowledge";
 const REQUIREMENTS_DIR = "Requirements";
 
+const PLACEHOLDER_LINES = new Set([
+  "-",
+  "1.",
+  "| Document | Description |",
+  "| Document | How It Influenced the Architecture |",
+  "| Tool | Owner Agent | Purpose | Run As (End User / Maker / Mixed) | Manual Portal Step Required |",
+  "| Source | Agent | Description | Type |",
+  "| Trigger ID | Schedule | Operation | Owner Agent | Delegates To |",
+  "|          |             |",
+  "|          |                                    |",
+  "|      |             |         |                                   |                             |",
+  "|        |       |             |      |",
+  "|            |          |           |             |              |",
+]);
+
 /**
  * Check if a file exists and has content that differs from the scaffolded template.
  * Returns true only if the file exists AND is not identical to the template.
  */
 async function isCustomised(
   filePath: string,
-  templatePath: string,
+  templatePaths: string[],
 ): Promise<boolean> {
   try {
-    const [content, template] = await Promise.all([
-      fs.readFile(filePath, "utf-8"),
-      fs.readFile(templatePath, "utf-8"),
-    ]);
-    return content.trim() !== template.trim();
+    const content = await fs.readFile(filePath, "utf-8");
+    for (const templatePath of templatePaths) {
+      try {
+        const template = await fs.readFile(templatePath, "utf-8");
+        if (content.trim() === template.trim()) {
+          return false;
+        }
+      } catch {
+        // Try the next candidate template location.
+      }
+    }
+    return hasMeaningfulContent(content);
   } catch {
     return false;
   }
+}
+
+function hasMeaningfulContent(content: string): boolean {
+  const withoutComments = content.replace(/<!--[\s\S]*?-->/g, "");
+  return withoutComments
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .some((line) => {
+      if (!line) return false;
+      if (line.startsWith("#")) return false;
+      if (line.startsWith("| ---")) return false;
+      if (line.startsWith("- [ ]")) return false;
+      if (/^- \*\*[^*]+:\*\*/.test(line)) return false;
+      if (PLACEHOLDER_LINES.has(line)) return false;
+      return true;
+    });
 }
 
 /**
@@ -63,13 +101,18 @@ export async function detectProjectState(
     "bestpractices",
   );
 
-  // Locate templates — check both workspace-local and extension-bundled locations
+  // Locate templates — installed projects may have either workspace-local
+  // source templates or synced .cpsagentkit template copies.
   const localTemplateDir = path.join(workspaceRoot, "templates");
-  const specTemplatePath = path.join(localTemplateDir, "spec-template.md");
-  const archTemplatePath = path.join(
-    localTemplateDir,
-    "architecture-template.md",
-  );
+  const syncedTemplateDir = path.join(architectDir, "templates");
+  const specTemplatePaths = [
+    path.join(localTemplateDir, "spec-template.md"),
+    path.join(syncedTemplateDir, "spec-template.md"),
+  ];
+  const archTemplatePaths = [
+    path.join(localTemplateDir, "architecture-template.md"),
+    path.join(syncedTemplateDir, "architecture-template.md"),
+  ];
 
   const specPath = path.join(requirementsDir, "spec.md");
   const archPath = path.join(requirementsDir, "architecture.md");
@@ -84,8 +127,8 @@ export async function detectProjectState(
     agentFolders,
   ] = await Promise.all([
     fileExists(architectDir),
-    isCustomised(specPath, specTemplatePath),
-    isCustomised(archPath, archTemplatePath),
+    isCustomised(specPath, specTemplatePaths),
+    isCustomised(archPath, archTemplatePaths),
     fileExists(knowledgeDir),
     dirHasFiles(requirementsDocsDir),
     fileExists(bestPracticesDir),

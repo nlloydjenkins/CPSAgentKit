@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { initCommand } from "./commands/init.js";
 import { syncKnowledgeCommand } from "./commands/syncKnowledge.js";
 import { createSpecCommand } from "./commands/createSpec.js";
+import { prepareForBuildCommand } from "./commands/prepareForBuild.js";
 import { buildAgentCommand } from "./commands/buildAgent.js";
 import { generateRepoInstructionsCommand } from "./commands/generateRepoInstructions.js";
 import { reviewSolutionCommand } from "./commands/reviewSolution.js";
@@ -46,6 +47,10 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.commands.registerCommand("cpsAgentKit.createSpec", async () => {
       await createSpecCommand();
+      sidebarProvider.refreshState();
+    }),
+    vscode.commands.registerCommand("cpsAgentKit.prepareForBuild", async () => {
+      await prepareForBuildCommand();
       sidebarProvider.refreshState();
     }),
     vscode.commands.registerCommand("cpsAgentKit.buildAgent", () =>

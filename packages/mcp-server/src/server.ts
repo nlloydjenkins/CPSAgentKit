@@ -21,6 +21,7 @@ import {
   generateTopicScaffolds,
   parsePromptConfig,
   buildPromptUpdate,
+  safePath,
   type PromptSegment,
 } from "@cpsagentkit/core";
 
@@ -99,6 +100,41 @@ function topicNotFound(slug: string): {
     ],
     isError: true,
   };
+}
+
+function getAllowedPathRoots(): string[] {
+  const configuredRoots = process.env.CPSAGENTKIT_ALLOWED_ROOTS;
+  const roots = configuredRoots
+    ? configuredRoots.split(path.delimiter).filter(Boolean)
+    : [process.cwd()];
+  return roots.map((root) => path.resolve(root));
+}
+
+function isWithinRoot(candidate: string, root: string): boolean {
+  const relative = path.relative(root, candidate);
+  return (
+    relative === "" ||
+    (!relative.startsWith("..") && !path.isAbsolute(relative))
+  );
+}
+
+/**
+ * Validate that a user-supplied path is absolute and stays under an allowed
+ * workspace root. Configure additional roots with CPSAGENTKIT_ALLOWED_ROOTS.
+ */
+function validateAbsolutePath(p: string, paramName: string): string | null {
+  if (p.includes("\0")) {
+    return `${paramName} contains invalid characters`;
+  }
+  if (!path.isAbsolute(p)) {
+    return `${paramName} must be an absolute path`;
+  }
+  const resolved = path.resolve(p);
+  const allowedRoots = getAllowedPathRoots();
+  if (!allowedRoots.some((root) => isWithinRoot(resolved, root))) {
+    return `${paramName} must be under an allowed workspace root`;
+  }
+  return null;
 }
 
 /**
@@ -232,6 +268,13 @@ export async function createServer(): Promise<McpServer> {
       },
     },
     async ({ workspaceRoot }: { workspaceRoot: string }) => {
+      const pathErr = validateAbsolutePath(workspaceRoot, "workspaceRoot");
+      if (pathErr) {
+        return {
+          content: [{ type: "text" as const, text: pathErr }],
+          isError: true as const,
+        };
+      }
       const state = await detectProjectState(workspaceRoot);
       return jsonContent(state);
     },
@@ -251,6 +294,13 @@ export async function createServer(): Promise<McpServer> {
       },
     },
     async ({ workspaceRoot }: { workspaceRoot: string }) => {
+      const pathErr = validateAbsolutePath(workspaceRoot, "workspaceRoot");
+      if (pathErr) {
+        return {
+          content: [{ type: "text" as const, text: pathErr }],
+          isError: true as const,
+        };
+      }
       const folders = await findCpsAgentFolders(workspaceRoot);
       return jsonContent({ agents: folders });
     },
@@ -282,6 +332,26 @@ export async function createServer(): Promise<McpServer> {
       workspaceRoot: string;
       agentName: string;
     }) => {
+      const pathErr = validateAbsolutePath(workspaceRoot, "workspaceRoot");
+      if (pathErr) {
+        return {
+          content: [{ type: "text" as const, text: pathErr }],
+          isError: true as const,
+        };
+      }
+      try {
+        safePath(workspaceRoot, agentName);
+      } catch {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: "agentName must not traverse outside workspaceRoot",
+            },
+          ],
+          isError: true as const,
+        };
+      }
       const snapshot = await readAgentSnapshot(workspaceRoot, agentName);
       return jsonContent(snapshot);
     },
@@ -303,6 +373,13 @@ export async function createServer(): Promise<McpServer> {
       },
     },
     async ({ solutionFolder }: { solutionFolder: string }) => {
+      const pathErr = validateAbsolutePath(solutionFolder, "solutionFolder");
+      if (pathErr) {
+        return {
+          content: [{ type: "text" as const, text: pathErr }],
+          isError: true as const,
+        };
+      }
       const isSolution = await isSolutionFileFolder(solutionFolder);
       if (!isSolution) {
         return {
@@ -337,6 +414,13 @@ export async function createServer(): Promise<McpServer> {
       },
     },
     async ({ baseDir }: { baseDir: string }) => {
+      const pathErr = validateAbsolutePath(baseDir, "baseDir");
+      if (pathErr) {
+        return {
+          content: [{ type: "text" as const, text: pathErr }],
+          isError: true as const,
+        };
+      }
       const folders = await findSolutionFolders(baseDir);
       return jsonContent({ solutions: folders });
     },
@@ -394,6 +478,13 @@ export async function createServer(): Promise<McpServer> {
       workspaceRoot: string;
       reviewScope?: "full" | "prompts" | "descriptions" | "architecture";
     }) => {
+      const pathErr = validateAbsolutePath(workspaceRoot, "workspaceRoot");
+      if (pathErr) {
+        return {
+          content: [{ type: "text" as const, text: pathErr }],
+          isError: true as const,
+        };
+      }
       const snapshot = await gatherSolutionSnapshot(
         workspaceRoot,
         resolveResourcesRoot(),
@@ -463,6 +554,13 @@ export async function createServer(): Promise<McpServer> {
       workspaceRoot: string;
       extraServers?: Array<{ name: string; url?: string }>;
     }) => {
+      const pathErr = validateAbsolutePath(workspaceRoot, "workspaceRoot");
+      if (pathErr) {
+        return {
+          content: [{ type: "text" as const, text: pathErr }],
+          isError: true as const,
+        };
+      }
       const status = await detectDataverseMcp(workspaceRoot, extraServers);
       return jsonContent(status);
     },

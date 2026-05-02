@@ -1,12 +1,17 @@
 out/
 node_modules/
+coverage/
 *.vsix
 releases/
 .vscode-test/
 change-requests/
+.azure/
+.env
+.env.*
+!.env.example
+!.env.*.example
 
 .DS_Store
-*.vsix
 
 # Compiled / bundled output
 packages/*/out/

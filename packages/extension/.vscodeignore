@@ -17,4 +17,5 @@ out/ui/**
 out/extension.d.ts
 out/extension.d.ts.map
 test-*.js
+**/__tests__/**
 migration_feature_plan.md

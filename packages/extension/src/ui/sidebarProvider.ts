@@ -164,6 +164,14 @@ export class SidebarProvider
       case "Build":
         return [
           new CommandTreeItem(
+            "Prepare for Build",
+            "cpsAgentKit.prepareForBuild",
+            "checklist",
+            init && hasArch,
+            undefined,
+            !hasArch ? "create plan first" : undefined,
+          ),
+          new CommandTreeItem(
             "Build Agent",
             "cpsAgentKit.buildAgent",
             "rocket",

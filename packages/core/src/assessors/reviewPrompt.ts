@@ -9,10 +9,7 @@ import {
   findArchitectureConnectorNamingMismatches,
   listCuratedConnectorDisplayNames,
 } from "./architectureTools.js";
-import {
-  stripSettingsNoise,
-  detectFenceLanguage,
-} from "../parsers/agentSnapshot.js";
+import { formatAgentSnapshotMarkdown } from "../parsers/agentSnapshot.js";
 /** Compose the review prompt from gathered data */
 export function composeReviewPrompt(
   agents: AgentSnapshot[],
@@ -135,78 +132,7 @@ export function composeReviewPrompt(
   // --- Agent data (the solution being reviewed) ---
   sections.push("## Solution Under Review", "");
 
-  for (const agent of agents) {
-    sections.push(`### Agent: ${agent.name}`, "");
-
-    const cleanSettings = stripSettingsNoise(agent.settings);
-    const settingsFence = detectFenceLanguage(cleanSettings);
-    sections.push(
-      "#### settings",
-      "```" + settingsFence,
-      cleanSettings,
-      "```",
-      "",
-    );
-
-    if (agent.agentConfig) {
-      const configFence = detectFenceLanguage(agent.agentConfig);
-      sections.push(
-        "#### agent config",
-        "```" + configFence,
-        agent.agentConfig,
-        "```",
-        "",
-      );
-    }
-
-    if (agent.connectionReferences) {
-      sections.push(
-        "#### connection references",
-        "```yaml",
-        agent.connectionReferences,
-        "```",
-        "",
-      );
-    }
-
-    if (agent.topics.length > 0) {
-      sections.push("#### topics", "");
-      for (const t of agent.topics) {
-        const topicFence = detectFenceLanguage(t.content);
-        sections.push(
-          `**${t.filename}**`,
-          "```" + topicFence,
-          t.content,
-          "```",
-          "",
-        );
-      }
-    }
-
-    if (agent.actions.length > 0) {
-      sections.push("#### actions", "");
-      for (const a of agent.actions) {
-        const actionFence = detectFenceLanguage(a.content);
-        sections.push(
-          `**${a.filename}**`,
-          "```" + actionFence,
-          a.content,
-          "```",
-          "",
-        );
-      }
-    }
-
-    if (agent.knowledge.length > 0) {
-      sections.push("#### knowledge", "");
-      for (const k of agent.knowledge) {
-        const fence = k.filename.endsWith(".md")
-          ? "markdown"
-          : detectFenceLanguage(k.content);
-        sections.push(`**${k.filename}**`, "```" + fence, k.content, "```", "");
-      }
-    }
-  }
+  sections.push(formatAgentSnapshotMarkdown(agents));
 
   // --- Best practice rules ---
   sections.push("## Best Practice Rules", "");

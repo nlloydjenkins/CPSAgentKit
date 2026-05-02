@@ -51,8 +51,7 @@ export function isTemplateOnly(md: string): boolean {
 export function extractMarkdownSection(md: string, heading: string): string {
   const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const sectionRegex = new RegExp(
-    `^##\\s+${escapedHeading}\\s*$([\\s\\S]*?)(?=^##\\s+|$)`,
-    "m",
+    `(?:^|\\n)##\\s+${escapedHeading}\\s*\\n([\\s\\S]*?)(?=\\n##\\s|$)`,
   );
   return md.match(sectionRegex)?.[1]?.trim() ?? "";
 }

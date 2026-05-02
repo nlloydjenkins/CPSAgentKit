@@ -5,6 +5,8 @@ import {
   fileExists,
   findCpsAgentFolders,
 } from "../fs/fileUtils.js";
+import { extractMarkdownSection } from "../parsers/markdown.js";
+import { readRequirementsDocs } from "../parsers/agentSnapshot.js";
 import { CORE_VERSION as CURRENT_VERSION } from "../version.js";
 import { resolveCuratedConnectorRequirement } from "./connectorCatalog.js";
 
@@ -480,17 +482,10 @@ export function generateTopicScaffolds(architecture: string): TopicScaffold[] {
 }
 
 /** Extract a ## section from markdown (up to next ## or end) */
+/** Extract a level-2 section — delegates to the shared markdown utility. Returns null when not found. */
 function extractSection(content: string, heading: string): string | null {
-  const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  // Use [^\n]*\n to consume the heading line (including newline).
-  // End lookahead uses $(?![\s\S]) for true end-of-string in multiline mode,
-  // because bare $ would match any line-end and the lazy quantifier would stop too early.
-  const regex = new RegExp(
-    `^## ${escapedHeading}[^\\n]*\\n([\\s\\S]*?)(?=\\n## |$(?![\\s\\S]))`,
-    "m",
-  );
-  const match = content.match(regex);
-  return match ? match[1].trim() : null;
+  const result = extractMarkdownSection(content, heading);
+  return result || null;
 }
 
 /** Detect if a tool is likely Dataverse-related */
@@ -593,24 +588,7 @@ export async function readRequirements(workspaceRoot: string): Promise<{
   architecture: string;
   docs: Array<{ filename: string; content: string }>;
 }> {
-  const reqDir = path.join(workspaceRoot, "Requirements");
-  let spec = "";
-  let architecture = "";
-  try {
-    spec = await fs.readFile(path.join(reqDir, "spec.md"), "utf-8");
-  } catch {
-    /* no spec */
-  }
-  try {
-    architecture = await fs.readFile(
-      path.join(reqDir, "architecture.md"),
-      "utf-8",
-    );
-  } catch {
-    /* no architecture */
-  }
-  const docs = await readMarkdownFiles(path.join(reqDir, "docs"));
-  return { spec, architecture, docs };
+  return readRequirementsDocs(workspaceRoot);
 }
 
 /** Check whether a URL looks like a Dataverse MCP endpoint */

@@ -16,6 +16,49 @@ interface CliOptions {
   port: number;
 }
 
+export const MAX_BODY_BYTES = 4 * 1024 * 1024; // 4 MB
+
+export async function readJsonBody(
+  req: http.IncomingMessage,
+): Promise<unknown> {
+  const contentTypeHeader = req.headers["content-type"];
+  const contentType = Array.isArray(contentTypeHeader)
+    ? contentTypeHeader[0]
+    : contentTypeHeader;
+  const mediaType = contentType?.split(";", 1)[0]?.trim().toLowerCase();
+  if (mediaType !== "application/json") {
+    throw new Error("Unsupported Content-Type; expected application/json");
+  }
+
+  const chunks: Buffer[] = [];
+  let totalBytes = 0;
+  for await (const chunk of req) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    totalBytes += buffer.length;
+    if (totalBytes > MAX_BODY_BYTES) {
+      throw new Error("Request body too large");
+    }
+    chunks.push(buffer);
+  }
+  if (chunks.length === 0) return undefined;
+  const raw = Buffer.concat(chunks).toString("utf8");
+  if (!raw) return undefined;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error("Invalid JSON body");
+  }
+}
+
+export function isHttpClientError(err: unknown): boolean {
+  return (
+    err instanceof Error &&
+    (err.message === "Request body too large" ||
+      err.message === "Invalid JSON body" ||
+      err.message.startsWith("Unsupported Content-Type"))
+  );
+}
+
 function parseArgs(argv: string[]): CliOptions {
   const opts: CliOptions = {
     transport: "stdio",
@@ -81,23 +124,6 @@ async function runHttp(host: string, port: number): Promise<void> {
   // they must echo on every subsequent request. GET /mcp opens the SSE
   // stream for that session. DELETE /mcp tears it down.
   const transports = new Map<string, StreamableHTTPServerTransport>();
-
-  async function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
-    const chunks: Buffer[] = [];
-    for await (const chunk of req) {
-      chunks.push(chunk as Buffer);
-    }
-    if (chunks.length === 0) return undefined;
-    const raw = Buffer.concat(chunks).toString("utf8");
-    if (!raw) return undefined;
-    try {
-      return JSON.parse(raw);
-    } catch (err) {
-      throw new Error(
-        `Invalid JSON body: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
-  }
 
   function isInitializeRequest(body: unknown): boolean {
     if (!body || typeof body !== "object") return false;
@@ -190,11 +216,19 @@ async function runHttp(host: string, port: number): Promise<void> {
       res.writeHead(405, { "Content-Type": "text/plain" });
       res.end("Method not allowed");
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      // Never expose internal error details to the network client
+      const isClientError = isHttpClientError(err);
       if (!res.headersSent) {
-        res.writeHead(500, { "Content-Type": "text/plain" });
+        if (isClientError) {
+          res.writeHead(400, { "Content-Type": "text/plain" });
+          res.end(err instanceof Error ? err.message : "Bad request");
+        } else {
+          res.writeHead(500, { "Content-Type": "text/plain" });
+          res.end("Internal server error");
+        }
+      } else {
+        res.end();
       }
-      res.end(`Internal error: ${message}`);
     }
   });
 
@@ -215,7 +249,9 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

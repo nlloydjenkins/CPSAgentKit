@@ -215,55 +215,73 @@ async function copyBundledFiles(
   return copied;
 }
 
+/** Configuration for a single sync category */
+interface SyncCategoryConfig {
+  /** Workspace-relative target directory (e.g. ".cpsagentkit/knowledge") */
+  targetDir: string;
+  /** GitHub repo path to sync from (e.g. "docs/knowledge") */
+  repoPath: string;
+  /** Bundled subdirectory name under extensionPath/docs/ (e.g. "knowledge") */
+  bundledSubdir: string;
+  /** Label used in progress messages (e.g. "knowledge") */
+  label: string;
+  /** If true, 0 remote files is not an error (silently returns) */
+  emptyOk?: boolean;
+}
+
 /**
- * Sync knowledge files from the configured GitHub repo into the local workspace.
- * Overwrites existing knowledge files. Reports progress via callback.
+ * Generic category sync: download .md files from GitHub (with bundled fallback).
  */
-export async function syncKnowledge(
+async function syncCategory(
   workspaceRoot: string,
   config: CpsConfig,
+  category: SyncCategoryConfig,
   onProgress?: (message: string) => void,
   extensionPath?: string,
 ): Promise<SyncResult> {
   const result: SyncResult = { filesWritten: [], errors: [] };
-  const knowledgeDir = path.join(workspaceRoot, KNOWLEDGE_DIR);
+  const destDir = path.join(workspaceRoot, category.targetDir);
 
-  // Ensure directory exists
-  await fs.mkdir(knowledgeDir, { recursive: true });
+  await fs.mkdir(destDir, { recursive: true });
 
-  // Parse repo URL
   const { owner, repo } = parseGitHubUrl(config.knowledgeRepoUrl);
   const branch = config.knowledgeRepoBranch || "main";
-  const knowledgePath = config.knowledgePath || "docs/knowledge";
 
-  onProgress?.("Fetching file list from GitHub...");
+  onProgress?.(`Fetching ${category.label} file list from GitHub...`);
 
-  // Get list of knowledge files (recursive to pick up subdirectories)
   let files: GitHubContentEntry[];
   try {
-    files = await listFilesRecursive(owner, repo, knowledgePath, branch);
+    files = await listFilesRecursive(owner, repo, category.repoPath, branch);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    // Fall back to bundled files
     if (extensionPath) {
-      onProgress?.("GitHub unavailable — copying bundled knowledge files...");
-      const bundledDir = path.join(extensionPath, "docs", "knowledge");
-      const copied = await copyBundledFiles(bundledDir, knowledgeDir);
+      onProgress?.(
+        `GitHub unavailable — copying bundled ${category.label} files...`,
+      );
+      const bundledDir = path.join(
+        extensionPath,
+        "docs",
+        category.bundledSubdir,
+      );
+      const copied = await copyBundledFiles(bundledDir, destDir);
       result.filesWritten.push(...copied);
       if (copied.length > 0) {
         return result;
       }
     }
-    result.errors.push(`Failed to list knowledge files: ${message}`);
+    result.errors.push(`Failed to list ${category.label} files: ${message}`);
     return result;
   }
 
   if (files.length === 0) {
-    result.errors.push("No markdown files found in the knowledge directory.");
+    if (!category.emptyOk) {
+      result.errors.push(
+        `No markdown files found in the ${category.label} directory.`,
+      );
+    }
     return result;
   }
 
-  // Download each file
   for (const file of files) {
     try {
       onProgress?.(`Downloading ${file.name}...`);
@@ -272,11 +290,10 @@ export async function syncKnowledge(
         continue;
       }
       const content = await downloadFile(file.download_url);
-      // Preserve directory structure relative to the knowledge root
-      const relativePath = file.path.startsWith(knowledgePath + "/")
-        ? file.path.slice(knowledgePath.length + 1)
+      const relativePath = file.path.startsWith(category.repoPath + "/")
+        ? file.path.slice(category.repoPath.length + 1)
         : file.name;
-      const destPath = safePath(knowledgeDir, relativePath);
+      const destPath = safePath(destDir, relativePath);
       await fs.mkdir(path.dirname(destPath), { recursive: true });
       await fs.writeFile(destPath, content, "utf-8");
       result.filesWritten.push(relativePath);
@@ -287,6 +304,30 @@ export async function syncKnowledge(
   }
 
   return result;
+}
+
+/**
+ * Sync knowledge files from the configured GitHub repo into the local workspace.
+ * Overwrites existing knowledge files. Reports progress via callback.
+ */
+export async function syncKnowledge(
+  workspaceRoot: string,
+  config: CpsConfig,
+  onProgress?: (message: string) => void,
+  extensionPath?: string,
+): Promise<SyncResult> {
+  return syncCategory(
+    workspaceRoot,
+    config,
+    {
+      targetDir: KNOWLEDGE_DIR,
+      repoPath: config.knowledgePath || "docs/knowledge",
+      bundledSubdir: "knowledge",
+      label: "knowledge",
+    },
+    onProgress,
+    extensionPath,
+  );
 }
 
 /**
@@ -299,64 +340,18 @@ export async function syncTemplates(
   onProgress?: (message: string) => void,
   extensionPath?: string,
 ): Promise<SyncResult> {
-  const result: SyncResult = { filesWritten: [], errors: [] };
-  const templatesDir = path.join(workspaceRoot, TEMPLATES_DIR);
-
-  await fs.mkdir(templatesDir, { recursive: true });
-
-  const { owner, repo } = parseGitHubUrl(config.knowledgeRepoUrl);
-  const branch = config.knowledgeRepoBranch || "main";
-  const templatesPath = config.templatesPath || "docs/templates";
-
-  onProgress?.("Fetching template file list from GitHub...");
-
-  let files: GitHubContentEntry[];
-  try {
-    files = await listFilesRecursive(owner, repo, templatesPath, branch);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    // Fall back to bundled files
-    if (extensionPath) {
-      onProgress?.("GitHub unavailable — copying bundled template files...");
-      const bundledDir = path.join(extensionPath, "docs", "templates");
-      const copied = await copyBundledFiles(bundledDir, templatesDir);
-      result.filesWritten.push(...copied);
-      if (copied.length > 0) {
-        return result;
-      }
-    }
-    result.errors.push(`Failed to list template files: ${message}`);
-    return result;
-  }
-
-  if (files.length === 0) {
-    result.errors.push("No markdown files found in the templates directory.");
-    return result;
-  }
-
-  for (const file of files) {
-    try {
-      onProgress?.(`Downloading ${file.name}...`);
-      if (!file.download_url) {
-        result.errors.push(`No download URL for ${file.name}`);
-        continue;
-      }
-      const content = await downloadFile(file.download_url);
-      // Preserve directory structure relative to the templates root
-      const relativePath = file.path.startsWith(templatesPath + "/")
-        ? file.path.slice(templatesPath.length + 1)
-        : file.name;
-      const destPath = safePath(templatesDir, relativePath);
-      await fs.mkdir(path.dirname(destPath), { recursive: true });
-      await fs.writeFile(destPath, content, "utf-8");
-      result.filesWritten.push(relativePath);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      result.errors.push(`Failed to download ${file.name}: ${message}`);
-    }
-  }
-
-  return result;
+  return syncCategory(
+    workspaceRoot,
+    config,
+    {
+      targetDir: TEMPLATES_DIR,
+      repoPath: config.templatesPath || "docs/templates",
+      bundledSubdir: "templates",
+      label: "template",
+    },
+    onProgress,
+    extensionPath,
+  );
 }
 
 /**
@@ -369,64 +364,17 @@ export async function syncBestPractices(
   onProgress?: (message: string) => void,
   extensionPath?: string,
 ): Promise<SyncResult> {
-  const result: SyncResult = { filesWritten: [], errors: [] };
-  const bestPracticesDir = path.join(workspaceRoot, BEST_PRACTICES_DIR);
-
-  await fs.mkdir(bestPracticesDir, { recursive: true });
-
-  const { owner, repo } = parseGitHubUrl(config.knowledgeRepoUrl);
-  const branch = config.knowledgeRepoBranch || "main";
-  const bestPracticesPath = config.bestPracticesPath || "docs/bestpractices";
-
-  onProgress?.("Fetching best practices file list from GitHub...");
-
-  let files: GitHubContentEntry[];
-  try {
-    files = await listFilesRecursive(owner, repo, bestPracticesPath, branch);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    // Fall back to bundled files
-    if (extensionPath) {
-      onProgress?.(
-        "GitHub unavailable — copying bundled best practice files...",
-      );
-      const bundledDir = path.join(extensionPath, "docs", "bestpractices");
-      const copied = await copyBundledFiles(bundledDir, bestPracticesDir);
-      result.filesWritten.push(...copied);
-      if (copied.length > 0) {
-        return result;
-      }
-    }
-    result.errors.push(`Failed to list best practice files: ${message}`);
-    return result;
-  }
-
-  if (files.length === 0) {
-    // Not an error — best practices folder may not exist in the repo yet
-    return result;
-  }
-
-  for (const file of files) {
-    try {
-      onProgress?.(`Downloading ${file.name}...`);
-      if (!file.download_url) {
-        result.errors.push(`No download URL for ${file.name}`);
-        continue;
-      }
-      const content = await downloadFile(file.download_url);
-      // Preserve directory structure relative to the best practices root
-      const relativePath = file.path.startsWith(bestPracticesPath + "/")
-        ? file.path.slice(bestPracticesPath.length + 1)
-        : file.name;
-      const destPath = safePath(bestPracticesDir, relativePath);
-      await fs.mkdir(path.dirname(destPath), { recursive: true });
-      await fs.writeFile(destPath, content, "utf-8");
-      result.filesWritten.push(relativePath);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      result.errors.push(`Failed to download ${file.name}: ${message}`);
-    }
-  }
-
-  return result;
+  return syncCategory(
+    workspaceRoot,
+    config,
+    {
+      targetDir: BEST_PRACTICES_DIR,
+      repoPath: config.bestPracticesPath || "docs/bestpractices",
+      bundledSubdir: "bestpractices",
+      label: "best practice",
+      emptyOk: true,
+    },
+    onProgress,
+    extensionPath,
+  );
 }
