@@ -8,6 +8,18 @@ Supervisors currently spend 45–90 minutes per pack. First-pass rejection rate 
 
 The agent does **not** replace the supervisor's sign-off — it produces a grounded, criterion-by-criterion suitability assessment that the supervisor reviews, corrects, and approves. Every rule, disclosure, and grading decision is grounded in the firm's knowledge base, never in model general knowledge.
 
+## Build-Time Configuration
+
+The Helios/sample values are placeholders. During Build, CPSAgentKit must ask the maker to confirm or replace tenant-specific values before finalising tenant-bound schema names, prompt instructions, connector descriptions, uploaded knowledge targets, or portal setup steps. Missing values should block only the specific tenant-bound action that needs them; Build should still perform safe work that does not depend on those values:
+
+- Firm name, adviser population, office list, and Teams publishing target
+- Compliance supervisor Teams team/channel, default `#compliance-supervisors`
+- SharePoint library or upload path for the five knowledge documents
+- Dataverse publisher prefix/table name if not using `cr85a_packreview`
+- Retention period, row-level-security model, and model-driven app owner
+- Accepted advice types, escalation advice types, and compliance sign-off owner
+- File-size limits and preferred document-conversion path if code interpreter is insufficient
+
 ## Primary Users and Channel
 
 - **Advisers** — upload a document pack via Microsoft Teams chat, receive the suitability report back in the same conversation

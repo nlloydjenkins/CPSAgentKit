@@ -23,7 +23,7 @@ Things that catch people out, behave unexpectedly, or aren't in the docs. For de
 - One missing input description poisons the whole tool — orchestrator may prompt for ALL fields.
 - System fields and primary keys on connector actions must be removed or set to custom values (e.g. `GUID()` for primary keys).
 - Phantom field references in `modelDescription` (fields not in the input list) cause the orchestrator to prompt unexpectedly. _(See tool-descriptions.md → Phantom Field References)_
-- Dynamic connectors (SendEmailV2, Dataverse Create/Update/List) can't be fully authored in YAML — wire bindings in portal, then Get Changes. _(See yaml-syntax.md → Dynamic Connector Actions)_
+- Dynamic connectors (SendEmailV2, Dataverse Create/Update/List) need portal/export-shaped bindings. Use verified export/API patterns when available; otherwise wire bindings in portal, then Get Changes. _(See yaml-syntax.md → Dynamic Connector Actions)_
 
 ## Multi-Agent
 

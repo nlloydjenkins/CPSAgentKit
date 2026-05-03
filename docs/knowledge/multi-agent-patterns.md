@@ -25,6 +25,44 @@ Do NOT split when:
 
 You can mix both. Connected agents can contain their own child agents.
 
+## Child Agent Creation Paths
+
+Use a two-path rule when building child agents:
+
+1. **Portal-first remains the fallback** when the child agent needs tools, connector bindings, MCP servers, knowledge sources, prompt tools, flows, autonomous triggers, custom auth, or any portal-only setting and no verified export/API pattern exists for the exact child-owned artifact. When CPSAgentKit has a validated reference build or known-good export/API pattern plus tenant-specific connection/auth values, scaffold the child-owned artifact provisionally, then require Apply Changes, portal inspection, Get Changes, and runtime validation.
+2. **Guarded manual scaffold is required** for child-agent shells when an exported parent agent folder already exists, no portal-generated child folder exists yet, and a verified child-agent shape is available. Use this to create the child shell: routing description plus `settings.instructions`. Then create child-owned tools, knowledge, prompt tools, or settings through verified export/API patterns when tenant-specific connection values are available. The maker must Apply Changes and verify portal acceptance before the child is marked fully accepted.
+
+Manual child-agent scaffolds must use a CPS-safe folder name without spaces or special characters, such as `agents/KnowledgeSpecialist/agent.mcs.yml`. Keep the human-readable display name with spaces in `mcs.metadata.componentName`, for example `Knowledge Specialist`.
+
+The minimal scaffold shape is:
+
+```yaml
+mcs.metadata:
+  componentName: Knowledge Specialist
+kind: AgentDialog
+beginDialog:
+  kind: OnToolSelected
+  id: main
+  description: Answers Contoso IT procedure questions from the approved SharePoint IT Wiki. Does not create, check, update, or delete tickets; does not send notifications.
+settings:
+  instructions: |-
+    # Knowledge Specialist V1.0
+
+    You handle Contoso IT procedure knowledge ONLY.
+```
+
+Validation gates before marking the child as created:
+
+- Folder path contains no spaces or special characters.
+- Top-level `kind` is `AgentDialog`.
+- `beginDialog.kind` is `OnToolSelected`.
+- `beginDialog.description` has positive scope and explicit exclusions from sibling domains.
+- Instructions live at `settings.instructions`, not top-level `instructions`.
+- Instructions include a version stamp and sibling-domain prohibitions.
+- YAML parser succeeds and VS Code CPS diagnostics show no errors.
+- Apply Changes succeeds, and Copilot Studio shows the child relationship as enabled with no portal errors.
+- Treat the scaffold as provisional until portal acceptance is observed or a Get Changes round-trip preserves the file.
+
 ## Architecture Pattern: Hub-and-Spoke
 
 For complex solutions, use a router/orchestrator parent with specialised children:

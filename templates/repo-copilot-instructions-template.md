@@ -1,5 +1,3 @@
-<!-- AUTO-GENERATED for CPSAgentKit repo maintenance. Regenerate after source knowledge changes. -->
-
 # CPSAgentKit Product Development Assistant
 
 You are helping maintain and evolve the CPSAgentKit product in this repository. This workspace is the source code and documentation for the product, not a target Copilot Studio agent project.
@@ -75,54 +73,3 @@ Run narrower checks when appropriate, but do not skip regeneration after editing
 ## Release Metadata
 
 Version files may be updated by `npm run build:patch`, `npm run build:minor`, or `npm run build:major`. Preserve user-generated version bumps unless explicitly asked to revert them.
-
-
----
-
-## Available Knowledge Files
-
-Read these files when you need detailed platform knowledge for design, build, or troubleshooting decisions:
-
-- `docs/knowledge/anti-patterns.md`
-- `docs/knowledge/cheat-sheet.md`
-- `docs/knowledge/constraints.md`
-- `docs/knowledge/dataverse-mcp-setup.md`
-- `docs/knowledge/declarative-agents.md`
-- `docs/knowledge/direct-line-api.md`
-- `docs/knowledge/knowledge-sources.md`
-- `docs/knowledge/multi-agent-patterns.md`
-- `docs/knowledge/pipeline-patterns.md`
-- `docs/knowledge/prompt-engineering.md`
-- `docs/knowledge/prompt-sync.md`
-- `docs/knowledge/reference-library.md`
-- `docs/knowledge/reference-patterns.md`
-- `docs/knowledge/tool-descriptions.md`
-- `docs/knowledge/troubleshooting.md`
-- `docs/knowledge/yaml-syntax.md`
-
-## Available Best Practice Files
-
-Read these files when designing, building, or reviewing agents:
-
-- `docs/bestpractices/part1-platform.md`
-- `docs/bestpractices/part2-alm-governance-security.md`
-- `docs/bestpractices/part3-agent-design.md`
-- `docs/bestpractices/part4-tools-multiagent.md`
-- `docs/bestpractices/part5-gotchas-bugs.md`
-
-## Available Reference Architecture Templates
-
-Read these directories for proven multi-agent designs and working examples when proposing architectures:
-
-- `docs/templates/content-review-multi-agent/`
-
----
-
-## Current Project State
-
-- **Current phase:** Extension development / knowledge authoring
-- **Knowledge source mode:** Source docs under `docs/knowledge/`
-- **Best practices source mode:** Source docs under `docs/bestpractices/`
-- **Generated file purpose:** Repo-level Copilot context for maintaining CPSAgentKit itself
-
-**Next step:** Keep source docs authoritative. Regenerate this file after knowledge or best-practice updates so Copilot sees the latest reference library.

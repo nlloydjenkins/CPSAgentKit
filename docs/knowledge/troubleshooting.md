@@ -10,6 +10,20 @@ For curated external YAML examples and schema references, see `reference-library
 4. Check conversation history — the orchestrator uses context from previous turns which may bias routing.
 5. Test in a fresh conversation vs ongoing — routing may differ.
 
+## MCP Tool Appears Enabled But Subtools Are Missing
+
+MCP subtools are portal/runtime-discovered. The subtool list may be visible in the Copilot Studio UI but absent from exported action YAML, `connectionreferences.mcs.yml`, or `.mcs/botdefinition.json`. Do not try to repair this by hand-authoring `knownTools` or changing `action.operationDetails`.
+
+Validation gates for MCP tools:
+
+1. Action YAML exists and has the expected `modelDisplayName`.
+2. Tool appears in Copilot Studio.
+3. Tool is enabled and has no portal errors.
+4. Expected MCP subtools are discovered in the portal/runtime.
+5. Activity Map shows runtime execution of the intended subtool.
+
+If the tool is enabled but subtools are missing, use the portal workaround: turn the MCP tool off, refresh tools, then turn the MCP tool back on. Re-check the portal subtool list, run Get Changes, validate exact `/ToolName` references, and test again in Activity Map.
+
 ## Agent Ignores Knowledge Sources
 
 1. Check knowledge source status on the Knowledge page — is it "Ready"?

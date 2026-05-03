@@ -6,6 +6,18 @@ Fabrikam Inc. (3,500 employees) runs procurement through a legacy web portal tha
 
 The solution is a conversational agent in Microsoft Teams that guides the employee through a request, looks up the approved catalogue, validates against policy, creates a Purchase Order in Dataverse, and routes approval to the line manager via adaptive card. A Power Automate flow handles the approval routing and PO status transitions.
 
+## Build-Time Configuration
+
+The Fabrikam/sample values are placeholders. During Build, CPSAgentKit must ask the maker to confirm or replace the tenant-specific values before finalising tenant-bound schema names, connector descriptions, prompt text, or portal setup steps. Missing values should block only the specific tenant-bound action that needs them; Build should still perform safe work that does not depend on those values:
+
+- Organisation name, default currency, and office/location defaults
+- Procurement escalation Teams team/channel, default `#procurement-exceptions`
+- Approved catalogue SharePoint list name and site URL, default `ApprovedCatalogue`
+- Procurement policy/restricted-items knowledge document locations
+- Dataverse publisher prefix/table name if not using `cr85a_purchaseorder`
+- Approval flow owner/service account and line-manager lookup source
+- Financial thresholds and audit-retention requirement
+
 ## Primary Users and Channel
 
 - **All Fabrikam employees** via Microsoft Teams (desktop and mobile)

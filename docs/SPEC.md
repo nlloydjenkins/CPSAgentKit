@@ -269,6 +269,10 @@ Developer tests using scenarios from the spec's success criteria. Pastes outputs
 
 ## Future (not v1)
 
+- **Backend file knowledge upload:** first-class command such as `cps knowledge upload --agent "IT Help Desk" --child-agent "Knowledge Specialist" --file /path/to/article.md` that creates the Dataverse `botcomponent`, uploads `filedata`, waits for Ready, prompts for or runs Get Changes, verifies the mirrored descriptor, and requires Activity Map retrieval testing
+- **Tenant-aware Dataverse auth checks:** read `.mcs/conn.json`, acquire tokens for `DataverseEndpoint` in `AccountInfo.TenantId`, and diagnose wrong-tenant 403 failures explicitly
+- **MCP discovery validation:** distinguish action YAML existence, portal visibility, enabled status, runtime-discovered subtools, and Activity Map execution; surface the off-refresh-on remediation when subtools are missing
+- **Validation state dashboard/checklist:** track components through locally generated, local diagnostics clean, Apply Changes accepted, portal-visible, portal-enabled, runtime-discovered, Get Changes preserved, and Activity Map validated
 - **Automated deploy + test loop:** call `microsoft-copilot-studio.applyChanges` programmatically, then run Direct Line test, evaluate against spec, suggest fixes — all without leaving VS Code
 - **Direct Line integration:** automated testing against the spec using the Bot Framework Direct Line API
 - **Architecture visualisation:** webview panel showing agent graph with parent-child relationships and tool assignments

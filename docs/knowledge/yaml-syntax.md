@@ -49,6 +49,130 @@ beginDialog:
     - kind: ...
 ```
 
+Topic scaffolding is safe for routing, questions, confirmation, branching, variable handling, and user-visible messages when the shape follows existing exported topic YAML. Tool invocation nodes are more fragile. Do not hand-author MCP or connector execution nodes inside topics unless you have a portal-generated example from the target environment or a verified template library entry that has survived Apply Changes, Get Changes, and Activity Map execution.
+
+For deterministic parent workflows, prefer topic scaffolds for collection and confirmation, then let verified tools/actions handle execution. If no safe exported pattern exists for topic-owned MCP invocation, stop at routing/confirmation/messaging and list portal-generated execution nodes as a required follow-up gate.
+
+## Child Agent File Structure
+
+Child agents can be manually scaffolded when no portal-generated child folder exists yet and CPSAgentKit has a verified child-agent shape. Build should create the child shell locally: routing description plus instructions. Child agents with tools, connector bindings, MCP servers, knowledge sources, prompt tools, flows, auth differences, or portal-only settings must also have those child-owned artifacts created by Build when a verified export/API pattern and tenant-specific connection values are available. Copilot Studio portal creation is only the fallback when no verified path exists.
+
+Folder names are stricter than display names. Avoid spaces and special characters in the folder path:
+
+```text
+agents/KnowledgeSpecialist/agent.mcs.yml
+```
+
+Keep the readable display name in `mcs.metadata.componentName`:
+
+```yaml
+mcs.metadata:
+  componentName: Knowledge Specialist
+kind: AgentDialog
+beginDialog:
+  kind: OnToolSelected
+  id: main
+  description: Answers Contoso IT procedure questions from the approved SharePoint IT Wiki. Handles VPN, Wi-Fi, MFA, software setup, device setup, and common troubleshooting. Does not create, check, update, or delete tickets; does not send notifications; does not answer HR, Finance, CRM, payroll, annual leave, expenses, facilities, credentials, server names, or privileged operational runbooks.
+settings:
+  instructions: |-
+    # Knowledge Specialist V1.0
+
+    You handle Contoso IT procedure knowledge ONLY.
+```
+
+Validation checklist:
+
+- Folder path contains no spaces or special characters.
+- Top-level `kind` is `AgentDialog`.
+- `beginDialog.kind` is `OnToolSelected`.
+- `beginDialog.description` clearly states what the child handles and what it does not handle.
+- Instructions live at `settings.instructions`.
+- Instructions include a version stamp, for example `# Knowledge Specialist V1.0`.
+- Instructions include explicit sibling-domain prohibitions.
+- YAML parsing succeeds.
+- CPS diagnostics show no errors.
+- Apply Changes succeeds.
+- Copilot Studio shows the child relationship with Enabled on and no portal errors.
+
+Treat manually scaffolded children as provisional until portal acceptance is observed or a Get Changes round-trip preserves the file.
+
+## Experimental Action File Structure
+
+Portal-first remains the fallback for tools, connector actions, MCP servers, prompt tools, and Power Automate flows when no verified export/API pattern exists because action YAML contains generated connection bindings and operation metadata. When CPSAgentKit has a known-good export/API pattern plus tenant-specific connection values, Build may scaffold connector actions, MCP attachment, direct uploaded-file knowledge, and Teams publishing metadata provisionally. The maker still performs the acceptance/Apply Changes/portal validation gate before treating the artifact as complete.
+
+If a manual action scaffold is used for a controlled experiment or a reference-backed recovery path, it must be reference-shaped and include a root connection-reference manifest.
+
+Root manifest:
+
+```yaml
+connectionReferences:
+  - connectionReferenceLogicalName: cr85a_ITHelpDesk.shared_office365users.d655593375e94ae6afe2980427e06080
+    connectorId: /providers/Microsoft.PowerApps/apis/shared_office365users
+```
+
+Connector action shape:
+
+```yaml
+mcs.metadata:
+  componentName: Office 365 Users - Get my profile (V2)
+kind: TaskDialog
+modelDisplayName: Get my profile (V2)
+modelDescription: Gets the signed-in user's Microsoft 365 profile. Call when the IT Help Desk needs the current employee's name or email. Requires no user-supplied UPN. Do NOT use to look up other users.
+action:
+  kind: InvokeConnectorTaskAction
+  connectionReference: cr85a_ITHelpDesk.shared_office365users.d655593375e94ae6afe2980427e06080
+  operationId: MyProfile_V2
+  connectionProperties:
+    mode: Invoker
+```
+
+MCP action shape:
+
+```yaml
+mcs.metadata:
+  componentName: Microsoft Dataverse MCP Server
+kind: TaskDialog
+modelDisplayName: Microsoft Dataverse MCP Server
+modelDescription: Reads and writes IT help desk tickets in Dataverse using the cr85a_ticket table. Call for ticket create, status, update, and delete operations. Requires exact Dataverse logical column names and integer choice values. Do NOT use for SharePoint knowledge answers or notifications.
+action:
+  kind: InvokeExternalAgentTaskAction
+  connectionReference: cr85a_ITHelpDesk.shared_commondataserviceforapps.d655593375e94ae6afe2980427e06080
+  operationDetails:
+    kind: ModelContextProtocolMetadata
+    operationId: InvokeMCP
+```
+
+Validation checklist:
+
+- Root `connectionreferences.mcs.yml` exists and contains every logical name referenced by action files.
+- Every action has top-level `kind: TaskDialog`.
+- Every action has inline `modelDisplayName` and inline `modelDescription` under 1,024 characters. Do not use block scalars for `modelDescription`.
+- Every action has `action.kind` set to `InvokeConnectorTaskAction`, `InvokeExternalAgentTaskAction`, or the portal-exported kind for that tool.
+- Every action has `action.connectionReference` matching an entry in root `connectionreferences.mcs.yml`.
+- Connector actions use portal/export-style operation IDs such as `MyProfile_V2`, `PostMessageToConversation`, or `SendEmailV2` where verified by export/reference.
+- MCP actions use `operationDetails.kind: ModelContextProtocolMetadata` and `operationDetails.operationId: InvokeMCP` where that matches the reference export.
+- YAML parsing succeeds and CPS diagnostics show no errors.
+- Apply Changes succeeds and Copilot Studio shows the tool enabled with no portal errors.
+- Get Changes round-trip preserves or portal-corrects the action YAML and connection reference values.
+- Runtime execution is tested in the Activity Map; local diagnostics and enabled status do not prove the tool can execute.
+
+Unknowns remain tenant- and environment-dependent. Do not use this path for routine builds unless the developer explicitly opts into experimental scaffolding or provides a working reference export to copy from.
+
+## Component Validation State Model
+
+Local YAML validity is only the first gate. Track CPS components through explicit states and do not mark them complete early:
+
+- `locally generated`
+- `local diagnostics clean`
+- `Apply Changes accepted`
+- `portal-visible`
+- `portal-enabled`
+- `runtime-discovered` for MCP subtools and other runtime-owned capabilities
+- `Get Changes preserved`
+- `Activity Map validated`
+
+Use the narrowest applicable state in Build State and build checklists. For example, a manually scaffolded action that parses locally but has not executed in Activity Map is not complete; it is only locally generated or portal-visible depending on the last confirmed gate.
+
 ## Trigger Types
 
 ```yaml

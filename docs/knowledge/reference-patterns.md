@@ -104,6 +104,45 @@ The child-agent template confirms the core routing structure:
 
 This is useful when reviewing whether a child agent is too vague. If the description does not clearly separate the child from sibling tools or agents, expect routing drift.
 
+Manual child-agent scaffolding is viable when the exported parent folder already exists, no generated child folder exists yet, and CPSAgentKit has a verified child-agent shape. Use a sanitized folder name such as `KnowledgeSpecialist`, keep the display name in `mcs.metadata.componentName`, and require Apply Changes plus portal acceptance before treating the child as fully accepted. If the child needs tools, connector bindings, knowledge sources, MCP servers, prompt tools, flows, or portal-only settings, Build must create those child-owned artifacts whenever CPSAgentKit has a verified export/API pattern for that exact artifact and tenant-specific connection values are available. Portal-first is only the fallback when no verified path exists.
+
+### Action Pattern
+
+Action YAML is stricter than child-agent YAML. A minimal manual `TaskDialog` stub can pass diagnostics only when it includes `action.connectionReference`, and reliable portal acceptance also requires a root `connectionreferences.mcs.yml` containing the referenced logical names. This is a reference-backed scaffold path: use it only when the artifact shape comes from a known-good export/API pattern, then treat the result as provisional until the manual acceptance and runtime validation gates pass.
+
+Reference-shaped action files should preserve the portal/export pattern:
+
+- root `connectionreferences.mcs.yml` with `connectionReferenceLogicalName` and `connectorId`
+- `kind: TaskDialog`
+- inline `modelDisplayName`
+- inline `modelDescription` under 1,024 characters
+- `action.kind: InvokeConnectorTaskAction` or `InvokeExternalAgentTaskAction`
+- `action.connectionReference` matching the root manifest
+- connector operation IDs such as `MyProfile_V2`, `PostMessageToConversation`, or `SendEmailV2` where verified by export/reference
+- MCP metadata with `operationDetails.kind: ModelContextProtocolMetadata` and `operationDetails.operationId: InvokeMCP`
+
+Before declaring a new action blocked, search for validated reference-backed patterns outside the active agent folder. Check sibling/reference folders, prior workspaces, `Reference/`, `Requirements/*tool*yaml*findings*.md`, `Requirements/*product*notes*.md`, `Requirements/*implementation*sketch*.md`, root `connectionreferences.mcs.yml`, exported `actions/*.mcs.yml`, and child `agents/*/actions/*.mcs.yml`. A validated findings file or working export changes the build path from manual portal creation to provisional reference-backed scaffold.
+
+Reusable IT Help Desk first-party tool scaffold:
+
+- root `connectionreferences.mcs.yml`
+- parent `actions/MicrosoftDataverse-MicrosoftDataverseMCPServer.mcs.yml` with `operationId: InvokeMCP`
+- parent `actions/Office365Users-GetmyprofileV2.mcs.yml` with `operationId: MyProfile_V2`
+- child `agents/<NotificationSpecialist>/actions/MicrosoftTeams-Postmessageinachatorchannel.mcs.yml` with `operationId: PostMessageToConversation`
+- child `agents/<NotificationSpecialist>/actions/Office365Outlook-SendanemailV2.mcs.yml` with `operationId: SendEmailV2`
+
+Parameterize agent folder names, Dataverse table and choice mappings, Teams channel and shared mailbox wording, connection reference logical names from the reference export, and exact `modelDisplayName` values used in slash references. Treat the created files as provisional until Apply Changes, portal inspection, Get Changes, MCP subtool discovery, and Activity Map execution pass.
+
+Local YAML parsing and diagnostics are necessary but not sufficient. Treat manually scaffolded actions as provisional until Apply Changes succeeds, Get Changes preserves or portal-corrects the action files, Copilot Studio shows the tools enabled with no errors, and Activity Map testing confirms runtime execution.
+
+For MCP actions, add one more gate: expected subtools must be runtime-discovered. The subtool list may not be exported locally, so validate in the portal and Activity Map. If subtools are missing, do not edit `knownTools`; turn the MCP tool off, refresh tools, then turn it back on.
+
+### Topic Scaffold Pattern
+
+Deterministic topic scaffolding is viable for parent-agent routing, asking questions, confirmation, safety checks, and user-facing messages. It is not yet a safe general-purpose way to write MCP or connector execution nodes from scratch.
+
+Use locally scaffolded topics when they only need exported-safe dialog structure. For topic-owned tool execution, require a portal-generated example from the same tenant/environment or a verified template that has passed Apply Changes, Get Changes, and Activity Map execution. Without that, create the topic shell and list the execution node as portal-generated follow-up work.
+
 ## Knowledge Source Patterns
 
 The knowledge templates are lightweight but useful for orientation:
@@ -128,6 +167,21 @@ When using any external pattern from this library:
 3. Keep portal-generated IDs, bindings, references, and metadata from the export.
 4. Apply the pattern only where it matches a verified CPSAgentKit safe-edit rule.
 5. Re-test in the target channel or test pane.
+
+## Validation State Model
+
+When converting patterns into product guidance, separate validation states instead of using a single done/not-done flag:
+
+- locally generated
+- local diagnostics clean
+- Apply Changes accepted
+- portal-visible
+- portal-enabled
+- runtime-discovered, for MCP subtools and other runtime-owned state
+- Get Changes preserved
+- Activity Map validated
+
+This prevents local parsing success from being mistaken for runtime readiness.
 
 ## High-Value External Files
 

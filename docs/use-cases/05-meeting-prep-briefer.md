@@ -6,6 +6,18 @@ Account Executives and Customer Success Managers at Adventure Works spend 30–6
 
 The solution is an autonomous agent that runs on a scheduled trigger each weekday morning (07:00 user local time) and 30 minutes before each external meeting. It compiles a concise brief and delivers it via Teams DM to the meeting owner. No user chat required — the agent proactively serves the user.
 
+## Build-Time Configuration
+
+The Adventure Works/sample values are placeholders. During Build, CPSAgentKit must ask the maker to confirm or replace the tenant-specific values before finalising tenant-bound schema names, connector descriptions, prompt instructions, or portal setup steps. Missing values should block only the specific tenant-bound action that needs them; Build should still perform safe work that does not depend on those values:
+
+- Internal email domains used to identify external meetings, default `@adventure-works.com`
+- User population or security group to brief
+- Daily digest time, pre-meeting lead time, working days, working hours, and time-zone source
+- SharePoint Account Plans library path
+- Dataverse publisher prefix/table name for preferences if not using `cr85a_briefpreferences`
+- Teams delivery flow owner/service account and DM delivery identity
+- PTO suppression source: Outlook automatic replies or Dataverse preference/status table
+
 ## Primary Users and Channel
 
 - **Account Executives and Customer Success Managers** (~50 users) — receive briefings as Teams DMs from the agent

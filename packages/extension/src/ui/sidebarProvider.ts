@@ -1,5 +1,18 @@
 import * as vscode from "vscode";
+import * as fs from "fs/promises";
+import * as path from "path";
 import { detectProjectState, ProjectState } from "../services/projectState.js";
+
+interface BuildChecklistItem {
+  label: string;
+  done: boolean;
+  section?: string;
+}
+
+interface BuildChecklistState {
+  exists: boolean;
+  items: BuildChecklistItem[];
+}
 
 /** A single item in the sidebar tree */
 export class CommandTreeItem extends vscode.TreeItem {
@@ -10,8 +23,14 @@ export class CommandTreeItem extends vscode.TreeItem {
     public readonly enabled: boolean = true,
     public readonly itemDescription?: string,
     public readonly disabledReason?: string,
+    public readonly childKind?: "buildChecklist",
   ) {
-    super(label, vscode.TreeItemCollapsibleState.None);
+    super(
+      label,
+      childKind
+        ? vscode.TreeItemCollapsibleState.Expanded
+        : vscode.TreeItemCollapsibleState.None,
+    );
     this.contextValue = enabled ? "enabled" : "disabled";
     this.iconPath = new vscode.ThemeIcon(icon);
     this.description = itemDescription;
@@ -32,6 +51,18 @@ export class CommandTreeItem extends vscode.TreeItem {
   }
 }
 
+class BuildChecklistTreeItem extends vscode.TreeItem {
+  constructor(item: BuildChecklistItem) {
+    super(item.label, vscode.TreeItemCollapsibleState.None);
+    this.contextValue = "buildChecklistItem";
+    this.iconPath = new vscode.ThemeIcon(
+      item.done ? "check" : "circle-outline",
+    );
+    this.description = item.done ? "done" : "open";
+    this.tooltip = item.section ? `${item.section}: ${item.label}` : item.label;
+  }
+}
+
 /** Section header in the tree */
 class SectionHeader extends vscode.TreeItem {
   constructor(label: string) {
@@ -40,7 +71,46 @@ class SectionHeader extends vscode.TreeItem {
   }
 }
 
-type TreeNode = CommandTreeItem | SectionHeader;
+type TreeNode = CommandTreeItem | SectionHeader | BuildChecklistTreeItem;
+
+async function parseBuildChecklist(
+  workspaceRoot: string,
+): Promise<BuildChecklistState> {
+  const checklistPath = path.join(
+    workspaceRoot,
+    "Requirements",
+    "build-checklist.md",
+  );
+
+  let content: string;
+  try {
+    content = await fs.readFile(checklistPath, "utf-8");
+  } catch {
+    return { exists: false, items: [] };
+  }
+
+  const items: BuildChecklistItem[] = [];
+  let section: string | undefined;
+
+  for (const rawLine of content.split(/\r?\n/)) {
+    const heading = rawLine.match(/^##\s+(.+)\s*$/);
+    if (heading) {
+      section = heading[1].trim();
+      continue;
+    }
+
+    const item = rawLine.match(/^\s*-\s+\[([ xX])\]\s+(.+)\s*$/);
+    if (item) {
+      items.push({
+        done: item[1].toLowerCase() === "x",
+        label: item[2].trim(),
+        section,
+      });
+    }
+  }
+
+  return { exists: true, items };
+}
 
 /** Provides the sidebar tree view for CPSAgentKit commands */
 export class SidebarProvider
@@ -62,6 +132,8 @@ export class SidebarProvider
     agentFolders: [],
   };
 
+  private buildChecklist: BuildChecklistState = { exists: false, items: [] };
+
   private watcher: vscode.FileSystemWatcher | undefined;
 
   constructor() {
@@ -80,7 +152,12 @@ export class SidebarProvider
   async refreshState(): Promise<void> {
     const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     if (root) {
-      this.state = await detectProjectState(root);
+      const [state, buildChecklist] = await Promise.all([
+        detectProjectState(root),
+        parseBuildChecklist(root),
+      ]);
+      this.state = state;
+      this.buildChecklist = buildChecklist;
     }
     vscode.commands.executeCommand(
       "setContext",
@@ -97,6 +174,15 @@ export class SidebarProvider
   getChildren(element?: TreeNode): TreeNode[] {
     if (element instanceof SectionHeader) {
       return this.getCommandsForSection(element.label as string);
+    }
+
+    if (element instanceof CommandTreeItem) {
+      if (element.childKind === "buildChecklist") {
+        return this.buildChecklist.items.map(
+          (item) => new BuildChecklistTreeItem(item),
+        );
+      }
+      return [];
     }
 
     // Root level — return section headers
@@ -170,6 +256,15 @@ export class SidebarProvider
             init && hasArch,
             undefined,
             !hasArch ? "create plan first" : undefined,
+          ),
+          new CommandTreeItem(
+            "Build Checklist",
+            "cpsAgentKit.buildChecklist",
+            "checklist",
+            init && hasArch,
+            this.buildChecklist.exists ? "✓ done" : undefined,
+            !hasArch ? "create plan first" : undefined,
+            this.buildChecklist.items.length > 0 ? "buildChecklist" : undefined,
           ),
           new CommandTreeItem(
             "Build Agent",

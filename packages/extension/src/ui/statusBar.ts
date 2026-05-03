@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import type { ProjectState } from "../services/projectState.js";
 
 /** Status bar item showing CPS sync state */
 export class StatusBar {
@@ -11,11 +12,35 @@ export class StatusBar {
     );
     this.item.command = "cpsAgentKit.syncKnowledge";
     this.item.tooltip = "CPSAgentKit — click to sync knowledge";
-    this.setNotInitialised();
+    this.setChecking();
+  }
+
+  setChecking(): void {
+    this.item.text = "$(sync) CPSAgentKit: Checking...";
+    this.item.show();
+  }
+
+  setFromProjectState(state: ProjectState): void {
+    if (!state.isInitialised) {
+      this.setNotInitialised();
+      return;
+    }
+
+    if (state.hasKnowledge || state.hasBestPractices) {
+      this.setSynced();
+      return;
+    }
+
+    this.setInitialised();
   }
 
   setNotInitialised(): void {
     this.item.text = "$(circle-slash) CPSAgentKit: Not initialised";
+    this.item.show();
+  }
+
+  setInitialised(): void {
+    this.item.text = "$(check) CPSAgentKit: Initialised";
     this.item.show();
   }
 

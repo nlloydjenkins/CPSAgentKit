@@ -6,6 +6,19 @@ Northwind Traders receives 150–300 inbound sales enquiries per week to `sales@
 
 The solution is event-driven by the shared mailbox. A single parent orchestrator owns the pipeline. Extraction and scoring are implemented as **prompt tools** (not child agents) because both produce strict structured output that would be degraded by generative-orchestration summarisation between child-agent hops. The parent owns all Dataverse access, since MCP tools on child agents do not execute when called through parent orchestration.
 
+## Build-Time Configuration
+
+The Northwind/sample values are placeholders. During Build, CPSAgentKit must ask the maker to confirm or replace the tenant-specific values before finalising tenant-bound assets such as mailbox/channel references, SharePoint URLs, prompt instructions, connector descriptions, or portal setup steps. Missing values should block only the specific tenant-bound action that needs them; Build should still perform safe work that does not depend on those values, such as planning, neutral Dataverse schema reconciliation, topic-shell scaffolding, and exact portal-step generation:
+
+- Inbound sales shared mailbox, default `sales@northwind.com`
+- Trigger service account / mailbox owner
+- Shared sales Teams channel, default `#sales-leads`
+- Sales Ops escalation Teams channel
+- AE routing source: Account owner field, regional pod owner table, or explicit routing table
+- Dataverse publisher prefix and whether standard `account`, `lead`, `opportunity`, and `contact` tables are used as-is or customised
+- SharePoint site/library paths for scoring rubric, product catalogue, and regional pod assignment
+- Outbound acknowledgement mailbox/send-as identity and business-hours calendar/time zone rules
+
 ## Primary Users and Channel
 
 - **Prospects** — email the shared mailbox. They never chat with the agent.

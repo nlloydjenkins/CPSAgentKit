@@ -22,7 +22,7 @@ async function main() {
   const templatePath = path.join(
     root,
     "templates",
-    "copilot-instructions-template.md",
+    "repo-copilot-instructions-template.md",
   );
   const outputPath = path.join(root, ".github", "copilot-instructions.md");
 

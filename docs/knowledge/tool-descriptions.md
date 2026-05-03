@@ -180,3 +180,17 @@ The `skills-for-copilot-studio` repo includes connector metadata files under `re
 - confirm whether a connector is the right capability at all
 
 Do not generate production action YAML directly from those files. Keep using portal-created actions plus local edits to `modelDisplayName` and `modelDescription` only.
+
+Exception: experimental manual action scaffolding can be used when the developer explicitly opts in, provides a known-good reference export, or the product has a validated reference build for that exact first-party pattern. In that case, generate reference-shaped `TaskDialog` YAML with a root `connectionreferences.mcs.yml`, valid `action.connectionReference`, portal/export-style `operationId` values such as `InvokeMCP`, `MyProfile_V2`, `PostMessageToConversation`, or `SendEmailV2` only when verified, and inline `modelDescription`. Treat the scaffold as provisional until Apply Changes succeeds, Get Changes preserves or corrects it, and runtime execution is verified in the Activity Map.
+
+## Slash Reference Integrity
+
+Every `/ToolName` reference in instructions, topic trigger descriptions, and orchestration text must match an actual action YAML `modelDisplayName` exactly. Do not infer names from connector labels, portal screenshots, old architecture drafts, or expected preview suffixes. For example, if the exported action says `modelDisplayName: Microsoft Dataverse MCP Server`, references must use `/Microsoft Dataverse MCP Server`, not `/Microsoft Dataverse MCP Server (Preview)`.
+
+Validation rule: after every Get Changes round-trip, scan all action YAML files, collect their `modelDisplayName` values, then validate every `/...` tool reference in agent instructions, child instructions, topics, and checklists against that set. A single stale slash reference can make the orchestrator ignore or misroute the intended tool.
+
+## MCP Runtime Discovery
+
+MCP server action YAML does not reliably export the runtime-discovered subtool list. Treat MCP readiness as a separate validation gate from action YAML existence and portal visibility.
+
+Do not hand-author `knownTools` or mutate `action.operationDetails` to force MCP subtools into existence. These fields are portal/runtime-owned. If the action exists and appears enabled but expected subtools are missing in Copilot Studio or runtime execution fails, use the portal remediation: turn the MCP tool off, refresh tools, then turn the MCP tool back on. After that, validate the subtool list in the portal and verify an actual tool call in Activity Map.

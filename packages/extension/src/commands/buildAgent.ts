@@ -1,17 +1,40 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs/promises";
-import {
-  readMarkdownFiles,
-  findCpsAgentFolders,
-  FileEntry,
-} from "../services/fileUtils.js";
+import { findCpsAgentFolders } from "../services/fileUtils.js";
 import {
   composeDataverseChatPrompt,
   detectDataverseMcp,
 } from "../services/preBuildGenerator.js";
 import { requireWorkspaceRoot, openPromptAndNotify } from "../ui/uiUtils.js";
 import { configDirPath } from "../services/config.js";
+
+interface DocumentReference {
+  filename: string;
+  relativePath: string;
+}
+
+async function listMarkdownReferences(
+  dir: string,
+  relativeDir: string,
+): Promise<DocumentReference[]> {
+  try {
+    const entries = await fs.readdir(dir);
+    return entries
+      .filter((filename) => filename.endsWith(".md"))
+      .sort()
+      .map((filename) => ({
+        filename,
+        relativePath: `${relativeDir}/${filename}`,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+function formatReferenceList(references: DocumentReference[]): string[] {
+  return references.map((doc) => `- ${doc.relativePath}`);
+}
 
 /**
  * Build Agent command — reads spec.md + architecture.md + knowledge,
@@ -57,17 +80,23 @@ export async function buildAgentCommand(): Promise<void> {
     return;
   }
 
-  // Read additional requirements docs
+  // List additional requirement docs without inlining their content.
   const docsDir = path.join(root, "Requirements", "docs");
-  const requirementsDocs = await readMarkdownFiles(docsDir);
-
-  // Read synced knowledge and best practices from .cpsagentkit/
-  const cpsDir = configDirPath(root);
-  const knowledgeFiles = await readMarkdownFiles(
-    path.join(cpsDir, "knowledge"),
+  const requirementsDocs = await listMarkdownReferences(
+    docsDir,
+    "Requirements/docs",
   );
-  const bestPracticesFiles = await readMarkdownFiles(
+
+  // List synced knowledge and best practices from .cpsagentkit/ without
+  // inlining their content into the generated chat prompt.
+  const cpsDir = configDirPath(root);
+  const knowledgeFiles = await listMarkdownReferences(
+    path.join(cpsDir, "knowledge"),
+    ".cpsagentkit/knowledge",
+  );
+  const bestPracticesFiles = await listMarkdownReferences(
     path.join(cpsDir, "bestpractices"),
+    ".cpsagentkit/bestpractices",
   );
 
   // Detect existing CPS agent YAML files
@@ -152,7 +181,6 @@ export async function buildAgentCommand(): Promise<void> {
   // Build the prompt
   const prompt = composeBuildPrompt(
     scope.detail!,
-    spec,
     architecture,
     agentYaml,
     testOutput,
@@ -174,13 +202,12 @@ export async function buildAgentCommand(): Promise<void> {
 /** Compose the build prompt based on scope */
 function composeBuildPrompt(
   scope: string,
-  spec: string,
   architecture: string,
   agentFolders: string[],
   testOutput: string,
-  requirementsDocs: FileEntry[],
-  knowledgeFiles: FileEntry[],
-  bestPracticesFiles: FileEntry[],
+  requirementsDocs: DocumentReference[],
+  knowledgeFiles: DocumentReference[],
+  bestPracticesFiles: DocumentReference[],
   dataverseBuildPrompt: string,
 ): string {
   const agentContext =
@@ -194,12 +221,9 @@ function composeBuildPrompt(
           "",
           "## Requirements Docs",
           "",
-          "The following additional requirement documents are in `Requirements/docs/`. Use them as context for building the agent:",
+          "Read these additional requirement documents before building the agent. Do not rely only on the summaries in spec.md or architecture.md when a source document contains more precise details:",
           "",
-          ...requirementsDocs.map(
-            (d) =>
-              `### ${d.filename.replace(/\.md$/, "").replace(/-/g, " ")}\n\n${d.content}`,
-          ),
+          ...formatReferenceList(requirementsDocs),
         ].join("\n")
       : "";
 
@@ -209,12 +233,9 @@ function composeBuildPrompt(
           "",
           "## CPS Platform Knowledge",
           "",
-          "Follow these patterns and constraints when building the agent:",
+          "Read the relevant local CPS platform knowledge files before making design or build decisions. Prefer the most relevant files for the current task, and consult constraints/troubleshooting/yaml syntax when editing generated artifacts:",
           "",
-          ...knowledgeFiles.map(
-            (d) =>
-              `### ${d.filename.replace(/\.md$/, "").replace(/-/g, " ")}\n\n${d.content}`,
-          ),
+          ...formatReferenceList(knowledgeFiles),
         ].join("\n")
       : "";
 
@@ -224,12 +245,9 @@ function composeBuildPrompt(
           "",
           "## CPS Best Practices",
           "",
-          "Apply these best practices when generating agent configuration:",
+          "Read these best-practice files as needed and apply them when generating or reviewing agent configuration:",
           "",
-          ...bestPracticesFiles.map(
-            (d) =>
-              `### ${d.filename.replace(/\.md$/, "").replace(/-/g, " ")}\n\n${d.content}`,
-          ),
+          ...formatReferenceList(bestPracticesFiles),
         ].join("\n")
       : "";
 
@@ -249,7 +267,7 @@ function composeBuildPrompt(
           "```",
           "",
           "After table creation, report the created table logical names, column logical names, relationships, choice integer mappings, and any startup/reference records inserted.",
-          "Then tell the developer to create/attach the Dataverse connector actions in the Copilot Studio portal against those live tables, plus any agents, prompt tools, knowledge sources, triggers, and settings from the architecture.",
+          "Then use any verified export/API patterns available to create or attach Dataverse connector actions against those live tables. Only tell the developer to create/attach connector actions in the Copilot Studio portal when no verified reference-backed path exists or when tenant-specific connection/auth values are missing. Apply the same rule to agents, prompt tools, knowledge sources, triggers, and settings from the architecture.",
           "For choice/option-set columns, the Dataverse MCP Server requires integer values — passing text labels (e.g. 'High') causes a FormatException. Include the integer mappings (e.g. High=100000002) in the portal connector guidance, later agent instructions, and action modelDescriptions so the agent passes valid values.",
           "After the developer confirms portal setup and Get Changes sync are complete, inspect the synced YAML and use the real logical names in Dataverse action descriptions, OData examples, topic logic, and agent instructions.",
           "Do not report the implementation as complete until the schema, sample data, action descriptions, OData examples, and topic logic are aligned to the synced configuration.",
@@ -257,13 +275,12 @@ function composeBuildPrompt(
       : "";
 
   const base = [
-    "You are building a Copilot Studio agent. Read these documents carefully:",
+    "You are building a Copilot Studio agent. Read these workspace documents before acting:",
     "",
-    "## Spec",
-    spec,
+    "## Primary Documents",
     "",
-    "## Architecture",
-    architecture,
+    "- Requirements/spec.md",
+    "- Requirements/architecture.md",
     agentContext,
     docsContext,
     knowledgeContext,
@@ -287,24 +304,61 @@ function composeBuildPrompt(
     "- NEVER modify: mcs.metadata, kind, inputs, outputs, outputMode, action (and everything under it: connectionReference, connectionProperties, operationDetails, operationId, dynamicOutputSchema, flowId, knownTools)",
     "- This applies to ALL tool types: MCP servers (InvokeExternalAgentTaskAction), connectors (InvokeConnectorTaskAction), and flows (InvokeFlowTaskAction)",
     "- When asked to update a tool description, edit ONLY the modelDescription field. Do not touch any other field.",
-    "- When asked to add a new tool, tell the developer to create it in the CPS portal and sync — do not generate action YAML from scratch.",
+    "- When asked to add a new tool, use a verified export/API pattern when one exists for that connector, MCP attachment, or first-party tool. For IT Help Desk builds, the known reference-backed first-party patterns include Dataverse MCP attachment, Office 365 Users `Get my profile (V2)`, Teams `Post message in a chat or channel`, and Outlook `Send an email from a shared mailbox (V2)`. If no verified pattern exists, tell the developer to create it in the CPS portal and sync. Do not invent action YAML from scratch.",
     "",
     "### CRITICAL: Staged Build Protocol",
-    "- For a full build, do NOT edit files in your first response.",
-    "- First, produce a complete implementation plan from spec.md and architecture.md.",
-    "- If Dataverse tables are required for connector/action setup, create the Dataverse schema through the Dataverse MCP Server before giving portal connector setup instructions. Connectors cannot be properly created against tables that do not exist yet.",
-    "- The plan must include: agents to create, tools/connectors/prompt tools to scaffold in the CPS portal, knowledge sources to add, triggers to configure, manual settings, expected synced YAML folders/files, and validation checks.",
-    "- Then give the developer exact portal instructions in the required order. Be specific: agent names, tool names, connector/action names, prompt tool names, settings, authentication, and sync steps. For Dataverse connector actions, reference the real table/column names created by the Dataverse MCP step.",
-    "- End the first response with a clear stop condition: 'Stop here. Complete the portal steps, run Get Changes to sync YAML locally, then reply DONE.'",
-    "- Only after the developer replies that the portal setup and sync are complete should you create or update local YAML files, prompts, topic descriptions, instructions, action modelDescriptions, and settings.",
-    "- After the implementation pass, validate every /ToolName reference, action modelDescription, settings flag, and Build State item before reporting completion.",
+    "- Build is action-first and creation-first. Before writing a build checklist or stopping, create every agent, topic, tool/action, knowledge source, schema, seed record, publishing setting, and build artifact that has a verified local YAML, MCP, Dataverse/CPS Web API, or reference-backed export path available in the current workspace.",
+    "- Do not use the staged build protocol as a reason to produce only a plan. A plan is useful, but it is not sufficient when safe actions are available.",
+    "- Build Agent must do this work itself, not hand it back as manual setup, whenever the required tenant value/auth context and verified path exist. Manual checklist items are only for missing tenant values, missing auth/connection context, missing verified patterns, admin/policy gates, or the explicit Apply Changes/portal inspection/Get Changes/Activity Map acceptance gate.",
+    "- Before declaring a tool/action blocked because `actions/`, `connectionreferences.mcs.yml`, `.mcs/conn.json`, or synced portal YAML is missing in the active workspace, search for validated reference-backed patterns in sibling/reference folders and Requirements notes. Check `Reference/`, prior workspace folders, `Requirements/*tool*yaml*findings*.md`, `Requirements/*product*notes*.md`, `Requirements/*implementation*sketch*.md`, root `connectionreferences.mcs.yml`, exported `actions/*.mcs.yml`, and child `agents/*/actions/*.mcs.yml`. Treat discovered validated findings as first-class build inputs.",
+    "- Safe actions include: reading current YAML, updating existing safe YAML fields, creating/reconciling Dataverse schema through Dataverse MCP when configured, inserting required seed/reference data, updating prompt tool instructions through Dataverse MCP when the prompt tools already exist, programmatically uploading knowledge when tenant-aligned API auth exists, scaffolding all deterministic topic YAML from architecture, scaffolding child agents, creating all reference-backed tool/action YAML, attaching knowledge sources through backend/API or verified export-shaped paths, configuring publishing metadata from verified patterns, refining Requirements/spec.md or Requirements/architecture.md when the source docs justify it, generating exact portal setup instructions only for true blockers, and updating Build State.",
+    "- Reference-backed portal artifact creation is a required provisional build action when a known-good export/API pattern exists for the target artifact and tenant-specific connection/auth values are available. This includes connector action YAML, MCP attachment YAML, direct uploaded-file knowledge, SharePoint knowledge attachment, child-owned knowledge, child-owned connector actions, and Teams publishing metadata when the pattern has already survived Apply Changes, portal inspection, Get Changes, and runtime validation in this product's reference builds.",
+    "- The IT Help Desk reference build has validated these as Build Agent actions when tenant-specific connection/auth values are available: scaffold `Knowledge Specialist` and `Notification Specialist` child agents, attach `Microsoft Dataverse MCP Server` to the parent, add Office 365 Users `Get my profile (V2)` to the parent, add Teams `Post message in a chat or channel` and Outlook `Send an email from a shared mailbox (V2)` to `Notification Specialist`, configure Teams publishing metadata, and add approved knowledge by a verified backend/API path. Do not list these as manual creation tasks unless the specific required tenant value, auth context, connection reference, or verified pattern is missing.",
+    "- The reusable IT Help Desk action template consists of root `connectionreferences.mcs.yml`, parent actions `MicrosoftDataverse-MicrosoftDataverseMCPServer.mcs.yml` and `Office365Users-GetmyprofileV2.mcs.yml`, and child actions `MicrosoftTeams-Postmessageinachatorchannel.mcs.yml` and `Office365Outlook-SendanemailV2.mcs.yml`. Known operation IDs are `InvokeMCP`, `MyProfile_V2`, `PostMessageToConversation`, and `SendEmailV2`. Parameterize agent folder names, Dataverse table/choice mappings, shared mailbox and Teams channel wording, connection reference logical names from reference export when known, and exact `modelDisplayName` values used in slash references.",
+    "- Portal-owned actions remain checklist items only when no verified export/API path exists, tenant-specific connection/auth values are missing, or the remaining step is the required manual acceptance gate. Do not leave agents, topics, connector actions, MCP attachment, direct knowledge upload, SharePoint knowledge attachment, child-owned tools, child-owned knowledge, or Teams publishing as manual steps just because they are portal-owned if a verified reference-backed path is available.",
+    "- If Dataverse tables are required for connector/action setup and Dataverse MCP is configured, create or reconcile the schema before giving portal connector setup instructions. Connectors cannot be properly created against tables that do not exist yet.",
+    "- If required portal-generated YAML is missing, do not invent unsafe files. Do safe work first, then list only the missing portal/sync steps in `Requirements/build-checklist.md`.",
+    "- End the response with a build summary, the remaining `Requirements/build-checklist.md` items, and a clear next step such as: complete the listed portal steps, run Get Changes, then run Build Agent again.",
+    "- After every implementation pass, validate every /ToolName reference, action modelDescription, settings flag, and Build State item before reporting completion.",
+    "",
+    "### CRITICAL: Build Checklist Document",
+    "- `Requirements/build-checklist.md` is the final must-do list after Build has created every artifact it can through local YAML, MCP, Dataverse/CPS Web API, or verified reference-backed export paths. Do not create or update it as the first or only build action unless literally no build action is available.",
+    "- Whenever the build still requires essential manual setup, missing build-time configuration, expected synced YAML, or portal-generated artifacts after all safe actions are complete, create or update `Requirements/build-checklist.md` before ending your response.",
+    "- Never put an item in `Requirements/build-checklist.md` if Build Agent can perform that action itself with the current workspace files and configured tools. Perform it, then summarize it as completed instead.",
+    "- The checklist is a required build artifact, but it must be short. It is an essential action list, not a validation log, status report, or troubleshooting checklist.",
+    "- Use these headings exactly:",
+    "  # Build Checklist",
+    "  ## Essential Actions",
+    "  ## Build-Time Configuration Needed",
+    "  ## Resume Instructions",
+    "  ## Blockers",
+    "- Only list incomplete actions that are essential before the agent can run. Do NOT list completed work, expected files, general verification, Activity Map checks, YAML hygiene checks, or troubleshooting probes.",
+    "- Keep the checklist compact: target 5-15 items. If there are many similar items, group them into one action, such as 'Create the three Dataverse connector actions...' or 'Confirm the configured Teams and Outlook identities...'.",
+    "- Use these item classifications only when helpful: `Needs user value`, `Manual portal action`, `Manual tenant/admin prerequisite`, `Dataverse MCP build action`, `Programmatic knowledge upload`, `Build Agent after sync`.",
+    "- `Essential Actions` is for required setup/build steps that are not done yet and block a runnable agent: missing portal tools, required Dataverse schema/data, required knowledge upload, required prompt tools, required channels, required permissions, or Apply Changes/Get Changes when needed for the next build step.",
+    "- `Build-Time Configuration Needed` is for tenant-specific values the maker must provide, such as real email addresses, Teams channels, SharePoint libraries, Dataverse publisher prefix/table names, service accounts, business hours, or routing owners. Do not hard-code sample values from use-case docs when this section is unresolved.",
+    "- `Resume Instructions` should be one or two lines telling the developer exactly what to do after completing the essential actions, e.g. run Get Changes and reply DONE.",
+    "- Put diagnostic checks and validation guidance in troubleshooting notes or the final response only when something fails. Do not put routine 'verify/check/confirm' items in the checklist unless they are the actual required setup action.",
+    "- Keep `Requirements/architecture.md` Build State aligned at a high level, but do not mirror every diagnostic gate into `Requirements/build-checklist.md`.",
     "",
     "### Build Rules",
     '- If the agent has tools (MCP servers, connectors, flows): instructions MUST say "Always use [exact tool name] to answer questions. Do not use general knowledge when the tool can provide the answer."',
+    "- If requirements docs include a Build-Time Configuration section or obvious sample placeholders (emails, Teams channels, SharePoint libraries, service accounts, Dataverse prefixes, business hours), collect those values during Build. Use defaults as suggestions only; do not bake sample tenant details into generated assets without confirmation.",
+    "- Missing build-time configuration is not a global stop condition. Do all build work that does not depend on those values first: inspect existing YAML, create or reconcile Dataverse schema that uses confirmed or neutral logical names, draft prompt/tool instructions with placeholders where needed, scaffold all deterministic topic YAML, create child-agent shells, create reference-backed tools whose connection values are known, and produce exact portal setup steps only for true blockers. Block only the specific action that genuinely requires the missing value.",
+    "- If tenant-specific values are missing, ask for the smallest set needed for the next blocked action in the chat response and write those same items to `Requirements/build-checklist.md` only after completing other safe work. Do not stop after writing the checklist when other safe build actions remain.",
     "- Reference tools by exact name using /ToolName syntax in instructions",
+    "- After every Get Changes round-trip, collect all action YAML `modelDisplayName` values and validate every `/ToolName` reference in agent instructions, child instructions, and topics against that exact set.",
     '- Consider recommending "Use general knowledge" be DISABLED if tools cover the full domain',
     "- If CPS agent YAML files exist in the workspace AFTER the developer has completed portal setup and sync, perform the implementation by editing those files directly. Do NOT answer with instructions telling the developer to paste content into Overview pages, topic editors, or tool descriptions at that stage.",
-    "- Do NOT hand-author action YAML for new tools. New tools, connectors, prompt tools, MCP servers, knowledge sources, and triggers must be created or attached in the CPS portal first, then synced locally before YAML-safe edits.",
+    "- Do NOT guess action YAML for new tools. When a verified export/API pattern exists for the exact connector, MCP attachment, or first-party tool and tenant-specific connection values are available, use that reference-backed path provisionally. The validated IT Help Desk first-party patterns include Dataverse MCP attachment, Office 365 Users `Get my profile (V2)`, Teams `Post message in a chat or channel`, and Outlook `Send an email from a shared mailbox (V2)`. Otherwise create or attach the artifact in the CPS portal first, then sync locally before YAML-safe edits.",
+    "- If the active workspace lacks action scaffolds, do not stop there. Search sibling/reference artifacts and findings files first; if they contain a validated reference-backed pattern for the exact tool, create the local YAML before writing the checklist. The checklist should then say `Apply Changes and inspect the scaffolded tools`, not `create the tools manually`.",
+    "- Experimental manual action scaffolding is allowed when the developer explicitly opts in, provides a known-good reference export, or the product has a validated reference build for that exact first-party pattern. Use reference-shaped `TaskDialog` YAML plus a root `connectionreferences.mcs.yml`; every action must have inline `modelDisplayName`, inline `modelDescription`, `action.kind`, `action.connectionReference`, and portal/export-style operation metadata such as `InvokeMCP`, `MyProfile_V2`, `PostMessageToConversation`, or `SendEmailV2` only when verified by the reference. Treat the scaffold as provisional until Apply Changes succeeds, Get Changes preserves or portal-corrects it, Copilot Studio shows the tool enabled with no errors, and Activity Map testing proves runtime execution.",
+    "- Uploaded-file knowledge sources MUST be ingested through Copilot Studio/Dataverse backend APIs or uploaded manually in the portal. NEVER create local knowledge YAML as the ingestion mechanism. When an authenticated Dataverse/CPS Web API path is available and tenant-aligned to `.mcs/conn.json`, create a `botcomponent` row with `componenttype = 14`, upload bytes to the `filedata` file column, wait for Ready/processing, run Get Changes, and validate retrieval in Activity Map. For child-owned files, bind `ParentBotComponentId@odata.bind` to the child botcomponent id. If the API/auth path is unavailable, stop and list uploaded-file knowledge as a manual portal upload action.",
+    "- Before any programmatic Dataverse/CPS Web API operation, read `.mcs/conn.json`, use `DataverseEndpoint`, and acquire auth in `AccountInfo.TenantId`. If Dataverse returns `403 Forbidden: The user is not a member of the organization.`, diagnose wrong-tenant auth and stop with a tenant-specific remediation instead of treating it as a schema or upload failure.",
+    "- MCP subtools are portal/runtime-discovered and may not appear in exported YAML. Do NOT hand-author `knownTools` or mutate `action.operationDetails`. Validate MCP through separate gates: action file exists, tool portal-visible, tool portal-enabled, expected subtools discovered, and Activity Map runtime execution succeeds. If subtools are missing, instruct the maker to turn the MCP tool off, refresh tools, then turn it back on, then run Get Changes and retest.",
+    "- Create all deterministic topic YAML declared by the architecture for routing, questions, confirmation, variables, and messages when it follows exported shapes. Add topic-owned MCP or connector execution nodes when a portal-generated target-environment example or verified template has survived Apply Changes, Get Changes, and Activity Map testing. Without that verified execution-node pattern, create the topic shell and checklist only the missing execution node pattern or portal acceptance gate.",
+    "- Create child-agent YAML when no portal-generated child folder exists and a verified child-agent shape exists. Use `kind: AgentDialog`, `beginDialog.kind: OnToolSelected`, a strong routing `beginDialog.description`, and `settings.instructions`. Use a sanitized folder name with no spaces or special characters, such as `agents/KnowledgeSpecialist/agent.mcs.yml`, while keeping the display name in `mcs.metadata.componentName`. Then attach child-owned tools, knowledge, prompt tools, or settings through verified export/API patterns when available. Validate YAML parsing and CPS diagnostics, then require Apply Changes and portal acceptance before marking the child agent fully accepted.",
+    "- Portal-first is only the fallback for child-owned tools, connector bindings, MCP servers, knowledge sources, prompt tools, flows, custom auth, or portal-only settings when no verified export/API pattern exists for the exact child-owned artifact. Do not manually invent generated structures.",
     "- Child agents use a different YAML shape from top-level agents. A child agent file typically has `kind: AgentDialog` and its instructions live at `settings.instructions` inside `agents/*/agent.mcs.yml`.",
     "- When updating child agents, edit `settings.instructions` in the child agent YAML directly. Do NOT treat child-agent instructions as top-level `instructions:` fields or as manual Overview-page paste blocks.",
     "- In Copilot Studio, implement parent orchestration through the parent agent instructions plus Topics, child agents, tools, and triggers. Do NOT describe this as a workflow to scaffold.",
@@ -376,19 +430,20 @@ function composeBuildPrompt(
         [
           "## Task: Full Build (Plan → Portal Setup → Synced YAML Implementation)",
           "",
-          "You must run this as a staged build. The first response plans the build, creates Dataverse tables first if the architecture requires Dataverse-backed connector actions, then gives portal setup instructions. Do not edit local YAML files until the developer confirms that portal setup is complete and YAML has been synced locally.",
+          "Run this as an action-first staged build. In the current response, create every artifact you can before writing or updating `Requirements/build-checklist.md`: agents, topics, tools/actions, knowledge sources, Dataverse schema, seed data, publishing metadata, and build artifacts. Do not stop at planning when you can create/reconcile Dataverse schema, update existing safe YAML fields, scaffold deterministic topic YAML, provision direct uploaded-file knowledge, attach SharePoint knowledge through a verified backend/API or export-shaped path, create reference-backed connector/MCP action YAML, configure Teams publishing metadata from a verified pattern, or update build artifacts. Do not hand-author portal-owned generated structures when no verified export/API pattern exists, such as prompt tool YAML, trigger YAML, or unverified execution nodes.",
           "",
           "### Stage 1 — Complete implementation plan",
           "",
-          "From spec.md and architecture.md, produce a concise but complete plan covering:",
-          "1. Agent inventory — every parent, child, or connected agent to create, with exact names and purpose.",
-          "2. Tool inventory — every connector, MCP server, prompt tool, flow, or existing tool to add, with exact display names to use in the portal.",
+          "From spec.md and architecture.md, produce a concise but complete plan, then execute every safe part of it before writing the final checklist. Cover:",
+          "0. Build-time configuration — tenant-specific values from Requirements/docs to confirm or replace before tenant-bound assets are finalized: email addresses, Teams channels, SharePoint locations, service accounts, Dataverse prefixes/table names, routing owners, business hours, and audit requirements. Do not let unresolved values block unrelated safe work.",
+          "1. Agent inventory — every parent, child, or connected agent to create, with exact names, purpose, and creation path: existing YAML, guarded manual child scaffold, or portal-first.",
+          "2. Tool inventory — every connector, MCP server, prompt tool, flow, or existing tool to add, with exact display names and creation path: portal-first, existing YAML, or experimental manual YAML scaffold with reference export.",
           "3. Topic inventory — every custom/system topic to create or update and why it exists.",
-          "4. Knowledge inventory — sources to attach, descriptions to use, and routing intent.",
+          "4. Knowledge inventory — sources to attach or upload, descriptions to use, routing intent, owner agent, and creation path: existing YAML, manual portal action, or programmatic uploaded-file knowledge via Dataverse botcomponent/filedata.",
           "5. Settings — generative orchestration, general knowledge, web browsing, semantic search, file analysis, auth, content moderation, and channel settings.",
           "6. Manual portal steps — exact portal work the developer must complete before YAML implementation can start.",
-          "7. Expected synced files — agent folders, topics, actions, triggers, knowledge files, and settings files you expect after the developer runs Get Changes.",
-          "8. Validation gates — what you will check after sync before making edits.",
+          "7. Sync dependency — the minimum generated files or portal artifacts needed before local implementation can continue.",
+          "8. Validation gates — keep these in your reasoning and final notes, but do not expand them into `Requirements/build-checklist.md` unless they are required setup actions.",
           "",
           ...(dataverseBuildPrompt
             ? [
@@ -400,19 +455,23 @@ function composeBuildPrompt(
                 "",
               ]
             : []),
-          "### Stage 2 — Portal setup instructions",
+          "### Stage 2 — Create every buildable artifact, then checklist only blockers",
           "",
-          "Give exact portal instructions in the required order. Include:",
-          "- Create/attach each agent with exact name and role.",
-          "- Create/attach each connector/action, MCP server, prompt tool, Power Automate flow, knowledge source, and trigger.",
+          "Before listing portal steps, create every artifact available in this workspace and through configured tools or verified reference-backed patterns. Then give exact portal instructions only for unresolved blockers. Include:",
+          "- Before declaring connectors/tools blocked, proactively search sibling/reference workspaces and findings files for validated tool patterns: `Reference/`, prior workspace folders, `Requirements/*tool*yaml*findings*.md`, `Requirements/*product*notes*.md`, `Requirements/*implementation*sketch*.md`, root `connectionreferences.mcs.yml`, exported `actions/*.mcs.yml`, and child `agents/*/actions/*.mcs.yml`. Use validated findings as build inputs.",
+          "- If build-time configuration values are missing or sample defaults need confirmation, ask for those values in the chat response and record them in `Requirements/build-checklist.md` under Build-Time Configuration Needed. Continue with safe work that does not depend on those values. Do not hard-code sample email addresses, Teams channels, service accounts, SharePoint URLs, or Dataverse prefixes as if they were tenant facts.",
+          "- Create/attach every agent with exact name and role. When no portal-generated folder exists and a verified child-agent shape is available, scaffold `agents/<SafeFolderName>/agent.mcs.yml` locally, then require Apply Changes and portal acceptance. For the IT Help Desk reference build, `Knowledge Specialist` and `Notification Specialist` are known guarded child-agent scaffolds; create them before writing a checklist unless the scaffold already failed validation.",
+          "- Create/attach every connector/action, MCP server, prompt tool, Power Automate flow, knowledge source, and trigger that has a verified local YAML, MCP, Dataverse/CPS Web API, or reference-backed export path. Portal-first is the fallback only when no verified reference/API path exists. Uploaded-file knowledge must be ingested through Dataverse `botcomponent` + `filedata` when tenant-aligned API auth is available; SharePoint knowledge must use a verified backend/API or export-shaped path when tenant site/library values are available. Otherwise ask only for the missing tenant value or auth path, not for the maker to recreate the artifact by hand. Do not create local knowledge YAML for ingestion. Use reference-backed action scaffolding when a working export pattern exists, including root connectionreferences plus round-trip/runtime validation gates. For the IT Help Desk reference build, Dataverse MCP attachment, Office 365 Users `Get my profile (V2)`, Teams `Post message in a chat or channel`, Outlook `Send an email from a shared mailbox (V2)`, and Teams publishing metadata are known reference-backed patterns, so create them before writing a checklist. For MCP tools, include subtool discovery validation and the off-refresh-on portal remediation if subtools are missing.",
+          "- When using the IT Help Desk tool template, create or parameterize root `connectionreferences.mcs.yml`, parent actions `MicrosoftDataverse-MicrosoftDataverseMCPServer.mcs.yml` and `Office365Users-GetmyprofileV2.mcs.yml`, and child actions `MicrosoftTeams-Postmessageinachatorchannel.mcs.yml` and `Office365Outlook-SendanemailV2.mcs.yml`. Preserve verified operation IDs: `InvokeMCP`, `MyProfile_V2`, `PostMessageToConversation`, and `SendEmailV2`.",
           "- For Dataverse connector actions, create/attach them only after Dataverse MCP schema creation is complete, and bind them to the real tables created in Stage 1a.",
           "- Use standard connector action names. Do not ask the developer to rename standard connector actions to business-specific function names.",
           "- Specify authentication/run-as choices and any service-account or delegated identity requirements.",
           "- Specify content moderation and DLP/channel settings that are portal-only.",
-          "- Tell the developer to run Copilot Studio Get Changes after portal setup so the generated YAML appears locally.",
+          "- Tell the developer to run Copilot Studio Get Changes after the essential portal setup so the generated YAML appears locally.",
+          "- Save only the essential incomplete actions to `Requirements/build-checklist.md` after creating every buildable artifact. Do not include completed work, expected-file inventories, routine verification items, troubleshooting probes, or broad validation checklists.",
           "",
-          "End Stage 2 with exactly this instruction:",
-          "Stop here. Complete the portal steps, run Get Changes to sync YAML locally, then reply DONE.",
+          "End Stage 2 with a short build summary and this next step:",
+          "Complete the remaining checklist items, run Copilot Studio Get Changes, then run Build Agent again.",
           "",
           "### Stage 3 — Implementation after developer replies DONE",
           "",
@@ -435,10 +494,17 @@ function composeBuildPrompt(
           "9. **Settings coherence (mandatory)** — After generating all agent config, validate settings.mcs.yml against the architecture spec. Check: useModelKnowledge, webBrowsing, isSemanticSearchEnabled, isFileAnalysisEnabled, optInUseLatestModels vs modelNameHint, authenticationMode, GenerativeActionsEnabled. Flag portal defaults that contradict the architecture. If useModelKnowledge is false, note that follow-up clarifying questions are disabled.",
           "",
           "If CPS agent YAML files exist in the workspace after the developer has completed portal setup and sync, modify them directly and report the file changes you made. If required YAML files are still missing, stop and identify the missing portal/sync steps instead of inventing files.",
+          "Exception: if any missing artifact is a child agent and a verified child-agent YAML shape exists, create the guarded manual child-agent scaffold locally using a sanitized folder name and the `AgentDialog` shape. Treat it as provisional until Apply Changes and portal acceptance are verified. For the IT Help Desk reference build, this includes `Knowledge Specialist` and `Notification Specialist`.",
+          "Exception: if the developer explicitly opted into experimental manual action scaffolding, supplied a working reference export, or the product has a validated reference build for the exact first-party pattern, create reference-shaped `TaskDialog` action YAML and root `connectionreferences.mcs.yml`. Treat every manual action as provisional until Apply Changes, Get Changes round-trip, portal enabled/no-error status, and Activity Map runtime execution are verified. For the IT Help Desk reference build, this includes Dataverse MCP attachment, Office 365 Users `Get my profile (V2)`, Teams `Post message in a chat or channel`, and Outlook `Send an email from a shared mailbox (V2)`.",
+          "If these actions are created from a validated reference pattern, the remaining checklist item is the acceptance gate: Apply Changes, inspect the scaffolded tools in Copilot Studio, run Get Changes, validate MCP subtool discovery, and test in Activity Map. Do not phrase that checklist item as manual tool creation.",
+          "Exception: if uploaded-file knowledge is required and you have a tenant-aligned Dataverse/CPS Web API auth path from `.mcs/conn.json`, you must upload the file by creating a `botcomponent` row with `componenttype = 14` and uploading raw bytes to the `filedata` column. Do not create local knowledge YAML as the ingestion mechanism. After upload, require Ready/processing confirmation, Get Changes, local descriptor verification, and Activity Map retrieval testing. If the auth path is unavailable, stop and require manual portal upload rather than fabricating YAML.",
+          "When required YAML files or configuration values are still missing, create or update `Requirements/build-checklist.md` with only the essential remaining actions and concise resume instructions before reporting the blocker.",
           "Do not return a plan that tells the developer to paste child-agent instruction blocks into Overview pages when those child-agent YAML files already exist in the workspace.",
           "When you find a child agent with YAML shaped like `kind: AgentDialog` plus `settings.instructions`, update that `settings.instructions` field directly.",
           "If the parent needs deterministic status lookup or a one-question clarification loop, create or update the relevant parent Topic(s) and wire that logic there. Do not describe this as a workflow to scaffold.",
+          "Create all declared topics. If a topic needs MCP or connector execution nodes and no safe portal-generated pattern exists in the synced files, scaffold the routing/collection/confirmation/message portions and list only the missing execution-node pattern or portal-generated node as an essential action if it blocks a runnable agent.",
           "After generating, validate that every /ToolName reference in instructions maps to an actual action YAML file with a matching modelDisplayName.",
+          "For MCP tools, validate runtime-discovered subtools separately from portal-enabled status; if missing, require the off-refresh-on workaround and Activity Map retest before marking complete.",
           "After generating, update the Build State checklist in architecture.md.",
         ].join("\n")
       );

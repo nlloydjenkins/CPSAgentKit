@@ -3,6 +3,7 @@ import { initCommand } from "./commands/init.js";
 import { syncKnowledgeCommand } from "./commands/syncKnowledge.js";
 import { createSpecCommand } from "./commands/createSpec.js";
 import { prepareForBuildCommand } from "./commands/prepareForBuild.js";
+import { buildCommand } from "./commands/build.js";
 import { buildAgentCommand } from "./commands/buildAgent.js";
 import { generateRepoInstructionsCommand } from "./commands/generateRepoInstructions.js";
 import { reviewSolutionCommand } from "./commands/reviewSolution.js";
@@ -33,25 +34,38 @@ export function activate(context: vscode.ExtensionContext): void {
     showCollapseAll: false,
   });
 
+  refreshStatusFromWorkspace().catch(() => {
+    statusBar.setChecking();
+  });
+
   // Register commands
   context.subscriptions.push(
     treeView,
     sidebarProvider,
     vscode.commands.registerCommand("cpsAgentKit.init", async () => {
       await initCommand(extensionPath);
-      sidebarProvider.refreshState();
+      await sidebarProvider.refreshState();
+      await refreshStatusFromWorkspace();
     }),
     vscode.commands.registerCommand("cpsAgentKit.syncKnowledge", async () => {
       await syncKnowledgeCommand(extensionPath, statusBar);
-      sidebarProvider.refreshState();
+      await sidebarProvider.refreshState();
+      await refreshStatusFromWorkspace();
     }),
     vscode.commands.registerCommand("cpsAgentKit.createSpec", async () => {
       await createSpecCommand();
-      sidebarProvider.refreshState();
+      await sidebarProvider.refreshState();
+      await refreshStatusFromWorkspace();
     }),
     vscode.commands.registerCommand("cpsAgentKit.prepareForBuild", async () => {
       await prepareForBuildCommand();
-      sidebarProvider.refreshState();
+      await sidebarProvider.refreshState();
+      await refreshStatusFromWorkspace();
+    }),
+    vscode.commands.registerCommand("cpsAgentKit.buildChecklist", async () => {
+      await buildCommand();
+      await sidebarProvider.refreshState();
+      await refreshStatusFromWorkspace();
     }),
     vscode.commands.registerCommand("cpsAgentKit.buildAgent", () =>
       buildAgentCommand(),
@@ -100,10 +114,10 @@ async function autoSyncOnOpen(extensionPath: string): Promise<void> {
 
   const root = workspaceFolder.uri.fsPath;
   const state = await detectProjectState(root);
+  statusBar.setFromProjectState(state);
 
   // Only auto-sync if the project is already initialised
   if (!state.isInitialised) {
-    statusBar.setNotInitialised();
     return;
   }
 
@@ -124,6 +138,17 @@ async function autoSyncOnOpen(extensionPath: string): Promise<void> {
   } catch {
     statusBar.setError();
   }
+}
+
+async function refreshStatusFromWorkspace(): Promise<void> {
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+  if (!workspaceFolder) {
+    statusBar.setNotInitialised();
+    return;
+  }
+
+  const state = await detectProjectState(workspaceFolder.uri.fsPath);
+  statusBar.setFromProjectState(state);
 }
 
 export function deactivate(): void {

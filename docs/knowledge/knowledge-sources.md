@@ -76,6 +76,60 @@ This pattern ensures agents always have the latest authoritative content when av
 
 **Websites:** Bing-powered. Must confirm org ownership. Only works with generative orchestration web search setting.
 
+## Programmatic Uploaded-File Knowledge
+
+Uploaded-file knowledge is a backend ingestion operation, not a local YAML generation feature. Local `.mcs.yml` knowledge descriptors are export mirrors created by Get Changes after Copilot Studio/Dataverse has accepted and processed the file. Creating descriptor YAML alone does not upload, process, or index the document.
+
+The confirmed Dataverse shape uses the `botcomponent` table:
+
+- `componenttype`: `14` (`Bot File Attachment`)
+- `name`: uploaded file name, e.g. `vpn-setup.md`
+- `description`: knowledge source description shown in CPS/exported YAML
+- `schemaname`: unique file component schema name, e.g. `cr86a_ITHelpDesk.file.vpn-setup.md_Api8kk`
+- `parentbotid`: parent agent lookup
+- `parentbotcomponentid`: child agent lookup when the file belongs to a child agent
+- `filedata`: Dataverse file column containing the uploaded document bytes
+- `filedata_name`: uploaded file name captured by Dataverse
+
+Product flow:
+
+1. Read `<agentFolder>/.mcs/conn.json` for `DataverseEndpoint`, `EnvironmentId`, `AgentId`, `AccountInfo.TenantId`, and `AccountInfo.AccountEmail`.
+2. Acquire a Dataverse token for `DataverseEndpoint` in `AccountInfo.TenantId`. A token from another tenant fails with `403 Forbidden: The user is not a member of the organization.` Treat this as an auth-context mismatch, not a file-upload or schema problem.
+3. Resolve the parent agent id from `AgentId`.
+4. If uploading to a child agent, resolve the child `botcomponentid` from `.mcs/botdefinition.json` or Dataverse `botcomponents` by matching the child agent schema/component.
+5. Create a `botcomponent` row with `componenttype = 14`, `language = 1033`, `parentbotid@odata.bind`, and when child-owned, `ParentBotComponentId@odata.bind`.
+6. Upload the raw bytes to `botcomponents(<id>)/filedata` with `Content-Type: application/octet-stream` and `x-ms-file-name: <fileName>`.
+7. Verify `componenttype = 14`, `filedata` is non-null, `filedata_name` matches the file name, parent/child lookup values are correct, and `statecode = 0` / `statuscode = 1`.
+8. Wait for Copilot Studio processing/indexing to show `Ready` in the portal or equivalent status.
+9. Run Get Changes so local `knowledge/` descriptors reflect the uploaded source.
+10. Test retrieval in the target agent and confirm Activity Map uses the uploaded knowledge.
+
+Example create request body:
+
+```json
+{
+  "name": "vpn-setup.md",
+  "description": "This knowledge source searches information contained in vpn-setup.md",
+  "schemaname": "cr86a_ITHelpDesk.file.vpn-setup.md_Api8kk",
+  "componenttype": 14,
+  "language": 1033,
+  "parentbotid@odata.bind": "/bots(3a76e605-f446-f111-bec5-6045bd09c8e7)",
+  "ParentBotComponentId@odata.bind": "/botcomponents(07e37dff-3644-435e-9c30-a1e55f544989)"
+}
+```
+
+Important gotchas:
+
+- `ParentBotComponentId@odata.bind` is case-sensitive and is not the same as the logical column name `parentbotcomponentid`. Using `parentbotcomponentid@odata.bind` produces an undeclared property error.
+- The parent bind uses `parentbotid@odata.bind`.
+- Generate a unique `schemaname` suffix and check for collisions before create.
+- Single-request Dataverse file-column upload is suitable for small files under 128 MB. Larger files require Dataverse chunked file upload.
+- Post-upload `Ready` means the file is accepted and indexed enough to appear in the portal, but product validation should still include a retrieval test in Activity Map.
+
+Build implication: when uploaded files are listed in `Requirements/docs/` or architecture as knowledge to add, Build must use the backend ingestion path. If Build has an authenticated Dataverse/CPS Web API path aligned to the tenant in `.mcs/conn.json`, upload the files programmatically through `botcomponent` + `filedata`. If that auth path is unavailable, stop and classify the item as a manual portal upload. Never generate local knowledge YAML as a substitute for ingestion.
+
+Product command target: CPSAgentKit should expose backend upload as a first-class operation, for example `cps knowledge upload --agent "IT Help Desk" --child-agent "Knowledge Specialist" --file /path/to/article.md`. The command should read `.mcs/conn.json`, acquire a tenant-aligned Dataverse token, create the `botcomponent`, upload `filedata`, wait for Ready/processing, prompt for or run Get Changes, verify the mirrored descriptor, and require Activity Map retrieval testing.
+
 ## Common Failures
 
 - Documents recently added/changed may not be indexed yet (5-30 min delay)

@@ -62,7 +62,7 @@ If `Requirements/spec.md` exists but `Requirements/architecture.md` does not:
 - Be opinionated — if one agent is sufficient, say so. If it needs three, explain why
 - Create `Requirements/architecture.md` using the template in `/templates/architecture-template.md`
 - In the Reference Documents section of the architecture, list every document from `Requirements/docs/` and note how it influenced the design
-- List what must be created manually in the CPS portal
+- List what must be created manually in the CPS portal because no safe verified export/API path exists yet
 
 ### Phase 3: Build
 
@@ -73,6 +73,12 @@ If both `Requirements/spec.md` and `Requirements/architecture.md` exist:
 - When something needs creating in the portal, say so explicitly with the exact settings to use
 - Track progress in the Build State section of `Requirements/architecture.md`
 - Maintain cross-agent consistency: when one agent's scope changes, flag what else needs updating
+- If requirements contain sample tenant values or a Build-Time Configuration section, ask for the missing real values but do not treat that as a global stop condition. Continue with safe build work that does not depend on those values. Block only the specific tenant-bound action that needs a missing value.
+- Build is action-first and creation-first. Before writing or updating `Requirements/build-checklist.md`, create every agent, topic, tool/action, knowledge source, schema, seed record, publishing setting, and build artifact that has a verified local YAML, MCP, Dataverse/CPS Web API, or reference-backed export path available in the current workspace. The checklist is the final must-do list for what remains after Build has created everything it can, not the first or only build output. Never put an item in the checklist if Build Agent can perform that action itself with the current workspace files and configured tools.
+- Before declaring a tool/action blocked because `actions/`, `connectionreferences.mcs.yml`, `.mcs/conn.json`, or synced portal YAML is missing in the active workspace, search for validated reference-backed patterns in sibling/reference folders and Requirements notes. Check `Reference/`, prior workspace folders, `Requirements/*tool*yaml*findings*.md`, `Requirements/*product*notes*.md`, `Requirements/*implementation*sketch*.md`, root `connectionreferences.mcs.yml`, exported `actions/*.mcs.yml`, and child `agents/*/actions/*.mcs.yml`. Treat discovered validated findings as first-class build inputs.
+- Reference-backed portal artifact creation is required as a provisional build action when a known-good export/API pattern exists for the target artifact and tenant-specific connection/auth values are available. This includes connector action YAML, MCP attachment YAML, direct uploaded-file knowledge, SharePoint knowledge attachment, child-owned knowledge, child-owned connector actions, and Teams publishing metadata when the pattern has already survived Apply Changes, portal inspection, Get Changes, and runtime validation in reference builds. The remaining manual step should be the explicit acceptance/Apply Changes/portal validation gate, not recreating the artifact by hand.
+- The IT Help Desk reference build validates these as Build actions when tenant-specific connection/auth values are available: scaffold `Knowledge Specialist` and `Notification Specialist`, attach `Microsoft Dataverse MCP Server` to the parent, add Office 365 Users `Get my profile (V2)` to the parent, add Teams `Post message in a chat or channel` and Outlook `Send an email from a shared mailbox (V2)` to `Notification Specialist`, configure Teams publishing metadata, and add approved knowledge by a verified backend/API path. Do not list these as manual creation tasks unless the specific required tenant value, auth context, connection reference, or verified pattern is missing.
+- The reusable IT Help Desk action template consists of root `connectionreferences.mcs.yml`, parent actions `MicrosoftDataverse-MicrosoftDataverseMCPServer.mcs.yml` and `Office365Users-GetmyprofileV2.mcs.yml`, and child actions `MicrosoftTeams-Postmessageinachatorchannel.mcs.yml` and `Office365Outlook-SendanemailV2.mcs.yml`. Known operation IDs are `InvokeMCP`, `MyProfile_V2`, `PostMessageToConversation`, and `SendEmailV2`. Parameterize agent folder names, Dataverse table/choice mappings, shared mailbox and Teams channel wording, connection reference logical names from reference export when known, and exact `modelDisplayName` values used in slash references.
 
 #### Provisioning Dataverse Schema & Sample Data (CRITICAL)
 
@@ -95,6 +101,7 @@ When generating or modifying agent components:
 
 - Tool names in `/ToolName` references MUST match the EXACT name in the action YAML files
 - Before writing any `/ToolName` reference, read the action YAML files to verify the current tool name
+- After every Get Changes round-trip, collect all action YAML `modelDisplayName` values and validate every `/ToolName` reference in instructions, child instructions, and topics against that exact set
 - If you rename a tool/action connector, you MUST update EVERY reference: all `/ToolName` references in instructions, topic triggers, and any other YAML that references it. A single missed reference = broken agent
 - Prefer keeping existing tool names unless the user explicitly asks to rename
 - NEVER delete or recreate a tool/action connection — update the existing one instead
@@ -110,7 +117,52 @@ Action YAML files in the `actions/` folder have platform-generated structures. M
 
 This applies to ALL tool types: MCP servers (`InvokeExternalAgentTaskAction` / `ModelContextProtocolMetadata`), connectors (`InvokeConnectorTaskAction`), and flows (`InvokeFlowTaskAction`). The connection bindings, operation IDs, flow IDs, input/output schemas, `dynamicOutputSchema`, `outputMode`, and all structure under `action:` are generated by the platform and will break the agent if altered.
 
-When asked to update a tool description, edit ONLY the `modelDescription` field. When asked to add a new tool, tell the developer to create it in the CPS portal and sync — do not generate action YAML from scratch.
+When asked to update a tool description, edit ONLY the `modelDescription` field. When asked to add a new tool, use a verified export/API pattern when one exists for that connector, MCP attachment, or first-party tool. The IT Help Desk reference build already validates Dataverse MCP attachment, Office 365 Users `Get my profile (V2)`, Teams `Post message in a chat or channel`, and Outlook `Send an email from a shared mailbox (V2)` as reference-backed first-party patterns. If no verified pattern exists, tell the developer to create it in the CPS portal and sync. Do not invent action YAML from scratch.
+
+If the active workspace lacks action scaffolds, do not stop there. Search sibling/reference artifacts and findings files first; if they contain a validated reference-backed pattern for the exact tool, create the local YAML before writing the checklist. The checklist should then say `Apply Changes and inspect the scaffolded tools`, not `create the tools manually`.
+
+#### Manual Action YAML Scaffolding (EXPERIMENTAL)
+
+Portal-first remains the fallback for tools, connector actions, MCP servers, prompt tools, and Power Automate flows when no verified export/API pattern exists. Reference-backed action scaffolding may be used when the developer explicitly opts in, provides a known-good reference export, or the product has a validated reference build for that exact first-party pattern.
+
+Experimental action scaffolds MUST use reference-shaped `TaskDialog` YAML and a root `connectionreferences.mcs.yml`. Every action must have `kind: TaskDialog`, inline `modelDisplayName`, inline `modelDescription` under 1,024 characters, `action.kind`, `action.connectionReference`, and portal/export-style operation metadata such as `operationId: InvokeMCP`, `MyProfile_V2`, `PostMessageToConversation`, or `SendEmailV2` only when verified by the reference export/API pattern.
+
+Local YAML parsing and CPS diagnostics are not enough. Treat manually scaffolded actions as provisional until Apply Changes succeeds, Get Changes preserves or portal-corrects the files, Copilot Studio shows tools enabled with no errors, and Activity Map testing confirms runtime execution.
+
+#### Programmatic Uploaded-File Knowledge (CRITICAL)
+
+Uploaded-file knowledge must be ingested through the Copilot Studio/Dataverse backend, not by writing local `.mcs.yml` descriptors. Local knowledge YAML is an export mirror produced by Get Changes after backend processing.
+
+When Build has an authenticated Dataverse/CPS Web API path aligned to the tenant in `<agentFolder>/.mcs/conn.json`, it must upload files programmatically: create a `botcomponent` row with `componenttype = 14`, bind `parentbotid@odata.bind`, bind `ParentBotComponentId@odata.bind` for child-owned knowledge, then upload raw bytes to the `filedata` file column. Confirm `filedata_name`, Ready/processing status, run Get Changes, verify the local descriptor, and test Activity Map retrieval before marking complete.
+
+If tenant-aligned API auth is unavailable, stop and treat uploaded-file knowledge as a manual portal upload step. Do not fake ingestion by creating local knowledge YAML.
+
+Before uploading, read `<agentFolder>/.mcs/conn.json` and acquire a token for `DataverseEndpoint` in `AccountInfo.TenantId`. If Dataverse returns `403 Forbidden: The user is not a member of the organization.`, diagnose wrong-tenant auth and ask the developer to sign in or acquire credentials for the tenant in `.mcs/conn.json`.
+
+#### MCP Runtime Discovery (CRITICAL)
+
+MCP subtools are portal/runtime-discovered state. An MCP action file can exist, parse cleanly, and appear enabled while its subtools are still missing at runtime.
+
+Never hand-author `knownTools` or modify `action.operationDetails` to repair MCP discovery. Validate MCP tools through separate gates: action YAML exists, portal-visible, portal-enabled, expected subtools discovered, and Activity Map runtime execution succeeds. If subtools are missing, tell the maker to turn the MCP tool off, refresh tools, then turn the MCP tool back on, followed by Get Changes and Activity Map validation.
+
+#### Topic Scaffolding Boundary (CRITICAL)
+
+Deterministic topic scaffolding is allowed for routing, questions, confirmation, safety checks, variables, and user-facing messages when the YAML follows existing exported topic shapes. Do not hand-author MCP or connector execution nodes inside topics unless a portal-generated example from the target environment or a verified template has already survived Apply Changes, Get Changes, and Activity Map execution. Without that pattern, scaffold the topic shell and list the execution node as a portal-generated follow-up gate.
+
+#### Validation State Model (CRITICAL)
+
+Track CPS components through explicit states instead of marking them complete after local validation: `locally generated`, `local diagnostics clean`, `Apply Changes accepted`, `portal-visible`, `portal-enabled`, `runtime-discovered` for MCP, `Get Changes preserved`, and `Activity Map validated`. Use these states in Build State and troubleshooting notes, not as routine items in `Requirements/build-checklist.md` unless a missing gate blocks a runnable agent.
+
+#### Child-Agent Creation Paths (CRITICAL)
+
+Child agents have a two-path build rule:
+
+- **Portal-first is the fallback** when the child needs tools, connector bindings, MCP servers, knowledge sources, prompt tools, flows, custom auth, or portal-only settings and no verified export/API pattern exists for the exact child-owned artifact. If a verified path exists and tenant-specific connection/auth values are available, scaffold it provisionally, then require Apply Changes, portal inspection, Get Changes, and runtime validation.
+- **Guarded manual scaffold is required** for child-agent shells when an exported parent agent folder exists, no portal-generated child folder exists yet, and a verified child-agent shape is available. Use `kind: AgentDialog`, `beginDialog.kind: OnToolSelected`, a strong `beginDialog.description`, and `settings.instructions`. Create child-owned tools and knowledge too when verified export/API patterns and tenant-specific connection values are available.
+
+Manual child-agent scaffolds MUST use filesystem/CPS-safe folder names with no spaces or special characters, such as `agents/KnowledgeSpecialist/agent.mcs.yml`. Keep the human-readable display name in `mcs.metadata.componentName`, such as `Knowledge Specialist`.
+
+Before marking a manually scaffolded child as created, validate YAML parsing, check CPS diagnostics, require Apply Changes, and verify the child appears in Copilot Studio as enabled with no portal errors. Treat the scaffold as provisional until portal acceptance is observed or a Get Changes round-trip preserves the file.
 
 #### Updating Prompt Tool Instructions (CRITICAL)
 
@@ -211,7 +263,7 @@ These rules apply to ALL Copilot Studio projects:
 
 2. **Portal-first for prompts:** Create prompts in Copilot Studio or AI Hub first, then use Get Changes to pull the scaffold locally and refine in VS Code. When the architecture needs structured extraction, JSON output, custom model/temperature settings, or code interpreter — recommend a prompt tool.
 
-3. **Scaffold-first for connectors:** For connectors, MCP servers, workflows, and connection references — create or attach in Copilot Studio first, then sync locally and edit the generated files. Do not hand-author these from scratch.
+3. **Reference-backed first for connectors:** For connectors, MCP servers, workflows, and connection references, use a verified export/API pattern when one exists and tenant-specific connection/auth values are available. Create or attach in Copilot Studio first only when no verified path exists, then sync locally and edit the generated files. Do not invent generated IDs, bindings, or action shapes.
 
 4. **Preserve downstream outputs:** When a parent passes one child's output to another step, instruct the parent to preserve the output as a labeled block rather than paraphrasing it. This mitigates CPS generative orchestration's default summarisation behavior.
 

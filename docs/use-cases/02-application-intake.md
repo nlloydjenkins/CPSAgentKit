@@ -8,6 +8,18 @@ The solution is autonomous (event-driven by the mailbox), not chat-based. A pare
 
 Because every stage in this pipeline produces strict structured output (labeled blocks, numbered criteria, fixed templates) and CPS generative orchestration summarises child-agent responses between stages, the specialist stages are implemented as **prompt tools invoked sequentially from a single topic on the parent**, not as child agents. This preserves structure verbatim across stages. Child agents remain an option only where a stage needs its own independent knowledge scope, tools, or governance.
 
+## Build-Time Configuration
+
+The Contoso/sample values are placeholders. During Build, CPSAgentKit must ask the maker to confirm or replace the tenant-specific values before finalising tenant-bound schema names, prompt instructions, connector descriptions, or portal setup steps. Missing values should block only the specific tenant-bound action that needs them; Build should still perform safe work that does not depend on those values:
+
+- Shared application mailbox, default `applications@contoso.com`
+- Operations service account / trigger owner
+- Operations Teams team/channel for escalations
+- Dataverse publisher prefix and table logical names if not using `cr85a_`
+- Application type list, required-field rules, and chase limits
+- Knowledge document locations for application types, compliance rules, and accessibility standards
+- Outbound shared-mailbox send identity and audit-retention requirement
+
 ## Primary Users and Channel
 
 - **Applicants** (members of the public) — email the shared mailbox. They never chat with the agent; they only see outbound emails.
