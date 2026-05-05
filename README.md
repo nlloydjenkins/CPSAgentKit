@@ -127,8 +127,8 @@ npm run package:extension && npm run install:vsix
 
 1. Clone an agent using the CPS extension (agent YAML appears in the workspace).
 2. Run **Initialise CPS Project** — scaffolds folders, syncs knowledge, writes `copilot-instructions.md`.
-3. Add requirements to `Requirements/docs/`, then run **Create Plan**.
-4. Run **Prepare for Build** — validates the architecture, creates `Requirements/build-prep.md`, separates portal-first work from Build work, and enriches the architecture with Dataverse and prompt-tool details.
+3. Add requirements to `Requirements/docs/`, then run **Pre-Build Agent** to generate `Requirements/spec.md` and `Requirements/architecture.md` for review.
+4. Review and refine the generated spec and architecture, then run **Prepare for Build** — validates the architecture, creates `Requirements/build-prep.md`, separates portal-first work from Build work, and enriches the architecture with Dataverse and prompt-tool details.
 5. Complete the safe portal setup called out in the runbook, then run **Copilot Studio: Get Changes** so local YAML contains the generated scaffolds.
 6. Run **Build Agent** — creates/reconciles Dataverse schema when MCP is configured, edits local CPS YAML, and prepares settings, instructions, topic descriptions, and tool descriptions.
 7. Run **Copilot Studio: Apply Changes** to push local YAML back to Copilot Studio.
@@ -137,26 +137,26 @@ npm run package:extension && npm run install:vsix
 
 ### Build Lifecycle
 
-| Phase              | Command or action                              | Purpose                                                                                                                                     |
-| ------------------ | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Define / Architect | **Create Plan**                                | Generate `Requirements/spec.md` and `Requirements/architecture.md` from requirements docs or an existing cloned agent.                      |
-| Prepare            | **Prepare for Build**                          | Produce the pre-build runbook, identify portal-only setup, verify Dataverse MCP readiness, and make the architecture build-ready.           |
-| Portal scaffold    | Copilot Studio portal + **Get Changes**        | Create agents, tools, prompt tools, knowledge sources, triggers, and connection scaffolds that must exist before YAML can be safely edited. |
-| Build              | **Build Agent**                                | Execute schema work through Dataverse MCP when required, then edit local YAML safely.                                                       |
-| Push YAML          | **Copilot Studio: Apply Changes**              | Push local CPS YAML changes into Copilot Studio.                                                                                            |
-| Push prompt tools  | Dataverse MCP or `scripts/prompt-sync.mjs`     | Update prompt-tool instructions stored in `msdyn_aiconfigurations.msdyn_customconfiguration`.                                               |
-| Assess             | **Agent Assessment** / **Solution Assessment** | Review routing, descriptions, prompts, YAML safety, and platform constraints against best practices.                                        |
+| Phase              | Command or action                              | Purpose                                                                                                                                        |
+| ------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Define / Architect | **Pre-Build Agent** / **Create Plan**          | Generate `Requirements/spec.md` and `Requirements/architecture.md` from requirements docs or an existing cloned agent for review before Build. |
+| Prepare            | **Prepare for Build**                          | Produce the pre-build runbook, identify portal-only setup, verify Dataverse MCP readiness, and make the architecture build-ready.              |
+| Portal scaffold    | Copilot Studio portal + **Get Changes**        | Create agents, tools, prompt tools, knowledge sources, triggers, and connection scaffolds that must exist before YAML can be safely edited.    |
+| Build              | **Build Agent**                                | Execute schema work through Dataverse MCP when required, then edit local YAML safely.                                                          |
+| Push YAML          | **Copilot Studio: Apply Changes**              | Push local CPS YAML changes into Copilot Studio.                                                                                               |
+| Push prompt tools  | Dataverse MCP or `scripts/prompt-sync.mjs`     | Update prompt-tool instructions stored in `msdyn_aiconfigurations.msdyn_customconfiguration`.                                                  |
+| Assess             | **Agent Assessment** / **Solution Assessment** | Review routing, descriptions, prompts, YAML safety, and platform constraints against best practices.                                           |
 
 Prompt-tool instructions are a special case: the action YAML only controls tool routing metadata. The executable prompt text lives in Dataverse, so Apply Changes is not enough to update it. CPSAgentKit provides MCP helpers to parse and rebuild `msdyn_customconfiguration` safely while preserving non-prompt JSON keys, segment shape, and placeholders.
 
 ### Sidebar
 
-| Section    | Commands                              |
-| ---------- | ------------------------------------- |
-| **Setup**  | Initialise Project, Sync Knowledge    |
-| **Plan**   | Add Requirements, Create Plan         |
-| **Build**  | Prepare for Build, Build Agent        |
-| **Assess** | Agent Assessment, Solution Assessment |
+| Section    | Commands                                       |
+| ---------- | ---------------------------------------------- |
+| **Setup**  | Initialise Project, Sync Knowledge             |
+| **Plan**   | Add Requirements, Pre-Build Agent, Create Plan |
+| **Build**  | Prepare for Build, Build Agent                 |
+| **Assess** | Agent Assessment, Solution Assessment          |
 
 ### Settings
 

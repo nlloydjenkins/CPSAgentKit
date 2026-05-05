@@ -49,13 +49,13 @@ beginDialog:
     - kind: ...
 ```
 
-Topic scaffolding is safe for routing, questions, confirmation, branching, variable handling, and user-visible messages when the shape follows existing exported topic YAML. Tool invocation nodes are more fragile. Do not hand-author MCP or connector execution nodes inside topics unless you have a portal-generated example from the target environment or a verified template library entry that has survived Apply Changes, Get Changes, and Activity Map execution.
+Topic scaffolding is safe for routing, questions, confirmation, branching, variable handling, and user-visible messages when the shape follows existing exported topic YAML. Build Agent should create those topic shells instead of telling the maker to create topics manually. Tool invocation nodes are more fragile. Do not hand-author MCP or connector execution nodes inside topics unless you have a portal-generated example from the target environment or a verified template library entry that has survived Apply Changes, Get Changes, and Activity Map execution.
 
-For deterministic parent workflows, prefer topic scaffolds for collection and confirmation, then let verified tools/actions handle execution. If no safe exported pattern exists for topic-owned MCP invocation, stop at routing/confirmation/messaging and list portal-generated execution nodes as a required follow-up gate.
+For deterministic parent workflows, prefer topic scaffolds for collection and confirmation, then let verified tools/actions handle execution. If no safe exported pattern exists for topic-owned MCP invocation, create the routing/confirmation/messaging shell and list only the portal-generated execution node as a required follow-up gate.
 
 ## Child Agent File Structure
 
-Child agents can be manually scaffolded when no portal-generated child folder exists yet and CPSAgentKit has a verified child-agent shape. Build should create the child shell locally: routing description plus instructions. Child agents with tools, connector bindings, MCP servers, knowledge sources, prompt tools, flows, auth differences, or portal-only settings must also have those child-owned artifacts created by Build when a verified export/API pattern and tenant-specific connection values are available. Copilot Studio portal creation is only the fallback when no verified path exists.
+Child agents can be manually scaffolded when no portal-generated child folder exists yet and CPSAgentKit has a verified child-agent shape. Build should create the child shell locally: routing description plus instructions. Child agents with tools, connector bindings, MCP servers, knowledge sources, prompt tools, flows, auth differences, or portal-only settings must also have those child-owned artifacts created by Build when a verified export/API pattern and required tenant bindings are available; action YAML additionally requires real connection reference logical names. Copilot Studio portal creation is only the fallback when no verified path exists.
 
 Folder names are stricter than display names. Avoid spaces and special characters in the folder path:
 
@@ -98,9 +98,11 @@ Treat manually scaffolded children as provisional until portal acceptance is obs
 
 ## Experimental Action File Structure
 
-Portal-first remains the fallback for tools, connector actions, MCP servers, prompt tools, and Power Automate flows when no verified export/API pattern exists because action YAML contains generated connection bindings and operation metadata. When CPSAgentKit has a known-good export/API pattern plus tenant-specific connection values, Build may scaffold connector actions, MCP attachment, direct uploaded-file knowledge, and Teams publishing metadata provisionally. The maker still performs the acceptance/Apply Changes/portal validation gate before treating the artifact as complete.
+Portal-first remains the fallback for the specific tool, connector action, MCP server, prompt tool, or Power Automate flow artifact when no verified export/API pattern exists because action YAML contains generated connection bindings and operation metadata. It is not a fallback for unrelated build work: Build should still create agents, topic shells, instructions, descriptions, settings updates, Dataverse schema, seed data, and Build State updates. When CPSAgentKit has a known-good export/API pattern plus real tenant connection reference logical names from the active workspace, Build may scaffold connector actions, MCP attachment, direct uploaded-file knowledge, and Teams publishing metadata provisionally. The maker still performs the acceptance/Apply Changes/portal validation gate before treating the artifact as complete.
 
-If a manual action scaffold is used for a controlled experiment or a reference-backed recovery path, it must be reference-shaped and include a root connection-reference manifest.
+Do not create active `.mcs.yml` or staged `.mcs.yml.staged` action files from operation IDs alone. If the active workspace has no root `connectionreferences.mcs.yml`, no exported action YAML, no child action YAML, and no connection-reference logical names in `.mcs/botdefinition.json`, Build must not invent `action.connectionReference` values. Complete unrelated safe work first, then checklist the connector/MCP sync or request the real root connection reference manifest.
+
+If a manual action scaffold is used for a controlled experiment or a reference-backed recovery path, it must be reference-shaped and include a root connection-reference manifest with real tenant logical names.
 
 Root manifest:
 

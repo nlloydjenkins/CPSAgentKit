@@ -32,7 +32,7 @@ A single-agent design is acceptable here — the scope is tight and tool count i
 1. **Greet the user and understand intent** — common phrases: "I need a new laptop", "Order me another monitor", "What's the status of my last request?", "I need a non-standard item".
 2. **Look up the user's profile** using the Office 365 Users **"Get my profile (V2)"** action (not "Get user profile (V2)" which requires a UPN input) to determine cost centre, line manager, and office location.
 3. **Search the approved catalogue** (SharePoint list `ApprovedCatalogue`) for matching items by keyword. Present top 3 matches as an adaptive card with name, spec, unit cost, and "Select" buttons.
-4. **Validate request against policy** (SharePoint knowledge doc `procurement-policy.md`):
+4. **Validate request against policy** (procurement policy document uploaded directly to Copilot Studio as a knowledge source):
    - Under £500 and in catalogue → single approval (line manager)
    - £500–£2,500 → line manager + department head
    - Over £2,500 or non-catalogue → escalate to Procurement team
@@ -54,7 +54,7 @@ A single-agent design is acceptable here — the scope is tight and tool count i
 - Bypass policy tiers ("this time only") — tier routing is always enforced
 - Place orders with suppliers directly (PO is the contract; the procurement team places orders)
 - Accept free-text supplier names for non-catalogue items without escalation
-- Use general knowledge — catalogue and policy come from SharePoint, PO state from Dataverse
+- Use general knowledge — catalogue lookups come from the SharePoint List connector, policy comes from uploaded knowledge files in Copilot Studio, PO state from Dataverse
 
 ## Success Criteria
 
@@ -70,7 +70,7 @@ A single-agent design is acceptable here — the scope is tight and tool count i
 - **Channel:** Microsoft Teams (agent published to Teams)
 - **Authentication:** Microsoft Entra ID (user authentication)
 - **Catalogue:** SharePoint list `ApprovedCatalogue` — exposed as a SharePoint List connector action (Get items with `$filter`) for structured lookup. Prefer list actions over generative answers for deterministic price/part-number results.
-- **Policy knowledge:** SharePoint document library — `procurement-policy.md`, `restricted-items.md` (indexed as knowledge)
+- **Policy knowledge:** `procurement-policy.md` and `restricted-items.md` uploaded directly to Copilot Studio as the agent's knowledge source (no SharePoint document library dependency)
 - **PO store:** Dataverse — `cr85a_purchaseorder` table via **Dataverse MCP Server** (owned by the parent — this is a single-agent design, so the constraint is trivially satisfied)
 - **Approval routing:** Power Automate flow (scaffolded from CPS, authored in the Power Automate portal) — sends Teams adaptive card, updates PO status on response
 - **Escalation:** Microsoft Teams — Post message to `#procurement-exceptions` channel

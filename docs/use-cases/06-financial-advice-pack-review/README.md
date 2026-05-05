@@ -16,7 +16,7 @@ This folder contains the use case requirements document plus the five knowledge 
 ## How to use
 
 1. Copy this entire folder's contents into a fresh workspace's `Requirements/docs/` folder.
-2. Upload the five `knowledge/*.md` files to the SharePoint library that will back the agent's knowledge sources.
+2. Upload the five `knowledge/*.md` files **directly to Copilot Studio** as the agent's knowledge sources (do not stage them via SharePoint).
 3. Run **CPSAgentKit: Create Plan** — the knowledge documents will be listed in `spec.md` and `architecture.md` as grounding sources, each scoped to a specific pipeline stage.
 4. Run **CPSAgentKit: Build Agent** to generate the pipeline topic, prompt tool configurations, and Dataverse action scaffolding.
 

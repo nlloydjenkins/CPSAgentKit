@@ -232,7 +232,7 @@ function buildGuidancePrompt(
       "3. List the input parameters with human-readable names and format descriptions.",
       "4. Note if it requires manual portal setup (MCP server connection, Power Automate flow, etc.).",
       "5. For experimental manual action scaffolds, require root `connectionreferences.mcs.yml`, matching `action.connectionReference`, portal/export-style `operationId`, Apply Changes, Get Changes round-trip, and Activity Map runtime testing before marking complete.",
-      "6. For MCP tools, validate runtime-discovered subtools separately from action YAML and portal-enabled status. Do not edit `knownTools` or `operationDetails`; if subtools are missing, instruct the maker to turn the MCP tool off, refresh tools, then turn it back on and retest in Activity Map.",
+      "6. For MCP tools, validate runtime-discovered subtools separately from action YAML and portal-enabled status. Do not edit `knownTools` or `operationDetails`; if subtools are missing, instruct the maker to follow the four-step Save sequence (disable tool + Save, disable subtools + Save, enable tool + Save, refresh tools + Save) and retest in Activity Map.",
       "7. Validate every `/ToolName` reference against exact action YAML `modelDisplayName` values after Get Changes.",
       "CRITICAL: If the agent has tools (MCP, connectors, flows), the agent instructions MUST say:",
       '"Always use [tool name] to answer questions. Do not use general knowledge when the tool can provide the answer."',

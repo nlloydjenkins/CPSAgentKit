@@ -245,6 +245,18 @@ export class SidebarProvider
                 ? "add requirements docs or sync a CPS agent first"
                 : undefined,
           ),
+          new CommandTreeItem(
+            "Pre-Build Agent",
+            "cpsAgentKit.preBuildAgent",
+            "wand",
+            init && hasDocs,
+            hasArch ? "review plan" : undefined,
+            !init
+              ? undefined
+              : !hasDocs
+                ? "add requirements docs first"
+                : undefined,
+          ),
         ];
 
       case "Build":

@@ -17,7 +17,7 @@ The Contoso/sample values are placeholders. During Build, CPSAgentKit must ask t
 - Operations Teams team/channel for escalations
 - Dataverse publisher prefix and table logical names if not using `cr85a_`
 - Application type list, required-field rules, and chase limits
-- Knowledge document locations for application types, compliance rules, and accessibility standards
+- Knowledge documents (application types, compliance rules, accessibility standards) to upload directly to Copilot Studio
 - Outbound shared-mailbox send identity and audit-retention requirement
 
 ## Primary Users and Channel
@@ -65,7 +65,7 @@ The Contoso/sample values are placeholders. During Build, CPSAgentKit must ask t
 - **Attachment preprocessor:** prompt tool with code interpreter (stdlib-only sandbox; authored in AI Hub, scaffolded into CPS)
 - **Specialist stages:** AI Builder prompt tools invoked from a single `AdaptiveDialog` topic on the parent (Email Interpreter, Completeness Assessor, Correspondence Drafter, Compliance Evaluator, Accessibility Presenter). Prompts are created in AI Hub / Copilot Studio first, then synced locally.
 - **Case store:** Dataverse — `cr85a_applications`, `cr85a_correspondences`, `cr85a_compliancechecks` tables via **pre-bound** "Add a new row" connector actions (one per table; generic dynamic action is disabled/removed)
-- **Knowledge:**
+- **Knowledge:** uploaded directly to Copilot Studio (no SharePoint dependency), each file scoped to the prompt tool that uses it:
   - `application-type-definitions.md` — scoped to the Email Interpreter and Completeness Assessor prompt tools
   - `compliance-rules.md` — scoped to the Compliance Evaluator prompt tool
   - `accessibility-standards.md` — scoped to the Accessibility Presenter prompt tool

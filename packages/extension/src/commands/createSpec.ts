@@ -79,6 +79,18 @@ async function readExistingFile(filePath: string): Promise<string | undefined> {
   }
 }
 
+function isStarterSpecTemplate(content: string): boolean {
+  return (
+    content.includes("<!-- Tell GHCP what you need") ||
+    content.includes("<!-- Start by describing the business problem") ||
+    (/^# Agent Spec/m.test(content) &&
+      content.includes(
+        "<!-- One paragraph: what does this agent do and why?",
+      ) &&
+      content.includes("| Document | Description |"))
+  );
+}
+
 async function collectGuidedSpecDraft(): Promise<SpecDraft | undefined> {
   // Step 1: Agent name
   const agentName = await vscode.window.showInputBox({
@@ -253,7 +265,12 @@ export async function createSpecCommand(): Promise<void> {
   }
 
   if (mode.detail === "from-docs") {
-    await createSpecificationFromDocs(root, existingSpec);
+    await createSpecificationFromDocs(
+      root,
+      existingSpec && !isStarterSpecTemplate(existingSpec)
+        ? existingSpec
+        : undefined,
+    );
     return;
   }
 
@@ -344,8 +361,26 @@ export async function createSpecCommand(): Promise<void> {
   );
 }
 
+/** Pre-Build Agent command — generates reviewable spec.md and architecture.md from requirements docs. */
+export async function preBuildAgentCommand(): Promise<void> {
+  const root = requireWorkspaceRoot();
+  if (!root) {
+    return;
+  }
+
+  const existingSpec = await readExistingFile(
+    path.join(root, "Requirements", "spec.md"),
+  );
+  await createSpecificationFromDocs(
+    root,
+    existingSpec && !isStarterSpecTemplate(existingSpec)
+      ? existingSpec
+      : undefined,
+  );
+}
+
 /** Generate spec + architecture from requirements docs via Copilot Chat prompt */
-async function createSpecificationFromDocs(
+export async function createSpecificationFromDocs(
   root: string,
   existingSpec?: string,
 ): Promise<void> {
@@ -388,7 +423,7 @@ async function createSpecificationFromDocs(
   const cpsGuidancePack = await buildCpsGuidancePack();
 
   const prompt = [
-    "You are creating a Copilot Studio solution definition. Read the requirements documents below and generate both a complete spec.md and a complete architecture.md.",
+    "You are running the CPSAgentKit Pre-Build Agent step. Read the requirements documents below and generate both a complete spec.md and a complete architecture.md for human review before Build Agent is run.",
     "Use the CPS Guidance Pack below as the authoritative repo standard for platform-safe, best-practice Copilot Studio design.",
     "Do not rely on unstated generic Copilot Studio knowledge when the guidance pack, templates, or requirements documents cover the decision.",
     "",
@@ -448,6 +483,8 @@ async function createSpecificationFromDocs(
       : "",
     "- Write the spec to Requirements/spec.md",
     "- Write the architecture to Requirements/architecture.md",
+    "- Stop after writing those two planning files. Do not create build-checklist.md, CPS YAML, Dataverse schema, actions, topics, knowledge sources, or portal setup instructions in this step.",
+    "- End with a short note asking the developer to review and refine Requirements/spec.md and Requirements/architecture.md before running Build Agent.",
   ].join("\n");
 
   await writePromptAndOpenChat(
@@ -455,7 +492,7 @@ async function createSpecificationFromDocs(
     "specification",
     prompt,
     "Requirements/spec.md and Requirements/architecture.md as separate files",
-    "Specification and architecture generation from requirements docs.",
+    "Pre-Build Agent prompt generated from requirements docs.",
     imageFiles,
   );
 }

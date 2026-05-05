@@ -14,7 +14,7 @@ The Helios/sample values are placeholders. During Build, CPSAgentKit must ask th
 
 - Firm name, adviser population, office list, and Teams publishing target
 - Compliance supervisor Teams team/channel, default `#compliance-supervisors`
-- SharePoint library or upload path for the five knowledge documents
+- File-staging path or upload location for the five knowledge documents that will be uploaded directly to Copilot Studio
 - Dataverse publisher prefix/table name if not using `cr85a_packreview`
 - Retention period, row-level-security model, and model-driven app owner
 - Accepted advice types, escalation advice types, and compliance sign-off owner
@@ -32,7 +32,7 @@ This solution uses a **single parent agent** with a **topic-owned linear pipelin
 
 1. **Accept a document pack upload** in Teams chat. Supported inputs:
    - Direct file upload (PDF or DOCX, up to 5 files per pack, each ≤ 5 MB to stay within connector payload limits)
-   - A SharePoint folder URL containing the pack (all files in the folder are pulled)
+   - A SharePoint folder URL containing the pack (all files in the folder are pulled) — source pack only; not a knowledge source
 2. **Preprocess uploads** via a **prompt tool with code interpreter** (stdlib-only sandbox — no `bs4`, no `pandas`). Converts each PDF/DOCX to text/Markdown, merges into a single canonical document with section markers (`## Suitability Report`, `## Fact Find`, `## ATR`, `## Costs & Charges`, `## Illustration`). The merged text becomes the canonical input for every downstream stage. If any file fails to convert, the pipeline stops and asks the adviser for a text-based replacement.
 3. **Classify the pack** via the **Pack Classifier prompt tool** — identify: advice type (pension transfer / ISA / GIA / drawdown / protection / mortgage), client segment (retail / professional / vulnerable), and recommended product(s). Output is JSON captured via `predictionOutput`.
 4. **Assess against Consumer Duty rules** via the **Consumer Duty Evaluator prompt tool** — 4 outcomes (Products & Services, Price & Value, Consumer Understanding, Consumer Support). Each outcome has a fixed set of criteria scored RAG (Red / Amber / Green) with a one-sentence evidence citation from the pack. Output is a labeled block `CD_RAW` with a strict numbered template.
@@ -78,7 +78,7 @@ This solution uses a **single parent agent** with a **topic-owned linear pipelin
 - **Authentication:** Microsoft Entra ID (user authentication)
 - **File preprocessing:** prompt tool with code interpreter (stdlib-only — conversion via `pdf` stdlib parsing limited; recommend in-tenant document conversion via Power Automate flow calling Graph's file preview or a Foundry-hosted PDF extraction service if stdlib is insufficient, then return text to the agent)
 - **Pipeline stages (all prompt tools, invoked from a single `AdaptiveDialog` topic on the parent):** Pack Classifier, Consumer Duty Evaluator, Suitability Policy Evaluator, Grading Rubric, Disclosure Checker, Validator, Reporter. Each returns JSON via `predictionOutput`, parsed with `Text(ParseJSON(JSON(Topic.RawX)).text)`.
-- **Knowledge sources (each scoped to the prompt tool that uses it):**
+- **Knowledge sources (uploaded directly to Copilot Studio, each scoped to the prompt tool that uses it):**
   - `consumer-duty-rules.md` — FCA Consumer Duty PRIN 2A outcomes, cross-cutting rules, required behaviours → scoped to Consumer Duty Evaluator
   - `firm-suitability-policy.md` — Helios internal suitability policy, 12 criteria with evidence requirements → scoped to Suitability Policy Evaluator
   - `grading-rubric.md` — 5-pillar weighted rubric with worked examples of RAG thresholds → scoped to Grading Rubric
@@ -96,8 +96,8 @@ This solution uses a **single parent agent** with a **topic-owned linear pipelin
 - **Version stamp every agent update.** Include a version string in agent instructions and require it in every stored report (`Topic.AgentVersion`). Without this, regression detection is guesswork.
 - **File processing is mandatory before assessment.** No downstream stage may reason about the raw uploaded file — every stage works from the preprocessed text in `Global.DocText`. Reinforce this in every prompt tool's instructions: "The content below was converted from the uploaded document. Do not reference the original file format or attempt to access the raw file."
 - **Code interpreter sandbox is stdlib-only.** If the PDF conversion step needs anything beyond `json`, `re`, `string`, `xml`, standard archive libs, it WILL crash with `No module named 'X'`. Options: (a) keep conversion stdlib-only with accepted limitations, (b) route conversion via a Power Automate flow that calls Graph `driveItem` content endpoints to fetch preformatted text, (c) call an external extraction service as an HTTP action.
-- **Connector payload limits.** 5 MB public cloud, 450 KB GCC. Large document packs may exceed this — chunk in the preprocessing stage or fetch from SharePoint directly rather than routing through connector payload.
-- **SharePoint file size limit without M365 Copilot license:** 7 MB per file, silently ignored above this. If packs routinely exceed 7 MB, either compress / split or require M365 Copilot licensing for all users.
+- **Connector payload limits.** 5 MB public cloud, 450 KB GCC. Large document packs may exceed this — chunk in the preprocessing stage or fetch the source pack from its SharePoint folder rather than routing the whole file through connector payload.
+- **Source-pack file size note.** Knowledge documents are uploaded directly to Copilot Studio, so SharePoint indexing limits do not apply to them. The source advice pack itself, when fetched from a SharePoint folder, is still subject to the 7 MB silent-skip limit without an M365 Copilot license. If packs routinely exceed 7 MB, compress/split the source pack or require M365 Copilot licensing for the advisers who upload them.
 - **Dataverse text column length.** Raw labeled blocks are long — configure the relevant `cr85a_packreview` text columns with appropriate `max_length` (4000 characters is the typical Dataverse ceiling for single-line text; use a multi-line text column or multiple columns for full raw blocks). HTTP 400 from the connector on write = exceeded column length.
 - **Dataverse choice columns require integer values.** Verdict, AdviceType, ClientSegment must all be passed as integers — never text labels — in both the MCP/connector input descriptions and the Reporter prompt's output contract.
 - **Every dynamic connector input needs a description** stating value source ("from the Reporter output"), format, and (for autonomous extensions) "never ask the user". This is user-interactive, so prompts are acceptable, but missing descriptions still cause mis-routing.

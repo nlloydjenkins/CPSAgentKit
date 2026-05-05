@@ -13,7 +13,7 @@ The named Contoso values are defaults for the sample scenario. During Build, CPS
 - Organisation name and office/location choices
 - IT shared mailbox, default `itsupport@contoso.com`
 - IT Support Teams team/channel used for notifications
-- SharePoint site/library for approved IT knowledge articles
+- IT knowledge documents to upload directly to Copilot Studio (e.g. VPN setup, Wi-Fi by office, MFA setup, common how-tos)
 - Dataverse publisher prefix/table names if the environment does not use `cr85a_`
 - Audit retention requirement and Teams publishing target
 
@@ -25,7 +25,7 @@ The named Contoso values are defaults for the sample scenario. During Build, CPS
 
 ## What the Solution Should Do
 
-1. **Answer common IT questions** from an approved knowledge base (company IT wiki on SharePoint). Examples: "How do I connect to VPN?", "Wi-Fi password for the Manchester office?", "How do I set up MFA?" — owned by a **Knowledge Specialist** child agent.
+1. **Answer common IT questions** from an approved knowledge base (IT how-to documents uploaded directly to Copilot Studio). Examples: "How do I connect to VPN?", "Wi-Fi password for the Manchester office?", "How do I set up MFA?" — owned by a **Knowledge Specialist** child agent.
 2. **Create support tickets** in Dataverse when the agent cannot resolve the issue from knowledge alone. Capture: employee name, email, issue summary, priority (Low / Medium / High / Critical), office location, device type. Dataverse access uses the **Dataverse MCP Server** (not the standard connector).
 3. **Check ticket status** — "What's the status of my ticket?" reads live state from Dataverse via MCP.
 4. **Look up the user's profile** — the parent identifies the authenticated user.
@@ -43,7 +43,7 @@ The named Contoso values are defaults for the sample scenario. During Build, CPS
 - Answer non-IT topics (HR policies, expenses, facilities)
 - Share internal infrastructure details (server names, IP ranges, credentials)
 - Create, update, or delete tickets for other employees
-- Use general knowledge or web browsing — all answers come from SharePoint or Dataverse
+- Use general knowledge or web browsing — all answers come from the uploaded IT knowledge files or Dataverse
 
 ## Success Criteria
 
@@ -56,14 +56,14 @@ The named Contoso values are defaults for the sample scenario. During Build, CPS
 ## Systems and Tools
 
 - **Authentication:** Microsoft Entra ID (user authentication)
-- **Knowledge:** SharePoint site — `IT Wiki` document library (indexed by CPS)
+- **Knowledge:** IT how-to documents uploaded directly to Copilot Studio as the Knowledge Specialist's knowledge source (no SharePoint dependency)
 - **Ticket store:** Dataverse — custom `cr85a_ticket` table via **Dataverse MCP Server**
 - **Notifications:** Microsoft Teams channel post (connector) + Office 365 Outlook send email (connector)
 - **Channel:** Microsoft Teams (agent published to Teams)
 
 ## Platform Considerations
 
-- **MCP must live on the parent.** Child agents cannot invoke MCP tools when called via parent orchestration (child fires, MCP calls don't execute). The Dataverse MCP Server tools belong on the parent orchestrator; the Knowledge Specialist child only owns the SharePoint knowledge source.
+- **MCP must live on the parent.** Child agents cannot invoke MCP tools when called via parent orchestration (child fires, MCP calls don't execute). The Dataverse MCP Server tools belong on the parent orchestrator; the Knowledge Specialist child only owns the uploaded-file knowledge source.
 - **Integer values for Dataverse choice columns.** The Priority column (`cr85a_priority`) must be passed as the integer mapping (e.g. Low=100000000, Medium=100000001, High=100000002, Critical=100000003) in both the Dataverse MCP Server tool description and agent instructions — text labels cause `FormatException`. Verify the exact integer mapping against the live schema after table creation.
 - **Use "Get my profile (V2)"** not "Get user profile (V2)" for current-user lookup (the latter requires a UPN input and causes unwanted user prompting).
 - **Content moderation** set in the CPS portal (not YAML) — flag as a required manual portal step.
@@ -88,7 +88,7 @@ The named Contoso values are defaults for the sample scenario. During Build, CPS
 **1. Knowledge lookup**
 
 > User: How do I connect to the London office Wi-Fi?
-> Agent: [pulls from SharePoint wiki] "For the London office, connect to `Contoso-Staff` and authenticate with your Entra ID credentials. MFA will prompt on your phone."
+> Agent: [pulls from the uploaded IT knowledge files] "For the London office, connect to `Contoso-Staff` and authenticate with your Entra ID credentials. MFA will prompt on your phone."
 
 **2. Ticket creation (High priority)**
 
@@ -104,26 +104,26 @@ The named Contoso values are defaults for the sample scenario. During Build, CPS
 
 ## Validated Build Findings — 2026-05-03
 
-The `ITHelpDesk3` live build confirmed that CPSAgentKit can create or repair some Copilot Studio assets from VS Code when it follows portal-exported shapes, but local validation is only the first gate. Product automation must keep Apply Changes, portal inspection, Get Changes, runtime discovery, and Activity Map execution as separate validation states.
+Validated live IT Help Desk builds confirmed that CPSAgentKit can create or repair some Copilot Studio assets from VS Code when it follows portal-exported shapes, but local validation is only the first gate. Product automation must keep Apply Changes, portal inspection, Get Changes, runtime discovery, and Activity Map execution as separate validation states.
 
 ### Confirmed Working Paths
 
-- Child-agent shells can be manually scaffolded with `kind: AgentDialog`, `beginDialog.kind: OnToolSelected`, strong `beginDialog.description`, and `settings.instructions`. Use filesystem-safe folder names such as `agents/KnowledgeSpecialist/`, while keeping friendly names like `Knowledge Specialist` in `mcs.metadata.componentName`. Child-owned tools and knowledge should also be created by Build when verified export/API patterns and tenant-specific connection values are available.
+- Child-agent shells can be manually scaffolded with `kind: AgentDialog`, `beginDialog.kind: OnToolSelected`, strong `beginDialog.description`, and `settings.instructions`. Use filesystem-safe folder names such as `agents/KnowledgeSpecialist/`, while keeping friendly names like `Knowledge Specialist` in `mcs.metadata.componentName`. Child-owned tools and knowledge should also be created by Build when verified export/API patterns and required tenant bindings are available; action YAML additionally requires real connection reference logical names. Child-owned artifacts must be staged until the child exists in the cloud.
 - Deterministic parent topics can be scaffolded for create, status, update, delete, and escalation workflows when they handle routing, questions, confirmation, safety checks, and messages.
 - Uploaded-file knowledge can be created programmatically only through the Copilot Studio/Dataverse backend: create `botcomponent` with `componenttype = 14`, bind `parentbotid@odata.bind`, bind child-owned records with case-sensitive `ParentBotComponentId@odata.bind`, upload raw bytes to `filedata`, wait for Ready, run Get Changes, and validate retrieval in Activity Map.
 - Dataverse MCP schema work can be performed during Build when the MCP server is configured and tenant auth is aligned. The live table was `cr85a_ticket`; choice integer mappings must be verified from the live schema.
-- The full `ITHelpDesk3` run proved that connector actions, direct uploaded-file knowledge, Teams publishing configuration, and MCP attachment can be added from VS Code when CPSAgentKit has tenant-specific connection values plus a known-good export/API pattern. These artifacts still need the manual acceptance gate: Apply Changes / portal inspection / Get Changes / Activity Map validation, but the maker should not have to recreate every connector, knowledge source, publishing setting, or MCP attachment by hand.
-- For IT Help Desk builds, these are required Build Agent actions when tenant values and reference/API patterns are available: create `Knowledge Specialist`, create `Notification Specialist`, attach `Microsoft Dataverse MCP Server` to the parent, add Office 365 Users `Get my profile (V2)` to the parent, add Teams `Post message in a chat or channel` to `Notification Specialist`, add Outlook `Send an email from a shared mailbox (V2)` to `Notification Specialist`, create all declared parent topics, and attach the approved IT knowledge source through a verified backend/API path. Build must attempt these first and checklist only missing tenant values, missing connection/auth context, missing verified patterns, or the acceptance/validation gate.
-- Build must search for validated reference artifacts before declaring those tools blocked. Check sibling/reference folders and notes such as `Reference/`, prior workspace folders, `Requirements/*tool*yaml*findings*.md`, `Requirements/*product*notes*.md`, `Requirements/*implementation*sketch*.md`, root `connectionreferences.mcs.yml`, exported `actions/*.mcs.yml`, and child `agents/*/actions/*.mcs.yml`.
-- The reusable IT Help Desk tool scaffold uses root `connectionreferences.mcs.yml`, parent actions `MicrosoftDataverse-MicrosoftDataverseMCPServer.mcs.yml` and `Office365Users-GetmyprofileV2.mcs.yml`, and child actions `MicrosoftTeams-Postmessageinachatorchannel.mcs.yml` and `Office365Outlook-SendanemailV2.mcs.yml`. Preserve verified operation IDs `InvokeMCP`, `MyProfile_V2`, `PostMessageToConversation`, and `SendEmailV2`, while parameterizing folder names, connection reference logical names, Dataverse table/choice mappings, Teams/shared mailbox wording, and exact `modelDisplayName` values.
+- Validated IT Help Desk runs proved that connector actions, direct uploaded-file knowledge, Teams publishing configuration, and MCP attachment can be added from VS Code when CPSAgentKit has tenant-specific connection values plus a known-good export/API pattern. These artifacts still need the manual acceptance gate: Apply Changes / portal inspection / Get Changes / Activity Map validation, but the maker should not have to recreate every connector, knowledge source, publishing setting, or MCP attachment by hand.
+- For IT Help Desk builds, these are required Build Agent actions when tenant values and reference/API patterns are available: create `Knowledge Specialist`, create `Notification Specialist`, attach `Microsoft Dataverse MCP Server` to the parent, add Office 365 Users `Get my profile (V2)` to the parent, stage Teams `Post message in a chat or channel` for `Notification Specialist`, stage Outlook `Send an email from a shared mailbox (V2)` for `Notification Specialist`, create all declared parent topics, and attach the approved IT knowledge source through a verified backend/API path. Build must attempt these first and checklist only missing tenant values, missing connection/auth context, missing verified patterns, missing child cloud component, or the acceptance/validation gate.
+- Build must search for validated reference artifacts inside the active workspace before declaring those tools blocked. Check current-workspace reference folders and notes such as `Reference/`, `Requirements/*tool*yaml*findings*.md`, `Requirements/*product*notes*.md`, `Requirements/*implementation*sketch*.md`, root `connectionreferences.mcs.yml`, exported `actions/*.mcs.yml`, and child `agents/*/actions/*.mcs.yml`. Use only files under the active workspace root during a Build Agent run.
+- The reusable IT Help Desk tool scaffold uses root `connectionreferences.mcs.yml`, parent actions `MicrosoftDataverse-MicrosoftDataverseMCPServer.mcs.yml` and `Office365Users-GetmyprofileV2.mcs.yml`, and staged child actions `MicrosoftTeams-Postmessageinachatorchannel.mcs.yml.staged` and `Office365Outlook-SendanemailV2.mcs.yml.staged` until `Notification Specialist` exists in the cloud. Preserve verified operation IDs `InvokeMCP`, `MyProfile_V2`, `PostMessageToConversation`, and `SendEmailV2`, while parameterizing folder names, connection reference logical names from the active workspace's root manifest or exported action YAML, Dataverse table/choice mappings, Teams/shared mailbox wording, and exact `modelDisplayName` values. If real connection reference logical names are missing, do not create active or staged tool YAML.
 
 ### Product Boundaries
 
-- Child agents, child-owned tools, child-owned knowledge, custom auth, prompt tools, flows, or portal-only settings must be created by Build when a verified export/API path exists for that specific child-owned artifact. Portal-first is only the fallback when no verified path exists.
-- Manual action YAML scaffolding is no longer just theoretical for this use case, but it remains reference-backed and provisional. It must be template-driven from known-good exports with root `connectionreferences.mcs.yml`, export-shaped `TaskDialog` files, exact `modelDisplayName`, inline `modelDescription`, matching `action.connectionReference`, and operation IDs such as `InvokeMCP`, `MyProfile_V2`, `PostMessageToConversation`, or `SendEmailV2` only when verified by export/reference.
+- Child agents, child-owned tools, child-owned knowledge, custom auth, prompt tools, flows, or portal-only settings must be created by Build when a verified export/API path exists for that specific child-owned artifact. Portal-first is only the fallback when no verified path exists. Child-owned artifacts must follow the two-pass ParentId-safe order: first Apply Changes creates the child shell; after Get Changes confirms the child cloud component exists, staged child-owned files are renamed to `.mcs.yml` and applied in a second pass.
+- Manual action YAML scaffolding is no longer just theoretical for this use case, but it remains reference-backed and provisional. It must be template-driven from known-good exports with real tenant bindings: root `connectionreferences.mcs.yml`, export-shaped `TaskDialog` files, exact `modelDisplayName`, inline `modelDescription`, matching `action.connectionReference`, and operation IDs such as `InvokeMCP`, `MyProfile_V2`, `PostMessageToConversation`, or `SendEmailV2` only when verified by export/reference. If the active workspace has no real connection reference logical names, Build must not invent them.
 - If a verified scaffold is used, the checklist should say `Apply Changes and inspect the scaffolded tools`, then `Get Changes`, MCP discovery validation, and Activity Map testing. It should not say to create those tools manually.
 - Tool names in slash references must match exported `modelDisplayName` values exactly. The tested Dataverse tool name was `/Microsoft Dataverse MCP Server`, not `/Microsoft Dataverse MCP Server (Preview)`.
-- MCP subtools are portal/runtime-discovered and may not appear in local YAML. Do not hand-author `knownTools` or mutate `action.operationDetails`. If subtools are missing, turn the MCP tool off, refresh tools, turn it back on, then validate in Activity Map.
+- MCP subtools are portal/runtime-discovered and may not appear in local YAML. Do not hand-author `knownTools` or mutate `action.operationDetails`. If subtools are missing, follow the four-step Save remediation: disable tool + Save, disable subtools + Save, enable tool + Save, refresh tools + Save, then validate in Activity Map.
 - Local knowledge descriptor YAML is only a Get Changes mirror. It is never the ingestion mechanism for uploaded files.
 - Topic-owned MCP or connector execution nodes need a portal-generated or verified template pattern before CPSAgentKit writes them directly.
 

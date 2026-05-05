@@ -22,7 +22,14 @@ Validation gates for MCP tools:
 4. Expected MCP subtools are discovered in the portal/runtime.
 5. Activity Map shows runtime execution of the intended subtool.
 
-If the tool is enabled but subtools are missing, use the portal workaround: turn the MCP tool off, refresh tools, then turn the MCP tool back on. Re-check the portal subtool list, run Get Changes, validate exact `/ToolName` references, and test again in Activity Map.
+If the tool is enabled but subtools are missing, use the portal workaround. The current Dataverse MCP install requires this exact sequence (each step followed by Save):
+
+1. Disable the MCP tool, Save.
+2. Disable the MCP subtools, Save.
+3. Enable the MCP tool, Save.
+4. Refresh tools — subtools appear — Save.
+
+After that, run Get Changes, validate exact `/ToolName` references, and test again in Activity Map. The earlier shorter “off → refresh → on” remediation is no longer sufficient for Dataverse MCP.
 
 ## Agent Ignores Knowledge Sources
 

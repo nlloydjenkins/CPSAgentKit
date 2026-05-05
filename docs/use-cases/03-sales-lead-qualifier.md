@@ -2,121 +2,164 @@
 
 ## Background
 
-Northwind Traders receives 150–300 inbound sales enquiries per week to `sales@northwind.com`. Business Development Representatives (BDRs) currently read each email, check whether the company already exists in Dynamics 365 / Dataverse, score the lead manually against a qualification rubric (BANT-lite), and assign it to an Account Executive (AE). First-touch response averages 18 hours; the target is under 10 minutes for qualified leads.
+Northwind Traders receives 150-300 inbound sales enquiries per week. Business Development Representatives currently read each enquiry, check whether the company already exists in Dynamics 365 / Dataverse, score the lead against a BANT-lite rubric, and assign it to an Account Executive. First-touch response averages 18 hours; the target is to qualify high-value leads in minutes and give Sales a consistent handoff.
 
-The solution is event-driven by the shared mailbox. A single parent orchestrator owns the pipeline. Extraction and scoring are implemented as **prompt tools** (not child agents) because both produce strict structured output that would be degraded by generative-orchestration summarisation between child-agent hops. The parent owns all Dataverse access, since MCP tools on child agents do not execute when called through parent orchestration.
+This use case is intentionally build-friendly for CPSAgentKit. The first version is a single Copilot Studio agent used by Sales Operations or BDRs in Teams: a user pastes or forwards an inbound enquiry, the agent qualifies it, checks Dataverse, creates or updates the right sales record, and drafts the next action. Autonomous mailbox monitoring, adaptive cards, and shared-mailbox sending are optional phase 2 enhancements after the core qualification loop works.
 
 ## Build-Time Configuration
 
-The Northwind/sample values are placeholders. During Build, CPSAgentKit must ask the maker to confirm or replace the tenant-specific values before finalising tenant-bound assets such as mailbox/channel references, SharePoint URLs, prompt instructions, connector descriptions, or portal setup steps. Missing values should block only the specific tenant-bound action that needs them; Build should still perform safe work that does not depend on those values, such as planning, neutral Dataverse schema reconciliation, topic-shell scaffolding, and exact portal-step generation:
+Northwind values are sample defaults. During Build, CPSAgentKit must ask the maker to confirm or replace only the tenant-specific values needed for the next blocked action. Missing values should not block neutral schema planning, instructions, topics, or Dataverse MCP work.
 
-- Inbound sales shared mailbox, default `sales@northwind.com`
-- Trigger service account / mailbox owner
-- Shared sales Teams channel, default `#sales-leads`
-- Sales Ops escalation Teams channel
-- AE routing source: Account owner field, regional pod owner table, or explicit routing table
-- Dataverse publisher prefix and whether standard `account`, `lead`, `opportunity`, and `contact` tables are used as-is or customised
-- SharePoint site/library paths for scoring rubric, product catalogue, and regional pod assignment
-- Outbound acknowledgement mailbox/send-as identity and business-hours calendar/time zone rules
+- Sales mailbox or intake source, default `sales@northwind.com`
+- Sales Teams channel for qualified lead notifications, default `#sales-leads`
+- Sales Ops escalation channel
+- Dataverse publisher prefix and whether standard `account`, `lead`, `opportunity`, and `contact` tables are used as-is
+- AE routing source: Account owner, regional owner table, or a simple manually maintained routing table
+- Lead scoring rubric and product catalogue documents to upload directly to Copilot Studio
+- Business hours and time zone for expected follow-up wording
 
 ## Primary Users and Channel
 
-- **Prospects** — email the shared mailbox. They never chat with the agent.
-- **Account Executives** (12 across EMEA pods) — receive routing notifications in their own Teams DM plus a shared `#sales-leads` Teams channel for the pod.
-- **Sales Operations** (2 analysts) — review escalated or low-confidence leads via a Power App.
-- Trigger service account authenticates via Entra ID.
+- **BDRs and Sales Operations** use the agent in Microsoft Teams to qualify inbound enquiries.
+- **Account Executives** receive qualified lead handoff notes in Teams or Dataverse.
+- **Prospects** do not chat with the agent in v1. Any prospect-facing email is drafted for review, not sent automatically.
 
 ## What the Solution Should Do
 
-1. **Monitor a shared mailbox** (`sales@northwind.com`) for new enquiries. Autonomous trigger on the parent.
-2. **Preprocess attachments** (PDF briefs, RFP docs) into text via a **prompt tool with code interpreter** (stdlib-only sandbox). Unsupported types or files >5MB escalate to Sales Ops.
-3. **Extract lead fields** via the **Lead Extractor prompt tool**: sender name, sender email, company name (inferred from signature / email domain), stated product interest, budget signals, timeline signals, region, company size hints. Return JSON captured by `predictionOutput`. For fields not present, return the literal string `"N/A"` to prevent interactive prompting.
-4. **Match against existing Dataverse accounts** via the **Dataverse MCP Server** (owned by the parent) — exact email domain match first, then fuzzy company name match. Return one of: `EXISTING_CUSTOMER`, `EXISTING_PROSPECT`, `NEW`.
-5. **Score the lead** via the **Lead Scorer prompt tool** on a 0–100 scale using a weighted rubric (budget 30, authority signals 20, need clarity 25, timeline 15, fit 10). Scoring rubric is stored as a SharePoint knowledge document scoped to the Lead Scorer prompt.
-6. **Create or update a Lead record** in Dataverse via pre-bound "Add a new row" / "Update a row" connector actions (not the generic dynamic action, which binds to a single table per conversation):
-   - `NEW` → create a Lead with full extracted payload
-   - `EXISTING_PROSPECT` → update the existing Lead, append email to timeline
-   - `EXISTING_CUSTOMER` → create an Opportunity linked to the Account instead
-7. **Route the lead** based on score:
-   - Score ≥ 70 → assign to the AE owning the Account (or regional pod owner for `NEW`), post to the pod's `#sales-leads` Teams channel, send Teams DM to the AE with adaptive card (Accept / Reassign / Reject buttons)
-   - Score 40–69 → assign to the shared nurture queue, no Teams notification
-   - Score < 40 → assign to Sales Ops review queue with a short justification
-8. **Handle thread replies** — if the prospect replies before an AE accepts, append the new content to the Lead timeline and re-score. If score crosses a threshold, re-notify.
-9. **Send an acknowledgement email** from the shared mailbox within 10 minutes for any score ≥ 40. Draft is templated; agent personalises with the prospect's name and stated product interest. No promises about timelines or pricing.
-10. **Escalate to Sales Ops** via Teams adaptive card when: extraction confidence is low, the email is clearly not a sales enquiry (invoice query, support request, recruiter spam), or the scoring rubric can't be applied.
+1. **Accept a pasted or forwarded sales enquiry** from a BDR or Sales Ops user. The enquiry may include sender name, sender email, company name, product interest, budget, timeline, region, and company size hints.
+2. **Classify the enquiry** as `SALES_LEAD`, `EXISTING_CUSTOMER_EXPANSION`, `NON_SALES`, or `NEEDS_REVIEW`. Non-sales messages are escalated to Sales Ops and do not create a Lead.
+3. **Extract lead fields** into a structured summary. Unknown optional fields must use the literal value `N/A` so the agent does not ask for missing autonomous-style inputs unnecessarily.
+4. **Check Dataverse through the Dataverse MCP Server** owned by the parent agent:
+   - Match email domain to an existing Account first.
+   - If no domain match exists, search by company name.
+   - Return `EXISTING_CUSTOMER`, `EXISTING_PROSPECT`, or `NEW`.
+5. **Score the lead from 0-100** using a rubric uploaded directly to Copilot Studio: budget 30, authority signals 20, need clarity 25, timeline 15, fit 10.
+6. **Recommend a routing outcome**:
+   - Score 70 or above: qualified lead; assign to Account owner or regional AE.
+   - Score 40-69: nurture queue.
+   - Score below 40: Sales Ops review or suppress if clearly non-sales.
+7. **Create or update Dataverse records** when the Dataverse MCP Server is configured and tenant auth is aligned:
+   - `NEW` or `EXISTING_PROSPECT`: create or update a Lead record.
+   - `EXISTING_CUSTOMER`: create an Opportunity linked to the Account.
+   - Always store extraction summary, score, classification, routing recommendation, source email, and audit notes.
+8. **Draft the next action**:
+   - A short AE handoff note for qualified leads.
+   - A concise prospect acknowledgement draft for score 40 or above.
+   - A Sales Ops review note for low-confidence or non-sales enquiries.
+9. **Keep the user in control**. The v1 agent recommends and drafts; it does not auto-send prospect emails, auto-accept leads for AEs, or create unsupported records without confirmation.
 
 ## What the Solution Should NOT Do
 
-- Commit to pricing, discounts, timelines, or feature roadmap in the acknowledgement email
-- Auto-accept or auto-reject a lead on behalf of an AE — routing proposes, AE decides
-- Create duplicate Leads when an Account already exists (match first, then decide)
-- Share scoring details, internal account data, or pipeline stage with the prospect
-- Use general knowledge or web browsing for enrichment — only Dataverse and the scoring rubric in SharePoint
-- Process non-sales email (support, invoicing, recruiter spam) — those escalate or are suppressed
-- Notify AEs on weekends or outside business hours (queue them for Monday 08:00 local)
+- Commit to pricing, discounts, implementation timelines, or roadmap items.
+- Auto-accept, auto-reject, or reassign leads on behalf of an Account Executive.
+- Create duplicate Leads when an Account or active Lead already exists.
+- Share internal score details, account data, or routing logic with a prospect.
+- Use web browsing or general knowledge for enrichment.
+- Process support, invoice, procurement, recruiter, or spam messages as sales leads.
 
 ## Success Criteria
 
-- Qualified (score ≥ 70) leads produce an AE Teams DM + channel post within 10 minutes of email receipt
-- 85% of incoming emails matched correctly against existing Dataverse accounts (verified against sales-ops weekly audit)
-- Acknowledgement email sent within 10 minutes for every score ≥ 40
-- No duplicate Lead records created for domains already in Dataverse
-- Non-sales emails correctly escalated or suppressed 95% of the time
-- BDR time saved: 6+ hours per week per BDR (baseline: 15 mins per lead × 30 leads)
+- BDR can paste an enquiry and receive classification, score, Dataverse match, routing recommendation, and draft handoff in under 2 minutes.
+- 85% of sampled enquiries match the correct Account or are correctly classified as new.
+- Qualified leads include a clear AE handoff note with product interest, urgency, and score rationale.
+- No duplicate Lead is created when a matching Account or active Lead exists.
+- Non-sales messages are escalated or suppressed consistently.
 
 ## Systems and Tools
 
-- **Trigger:** Office 365 Outlook — shared mailbox event trigger (owned by the parent)
-- **Attachment preprocessor:** prompt tool with code interpreter (stdlib-only)
-- **Extraction and scoring:** AI Builder prompt tools (Lead Extractor, Lead Scorer) authored in AI Hub, synced locally
-- **Account / Lead / Opportunity lookup:** Dataverse MCP Server (owned by the parent)
-- **Lead / Opportunity writes:** pre-bound Dataverse connector actions — one per target table (`lead`, `opportunity`, `contact`), generic dynamic action disabled
-- **Knowledge:** SharePoint — `Sales Enablement` library with `lead-scoring-rubric.md`, `product-catalogue.md`, `regional-pod-assignment.md`
-- **Outbound acknowledgement:** Office 365 Outlook — send from shared mailbox
-- **AE notifications:** Microsoft Teams — channel post + DM adaptive card
-- **Escalation:** Microsoft Teams adaptive card to Sales Ops channel
+- **Channel:** Microsoft Teams.
+- **Knowledge:** Lead scoring rubric and product catalogue uploaded directly to Copilot Studio as the agent's knowledge source (no SharePoint dependency).
+- **Dataverse lookup and writes:** Dataverse MCP Server owned by the parent agent.
+- **Optional notification:** Microsoft Teams channel post after real connection references are available.
+- **Optional phase 2 automation:** Outlook shared mailbox trigger, shared-mailbox acknowledgement send, adaptive-card AE workflow, and business-hours queue.
+
+## Recommended CPSAgentKit Build Shape
+
+Use a single parent agent for v1. Do not create child agents or prompt tools unless the maker explicitly chooses a later automation phase.
+
+### Parent Agent Responsibilities
+
+- Classify inbound enquiry text.
+- Extract fields and preserve unknown optional values as `N/A`.
+- Use Dataverse MCP to match Account / Lead / Opportunity records.
+- Score the lead using the uploaded rubric.
+- Create or update Dataverse records through MCP when configured.
+- Draft AE handoff, prospect acknowledgement, or Sales Ops review notes.
+
+### Deterministic Topics
+
+- **Qualify Sales Enquiry** — main topic for pasted or forwarded enquiry text. Collects missing minimum fields only when the user is present.
+- **Check Lead Status** — optional topic to look up an existing Lead or Opportunity.
+- **Escalate to Sales Ops** — creates an escalation note when the message is non-sales, low confidence, or outside scope.
+
+### Dataverse Tables and Fields
+
+Prefer standard Dataverse sales tables when they exist. If the environment does not have Dynamics Sales tables available, create a small custom `lead_qualification` table for the sample with these fields:
+
+- enquiry subject
+- sender name
+- sender email
+- company name
+- product interest
+- region
+- classification
+- account match status
+- score
+- routing outcome
+- AE or queue owner
+- source text excerpt
+- audit notes
+
+Choice columns must use verified integer mappings after schema creation. Include those mappings in agent instructions and tool descriptions.
 
 ## Platform Considerations
 
-- **Prompt tools over child agents for extraction and scoring.** Both produce strict structured output (extracted JSON, numbered score criteria). Child agents would have their responses summarised between stages. Use prompt tools invoked from a single topic on the parent.
-- **Parent owns MCP.** Dataverse account-match tools run on the parent. Any future child agents for specialist handling must not own MCP tools.
-- **Scheduled triggers on parent only.** Re-scoring on thread replies and the business-hours queue both sit on the parent.
-- **N/A sentinel for optional extracted fields.** Budget, timeline, company size, region are often absent — the Lead Extractor prompt must return `"N/A"` for any unknown value. Empty string or null will break into interactive mode.
-- **Dataverse choice columns (lead source, status, rating) require integer values.** Include mappings in connector action input descriptions and agent instructions.
-- **Pre-bound connector actions per table.** Creating a Lead and an Opportunity in the same conversation hits `UnresolvedDynamicType` with the generic action — use one pre-bound action per target table.
-- **Every dynamic input needs a description.** Include value source ("from the Lead Extractor output"), format, and "never ask the user" for autonomous pipelines.
-- **Anti-termination instructions required.** Add a CRITICAL header and per-stage suppression — otherwise the orchestrator may display the Extractor's JSON to the user and stop.
-- **Power Automate flow identity.** The Teams DM / channel notification flow runs as the maker by default. For user-attributed routing, configure per-connection invoker identity on the Teams connector, or use a dedicated service maker account and document it.
-- **Content moderation:** set in the portal (manual portal step).
+- **Keep v1 interactive.** Autonomous mailbox triggers, business-hours queues, adaptive cards, and shared-mailbox sends are useful but add portal and Power Automate complexity. Treat them as phase 2 once the core qualification loop is accepted.
+- **Parent owns MCP.** Dataverse MCP belongs on the parent agent. Do not move MCP tools to child agents.
+- **No prompt tools by default.** The first version can classify, extract, score, and draft through parent instructions plus the uploaded rubric. Prompt tools are optional later if the maker needs strict JSON output or temperature control.
+- **No action YAML without real bindings.** Teams or Outlook connector action YAML may only be created when the active workspace contains real tenant connection reference logical names and matching root/exported bindings. Otherwise checklist connector creation/sync as a blocker.
+- **Content moderation is portal-only.** Set to Medium in the portal.
+- **General knowledge and web browsing disabled.** Ground qualification in the enquiry text, Dataverse, and the uploaded rubric/product catalogue.
 
 ## Tone and Behaviour
 
-- Acknowledgement emails: warm, professional, concise (under 120 words)
-- Reference what the prospect wrote — don't send a generic template
-- Never fabricate product features, prices, or commitments
-- AE Teams DMs: brief, scannable adaptive card with lead name, score, one-line justification, and action buttons
+- AE handoff notes are brief and scannable: company, contact, product interest, score, reason, recommended next step.
+- Prospect acknowledgement drafts are warm, professional, and under 120 words.
+- Never invent product capabilities, prices, commitments, or Account facts.
+- When confidence is low, route to Sales Ops instead of guessing.
 
 ## Language and Compliance
 
-- English only
-- All lead scoring, extraction, and routing decisions logged to Dataverse for audit (6 months minimum)
-- No personal data beyond sender contact details + business-relevant extraction
-- Content moderation: Medium
-- General knowledge: disabled. Web browsing: disabled. All enrichment comes from Dataverse + SharePoint rubric.
+- English only.
+- Store qualification decisions and score rationale for audit for at least 6 months.
+- Personal data is limited to business contact details and business-relevant enquiry content.
+- Content moderation: Medium.
+- General knowledge: disabled. Web browsing: disabled.
+
+## Optional Phase 2 Enhancements
+
+Add these only after v1 works and the maker has the required tenant connections and portal setup:
+
+1. Outlook shared mailbox trigger for `sales@northwind.com`.
+2. Automatic prospect acknowledgement from the shared mailbox for score 40 or above.
+3. Teams channel notification for qualified leads.
+4. Adaptive-card AE workflow with Accept / Reassign / Reject buttons.
+5. Business-hours queue that delays AE notification outside working hours.
+6. Attachment preprocessing for PDF or RFP text. Use a prompt tool with code interpreter only after testing the sandbox path; avoid designs that depend on third-party Python packages.
 
 ## Sample Interactions
 
 **1. Qualified new lead**
 
-> Inbound email: "Hi, we're a 400-person manufacturer in Munich looking at warehouse automation. Budget around €150k, want to decide by end of Q2. Can you send pricing?"
-> Agent: extracts fields, no account match, creates `NEW` Lead in Dataverse, score 82, posts adaptive card to EMEA-DACH Teams channel and DMs the pod AE, sends prospect a personalised acknowledgement referencing "warehouse automation" and confirming an AE will reach out within one business day. No price mentioned.
+> User: Qualify this enquiry: "Hi, we're a 400-person manufacturer in Munich looking at warehouse automation. Budget around EUR 150k, want to decide by end of Q2. Can you send pricing?"
+> Agent: Classifies as `SALES_LEAD`, no Account match, score 82, recommends EMEA-DACH AE routing, creates or drafts a Lead record, and returns an AE handoff plus a safe acknowledgement draft with no pricing commitment.
 
 **2. Existing customer expansion**
 
-> Inbound email from `procurement@fabrikam.com` (known Account).
-> Agent: matches Account, creates an **Opportunity** linked to Fabrikam (not a Lead), notifies the Account's current AE directly.
+> User: Qualify this email from procurement@fabrikam.com: "We want to expand warehouse automation to two more sites. Can our account team contact us?"
+> Agent: Matches Fabrikam as an existing Account, classifies as `EXISTING_CUSTOMER_EXPANSION`, recommends creating an Opportunity linked to the Account, and drafts the AE handoff.
 
 **3. Out-of-scope**
 
-> Inbound email: "I have an invoice query — order #12345 hasn't shipped."
-> Agent: classifies as non-sales, does not create Lead, escalates to Sales Ops with suggestion to forward to Customer Service, suppresses acknowledgement.
+> User: Qualify this enquiry: "I have an invoice query — order 12345 has not shipped."
+> Agent: Classifies as `NON_SALES`, does not create a Lead, and drafts a Sales Ops escalation note suggesting transfer to Customer Service.
