@@ -76,6 +76,73 @@ This pattern ensures agents always have the latest authoritative content when av
 
 **Websites:** Bing-powered. Must confirm org ownership. Only works with generative orchestration web search setting.
 
+## SharePoint Source Paths — Two Distinct Behaviours
+
+Copilot Studio exposes two different SharePoint knowledge paths with fundamentally different runtime behaviour. Confusing them is a common cause of inconsistent retrieval quality.
+
+| | SharePoint URL (website/page path) | SharePoint unstructured (files/folders) |
+|---|---|---|
+| **How added** | Add Knowledge → Website URL → SharePoint site/page URL | Add Knowledge → SharePoint/OneDrive → select files or folders |
+| **Runtime mechanism** | SharePoint search stack (near real-time via Graph) | File contents copied into Dataverse, indexed there |
+| **Freshness** | Near real-time — edits to modern pages reflect quickly | 4–6 hour sync delay. Content changes not visible until next sync |
+| **Content type** | Modern SharePoint pages and wikis | Document libraries: DOCX, PDF, PPTX, XLSX, etc. |
+| **File size limit** | 7 MB per file without M365 Copilot license | 512 MB per file; 1,000 files / 50 folders max |
+| **M365 Copilot license** | Required for files >7 MB and Tenant Graph Grounding | Required for Tenant Graph Grounding quality lift |
+| **Retrieval quality** | Improved by Tenant Graph Grounding with semantic search | Improved by Tenant Graph Grounding; without it, keyword-only |
+| **ALM support** | Not supported — manual re-processing after solution import | Not supported |
+
+**Design implication:** if a team adds a SharePoint file library via the URL path expecting document-level retrieval, they get page-based retrieval with different freshness and filtering behaviour. Always confirm which path is in use when diagnosing inconsistent results.
+
+## Uploaded File Format Support
+
+The following formats are supported for directly uploaded files (Add Knowledge → Files). Formats marked ✓ are confirmed in official Microsoft Learn documentation (2025). Support is independent of retrieval quality — supported does not mean optimal for RAG.
+
+| Format | Extension(s) | Retrieval notes |
+|---|---|---|
+| Word | .docx, .doc | Good. Well-structured docs retrieve well. |
+| PDF | .pdf | Good. Text-based PDFs preferred; scanned/image PDFs retrieve poorly. |
+| PowerPoint | .pptx, .ppt | Good. Slide text extracted; embedded images/charts ignored. |
+| Excel | .xlsx, .xls | Supported but poor for analytical Q&A — agents cannot run code against the data. |
+| Markdown | .md | Supported. Structure preserved; useful for curated knowledge. |
+| Plain text | .txt | Supported. No structural benefits from headings. |
+| JSON | .json | Supported. Flat key-value data ingested as text. |
+| YAML | .yaml, .yml | Supported. Ingested as text. |
+| CSV | .csv | Supported. Rows ingested as text; no aggregation/query capability. |
+| XML | .xml | Supported. |
+| LaTeX | .tex | Supported. |
+
+**Safest for retrieval quality:** DOCX → PDF (text-based) → PPTX → MD. Avoid relying on XLSX for anything requiring numerical reasoning — the agent cannot execute queries against spreadsheet data.
+
+**File size limit for uploads:** no published per-file cap in official docs for uploaded files (distinct from SharePoint's 7 MB / 512 MB limits). If an upload silently fails to index, split the file.
+
+## Graph Connectors vs SharePoint Knowledge
+
+Graph Connectors are a separate path for surfacing non-SharePoint enterprise content (e.g. ServiceNow, Confluence, Jira, custom databases) into the Microsoft Search semantic index, which Copilot Studio can then query via Tenant Graph Grounding.
+
+### When to use Graph Connectors
+
+- Content lives outside SharePoint/OneDrive (ITSM, CRM, custom LOB systems).
+- You need richer metadata schema and property-based filtering that SharePoint file libraries cannot provide.
+- You want deterministic ingestion governance — control over what is indexed, when, and with what schema.
+- Cross-system aggregation: users should get answers that span SharePoint and a non-SharePoint system in a single response.
+
+### When to use SharePoint knowledge instead
+
+- Content already lives in SharePoint or OneDrive.
+- Permissions and semantic indexing are healthy and Tenant Graph Grounding is available.
+- Setup simplicity matters — Graph Connectors require admin setup and a connector configuration.
+
+### Known limits and caveats (validate against current Microsoft docs for exact figures)
+
+- **Refresh cadence:** depends on connector type. Most built-in connectors support full crawl + incremental crawl schedules. Custom connectors (via Graph Connector API) can push items on demand but crawl schedules still apply for deletions.
+- **Item limits:** published limits vary by connector. Microsoft Search has a per-connector item limit (in the millions for first-party connectors); custom connectors have lower published caps. Confirm against current Microsoft 365 licensing/limits documentation.
+- **Schema constraints:** each connector defines a property schema. Copilot Studio retrieves content via semantic search over indexed properties — it cannot query arbitrary metadata fields not mapped in the connection schema.
+- **M365 Copilot license required:** Graph Connector content is only surfaced to Copilot Studio when Tenant Graph Grounding is enabled, which requires M365 Copilot licensing.
+- **Setup ownership:** Graph Connectors are configured by a Microsoft 365 admin, not a Copilot Studio maker. Build plans that depend on Graph Connectors must include an admin setup dependency.
+- **No direct CPS-side controls:** once indexed, the maker has no control over chunking, reranking, or metadata filtering from within Copilot Studio.
+
+**Recommendation:** use native SharePoint grounding first when content already lives in SharePoint and permissions/indexing are healthy. Add Graph Connectors when you need cross-system coverage or metadata governance that SharePoint alone cannot provide. For hard limits and refresh schema constraints, validate against current Microsoft 365 admin and Graph Connector documentation — these change with licensing tiers.
+
 ## Programmatic Uploaded-File Knowledge
 
 Uploaded-file knowledge is a backend ingestion operation, not a local YAML generation feature. Local `.mcs.yml` knowledge descriptors are export mirrors created by Get Changes after Copilot Studio/Dataverse has accepted and processed the file. Creating descriptor YAML alone does not upload, process, or index the document.

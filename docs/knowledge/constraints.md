@@ -136,9 +136,14 @@ For autonomous pipelines (no user to prompt), every input must be either "Dynami
 
 ## Content Moderation
 
-- **Portal-only setting** — content moderation must be configured in the CPS portal under Settings → Generative AI. There is **no YAML field** to set this. The `settings.mcs.yml` does not include a content moderation property. The Build phase must flag this as a required manual portal step.
-- Content moderation can be set to `Low`, `Medium`, or `High`. This is the **only** available control surface for content filtering — there is no per-topic, per-utterance, or per-tool override.
-- For agents that process financial, medical, legal, HR, or other specialist domain content, `Low` may be necessary to avoid false positive content filtering that blocks legitimate terms (e.g. employment law terminology, right-to-work language, compliance content).
+- **Portal-only setting** — content moderation must be configured in the CPS portal. There is **no YAML field** to set this. The `settings.mcs.yml` does not include a content moderation property. The Build phase must flag this as a required manual portal step.
+- Content moderation can be set to `Low`, `Medium`, or `High`.
+- **Override levels (official docs, 2025):** Moderation is configurable at three levels with a documented precedence order:
+  1. **Agent level** — default, applies globally unless overridden (Settings → Generative AI)
+  2. **Topic-level Generative Answers node** — overrides the agent-level setting for that node only
+  3. **Prompt tool level** — overrides agent and topic settings for that prompt tool only
+  - Topic-level setting takes precedence over agent-level; prompt-tool level takes precedence over both. If a topic or prompt tool does not specify a level, the agent setting applies.
+- For agents that process financial, medical, legal, HR, or other specialist domain content, `Low` may be necessary to avoid false positive content filtering that blocks legitimate terms (e.g. employment law terminology, right-to-work language, compliance content). Consider using `Low` only at the specific topic/tool level rather than lowering it agent-wide.
 - Content filtering remains a black box at every level — no logging, no reason code, no diagnostic info when triggered. Debugging content filter blocks is currently impossible without a support ticket.
 - Setting the level does not provide any additional transparency or diagnostics — it only adjusts the threshold.
 
