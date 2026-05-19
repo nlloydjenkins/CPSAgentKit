@@ -343,7 +343,21 @@ function extractReplyText(activities) {
 // "sessions". A blank line ends the current group and starts a new one, so
 // follow-up turns that share memory with the agent are kept together. Lines
 // starting with `#` are comments and ignored (they do NOT break a group).
-// Returns an array of groups, where each group is an array of prompt strings.
+//
+// Two special directives are recognised inside a group:
+//   [CHOOSE FIRST] / [CHOOSE LAST] / [CHOOSE 2] / [CHOOSE: keyword]
+//     The actual prompt text is resolved at runtime from the previous
+//     agent reply (see `resolveChoose`). Useful when the agent offers a
+//     menu of options and the test wants to pick one without hard-coding
+//     the exact wording.
+//   [EXPECT: text]   (or [expected: text])
+//     Tester expectation attached to the PREVIOUS turn — not sent to the
+//     bot. Passed to the judge as extra context so it can score against
+//     the intent (e.g. "refuses all three in voice; doesn't pick one").
+//
+// Returns an array of groups, where each group is an array of
+// `{ prompt, expectation? }` turn objects. `expectation` is set when an
+// `[EXPECT: ...]` line follows a turn.
 async function loadPrompts(file) {
   const txt = await readFile(file, "utf-8");
   const groups = [];
@@ -358,10 +372,94 @@ async function loadPrompts(file) {
       continue;
     }
     if (line.startsWith("#")) continue;
-    current.push(line);
+    // [EXPECT: ...] / [expected: ...] — attach to the previous turn, do not
+    // emit as a new turn.
+    const expectMatch = line.match(/^\[(?:expect|expected)\s*:\s*([\s\S]+)\]$/i);
+    if (expectMatch) {
+      const text = expectMatch[1].trim();
+      if (current.length === 0) {
+        // Stray expectation with no preceding turn — skip with a warning.
+        console.warn(
+          `loadPrompts: [EXPECT] line with no preceding turn, ignored: ${line}`,
+        );
+        continue;
+      }
+      current[current.length - 1].expectation = text;
+      continue;
+    }
+    current.push({ prompt: line });
   }
   if (current.length) groups.push(current);
   return groups;
+}
+
+// Resolve a `[CHOOSE ...]` directive against the previous agent reply.
+// Returns `{ ok: true, text }` with the resolved user prompt, or
+// `{ ok: false, reason }` if the directive can't be satisfied (no prior
+// reply, no options detectable, index out of range, etc).
+//
+// Option detection looks at the agent's previous reply for:
+//   1. A numbered or bulleted list ("1. X", "- X", "* X").
+//   2. A natural-language "X, Y, or Z" / "X, Y or Z" phrase (the most
+//      common shape Charlie uses when offering options).
+function resolveChoose(directive, previousReply) {
+  if (!previousReply) {
+    return { ok: false, reason: "no previous agent reply to choose from" };
+  }
+  const m = directive.match(/^\[choose\s*(first|last|\d+|:\s*[\s\S]+)\]$/i);
+  if (!m) return { ok: false, reason: `unrecognised CHOOSE directive: ${directive}` };
+  const arg = m[1].trim();
+
+  // 1. Numbered or bulleted list.
+  const listItems = [];
+  for (const line of previousReply.split(/\r?\n/)) {
+    const li = line.match(/^\s*(?:\d+[.)]|[-*])\s+(.+?)\s*$/);
+    if (li) listItems.push(li[1]);
+  }
+
+  // 2. "X, Y(,) or Z" natural-language list. Pick the longest such match in
+  //    the reply (longest = most likely the option list, not a coincidental
+  //    "this, that, or the other").
+  let phraseItems = [];
+  const phraseRegex = /([A-Za-z][^.?!\n]*?(?:,\s*[^.?!\n,]+){1,}\s*,?\s*or\s+[^.?!\n]+?)(?=[.?!\n])/gi;
+  for (const pm of previousReply.matchAll(phraseRegex)) {
+    const phrase = pm[1].trim();
+    const parts = phrase
+      .split(/\s*,\s*|\s+or\s+/i)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (parts.length >= 2 && parts.length > phraseItems.length) {
+      phraseItems = parts;
+    }
+  }
+
+  const items = listItems.length >= 2 ? listItems : phraseItems;
+  if (items.length === 0) {
+    return { ok: false, reason: "no options detected in previous reply" };
+  }
+
+  if (/^first$/i.test(arg)) return { ok: true, text: items[0] };
+  if (/^last$/i.test(arg)) return { ok: true, text: items[items.length - 1] };
+  if (/^\d+$/.test(arg)) {
+    const idx = parseInt(arg, 10) - 1;
+    if (idx < 0 || idx >= items.length) {
+      return { ok: false, reason: `index ${arg} out of range (1..${items.length})` };
+    }
+    return { ok: true, text: items[idx] };
+  }
+  const kwMatch = arg.match(/^:\s*([\s\S]+)$/);
+  if (kwMatch) {
+    const kw = kwMatch[1].trim().toLowerCase();
+    const hit = items.find((it) => it.toLowerCase().includes(kw));
+    if (!hit) {
+      return {
+        ok: false,
+        reason: `no option contains "${kw}"; options were: ${items.join(" | ")}`,
+      };
+    }
+    return { ok: true, text: hit };
+  }
+  return { ok: false, reason: `unrecognised CHOOSE argument: ${arg}` };
 }
 
 // Show progress while an async operation runs. In a TTY we animate dots on
@@ -553,15 +651,18 @@ function parseJudgement(text) {
 
 // Submit a (prompt, reply) pair to the Azure OpenAI judge deployment using
 // the strict Charlie Nunn reviewer rubric. Returns a parsed judgement.
-async function judgeReply(prompt, reply, judgeCfg) {
+async function judgeReply(prompt, reply, judgeCfg, opts = {}) {
   const url = `${judgeCfg.endpoint.replace(/\/$/, "")}/openai/deployments/${judgeCfg.deployment}/chat/completions?api-version=${judgeCfg.apiVersion}`;
   const token = await getJudgeToken(judgeCfg.tenantId);
+  const expectationBlock = opts.expectation
+    ? `\n\nTESTER EXPECTATION (score against this intent):\n${opts.expectation}`
+    : "";
   const body = {
     messages: [
       { role: "system", content: JUDGE_SYSTEM },
       {
         role: "user",
-        content: `USER QUESTION:\n${prompt}\n\nAGENT RESPONSE:\n${reply || "(empty)"}`,
+        content: `USER QUESTION:\n${prompt}\n\nAGENT RESPONSE:\n${reply || "(empty)"}${expectationBlock}`,
       },
     ],
     temperature: 0.2,
@@ -649,7 +750,8 @@ async function runBatch({
           index: globalIdx,
           group: gi + 1,
           turn: ti + 1,
-          prompt: group[ti],
+          prompt: group[ti].prompt,
+          expectation: group[ti].expectation ?? null,
           reply: "",
           error: err.message,
           timings: { sendMs: null, judgeMs: null },
@@ -659,13 +761,52 @@ async function runBatch({
       continue;
     }
 
+    let previousReply = "";
     for (let ti = 0; ti < group.length; ti++) {
       globalIdx++;
-      const p = group[ti];
+      const turnObj = group[ti];
       const turnLabel = multi ? ` (turn ${ti + 1}/${group.length})` : "";
-      process.stdout.write(
-        `\n[${globalIdx}/${totalPrompts}]${turnLabel} \x1b[33mQ:\x1b[0m ${p}\n`,
-      );
+
+      // Resolve `[CHOOSE ...]` directives against the previous agent reply.
+      let prompt = turnObj.prompt;
+      let chooseInfo = null;
+      if (/^\[choose\b/i.test(prompt)) {
+        const resolved = resolveChoose(prompt, previousReply);
+        if (resolved.ok) {
+          chooseInfo = { directive: prompt, resolved: resolved.text };
+          process.stdout.write(
+            `\n[${globalIdx}/${totalPrompts}]${turnLabel} \x1b[33mQ:\x1b[0m ${ANSI.grey}${prompt}${ANSI.reset} \u2192 ${resolved.text}\n`,
+          );
+          prompt = resolved.text;
+        } else {
+          process.stdout.write(
+            `\n[${globalIdx}/${totalPrompts}]${turnLabel} \x1b[33mQ:\x1b[0m ${prompt}\n` +
+              `   ${ANSI.red}CHOOSE failed:${ANSI.reset} ${resolved.reason}\n`,
+          );
+          results.push({
+            index: globalIdx,
+            group: gi + 1,
+            turn: ti + 1,
+            prompt: turnObj.prompt,
+            expectation: turnObj.expectation ?? null,
+            reply: "",
+            error: `CHOOSE directive could not be resolved: ${resolved.reason}`,
+            timings: { sendMs: null, judgeMs: null },
+            judgement: null,
+          });
+          continue;
+        }
+      } else {
+        process.stdout.write(
+          `\n[${globalIdx}/${totalPrompts}]${turnLabel} \x1b[33mQ:\x1b[0m ${prompt}\n`,
+        );
+      }
+      if (turnObj.expectation) {
+        process.stdout.write(
+          `   ${ANSI.grey}[EXPECT: ${turnObj.expectation}]${ANSI.reset}\n`,
+        );
+      }
+
       let reply = "";
       let error = null;
       const sendSpin = startSpinner("   Sending to agent");
@@ -675,7 +816,7 @@ async function runBatch({
           hostname,
           botSchemaName,
           conversationId,
-          p,
+          prompt,
           dlToken,
         );
         reply = extractReplyText(res.activities);
@@ -688,6 +829,7 @@ async function runBatch({
       process.stdout.write(
         `   ${ANSI.cyan}A${ANSI.reset} (${colorMs(sendMs, 2500, 6000)}): ${reply || `(error: ${error})`}\n`,
       );
+      if (reply) previousReply = reply;
 
       let judgement = null;
       let judgeMs = null;
@@ -696,7 +838,9 @@ async function runBatch({
         const tj = Date.now();
         let judgeErr = null;
         try {
-          judgement = await judgeReply(p, reply, judgeCfg);
+          judgement = await judgeReply(prompt, reply, judgeCfg, {
+            expectation: turnObj.expectation,
+          });
         } catch (err) {
           judgeErr = err.message;
           judgement = { score: null, verdict: "FAIL", feedback: err.message };
@@ -720,7 +864,10 @@ async function runBatch({
         index: globalIdx,
         group: gi + 1,
         turn: ti + 1,
-        prompt: p,
+        prompt: turnObj.prompt,
+        sentPrompt: prompt,
+        choose: chooseInfo,
+        expectation: turnObj.expectation ?? null,
         reply,
         error,
         timings: { sendMs, judgeMs },
@@ -769,6 +916,14 @@ function renderMarkdown(results, judgeCfg) {
       : `## ${r.index}. ${r.prompt}`;
     lines.push(heading);
     lines.push("");
+    if (r.choose) {
+      lines.push(`> _CHOOSE resolved to:_ \`${r.choose.resolved}\``);
+      lines.push("");
+    }
+    if (r.expectation) {
+      lines.push(`> _Tester expectation:_ ${r.expectation}`);
+      lines.push("");
+    }
     if (r.error) {
       lines.push(`> **ERROR**: ${r.error}`);
     } else {

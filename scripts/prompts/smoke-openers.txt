@@ -1,0 +1,21 @@
+# Smoke test for the new 5 menu-eliciting openers.
+
+Tell me about your strategy.
+[CHOOSE FIRST]
+And what's the bit of that you're least satisfied with?
+
+Walk me through Lloyds Banking Group.
+[CHOOSE 2]
+How does that sit with the rest of the Group?
+
+What should I know about your time as Group CEO so far?
+[CHOOSE LAST]
+What was harder about that than you expected?
+
+Talk to me about wealth.
+[CHOOSE: Scottish Widows]
+And what did Embark actually buy you — capability or customers?
+
+Tell me about mass affluent.
+[CHOOSE FIRST]
+Where are the competitors stronger than you'd like?
