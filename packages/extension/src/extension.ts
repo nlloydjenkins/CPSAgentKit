@@ -12,6 +12,14 @@ import { generateRepoInstructionsCommand } from "./commands/generateRepoInstruct
 import { reviewSolutionCommand } from "./commands/reviewSolution.js";
 import { reviewSolutionFileCommand } from "./commands/reviewSolutionFile.js";
 import { buildDemoCommand } from "./commands/buildDemo.js";
+import { runAgentTestsCommand } from "./commands/runAgentTests.js";
+import { resetDirectLineSigninCommand } from "./commands/resetDirectLineSignin.js";
+import {
+  configureAgentTestsCommand,
+  connectAzureOpenAIJudgeCommand,
+  changeAgentTestEnvironmentCommand,
+} from "./commands/configureAgentTests.js";
+import { AgentTestsCodeLensProvider } from "./services/testing/ui/codeLensProvider.js";
 import { detectProjectState } from "./services/projectState.js";
 import { readConfig } from "./services/config.js";
 import {
@@ -90,6 +98,30 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand("cpsAgentKit.buildDemo", () =>
       buildDemoCommand(extensionPath),
+    ),
+    vscode.commands.registerCommand(
+      "cpsAgentKit.runAgentTests",
+      (agentFolder?: string) => runAgentTestsCommand(context, { agentFolder }),
+    ),
+    vscode.commands.registerCommand("cpsAgentKit.configureAgentTests", () =>
+      configureAgentTestsCommand(context),
+    ),
+    vscode.commands.registerCommand("cpsAgentKit.connectAzureOpenAIJudge", () =>
+      connectAzureOpenAIJudgeCommand(context),
+    ),
+    vscode.commands.registerCommand(
+      "cpsAgentKit.changeAgentTestEnvironment",
+      () => changeAgentTestEnvironmentCommand(context),
+    ),
+    vscode.commands.registerCommand("cpsAgentKit.resetDirectLineSignin", () =>
+      resetDirectLineSigninCommand(context),
+    ),
+    vscode.languages.registerCodeLensProvider(
+      [
+        { language: "yaml", pattern: "**/bot/**/*.bot.{yml,yaml}" },
+        { language: "yaml", pattern: "**/settings.{mcs.,}{yml,yaml}" },
+      ],
+      new AgentTestsCodeLensProvider(),
     ),
     vscode.commands.registerCommand("cpsAgentKit.refreshSidebar", () =>
       sidebarProvider.refreshState(),

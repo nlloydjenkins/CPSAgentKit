@@ -21,4 +21,7 @@ export * from "./assessors/reviewPrompt.js";
 export * from "./assessors/toolDescription.js";
 export * from "./assessors/preBuildGenerator.js";
 
+// Agent testing harness
+export * from "./testing/index.js";
+
 export { CORE_VERSION } from "./version.js";

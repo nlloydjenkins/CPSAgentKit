@@ -2,7 +2,7 @@
   "name": "cpsagentkit",
   "displayName": "Copilot Studio Agent Kit",
   "description": "Turns GitHub Copilot into a Copilot Studio expert — scaffolds CPS agent projects, syncs platform knowledge, and generates copilot-instructions.md for deep CPS awareness.",
-  "version": "0.14.12",
+  "version": "0.15.18",
   "publisher": "nicklj",
   "license": "MIT",
   "engines": {
@@ -110,6 +110,31 @@
         "category": "CPSAgentKit"
       },
       {
+        "command": "cpsAgentKit.runAgentTests",
+        "title": "Run Agent Tests",
+        "category": "CPSAgentKit"
+      },
+      {
+        "command": "cpsAgentKit.configureAgentTests",
+        "title": "Configure Agent Tests…",
+        "category": "CPSAgentKit"
+      },
+      {
+        "command": "cpsAgentKit.connectAzureOpenAIJudge",
+        "title": "Connect Azure OpenAI Judge…",
+        "category": "CPSAgentKit"
+      },
+      {
+        "command": "cpsAgentKit.changeAgentTestEnvironment",
+        "title": "Change Power Platform Environment…",
+        "category": "CPSAgentKit"
+      },
+      {
+        "command": "cpsAgentKit.resetDirectLineSignin",
+        "title": "Reset Direct Line Sign-in",
+        "category": "CPSAgentKit"
+      },
+      {
         "command": "cpsAgentKit.refreshSidebar",
         "title": "Refresh Sidebar",
         "category": "CPSAgentKit",
@@ -167,7 +192,8 @@
     "package": "npm run bundle && vsce package --no-dependencies"
   },
   "dependencies": {
-    "@cpsagentkit/core": "0.14.12"
+    "@azure/msal-node": "^2.16.3",
+    "@cpsagentkit/core": "0.15.18"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

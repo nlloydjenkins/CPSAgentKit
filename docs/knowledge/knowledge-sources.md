@@ -197,6 +197,69 @@ Build implication: when uploaded files are listed in `Requirements/docs/` or arc
 
 Product command target: CPSAgentKit should expose backend upload as a first-class operation, for example `cps knowledge upload --agent "IT Help Desk" --child-agent "Knowledge Specialist" --file /path/to/article.md`. The command should read `.mcs/conn.json`, acquire a tenant-aligned Dataverse token, create the `botcomponent`, upload `filedata`, wait for Ready/processing, prompt for or run Get Changes, verify the mirrored descriptor, and require Activity Map retrieval testing.
 
+## Uploaded-File Knowledge Descriptions Are Orchestrator Routing Inputs
+
+For an agent with generative orchestration and `Allow general knowledge`, `Web search`, and `Allow ungrounded responses` all OFF, knowledge-source descriptions are the dominant routing lever even below the 25-source threshold. Beyond 25 sources, descriptions become a hard pre-filter — the internal source-selection GPT picks sources to search based on descriptions, so a source with a weak or placeholder description is effectively invisible at scale. Treat descriptions as routing inputs, not polish.
+
+For uploaded-file knowledge, the description used by the orchestrator lives on the Dataverse `botcomponent.description` column. The portal's knowledge-source description text box binds to this column.
+
+### Gotcha: the local mirror description is a placeholder
+
+After Get Changes, `<agentFolder>/knowledge/files/<file>.mcs.yml` contains:
+
+```yaml
+mcs.metadata:
+  componentName: vpn-setup.md
+  description: This knowledge source searches information contained in vpn-setup.md
+```
+
+That `description` is a boilerplate placeholder, not the real `botcomponent.description`. The official Copilot Studio extension's Apply Changes does not push edits to this field back to Dataverse. So:
+
+- Real descriptions live in Dataverse only; the local mirror does not round-trip them.
+- Editing `mcs.metadata.description` in the YAML and running Apply Changes has no observable effect on the orchestrator.
+- For source-controlled ALM of descriptions, keep the authoritative text outside the mirror — see the override pattern below.
+
+### Setting the real description via the Dataverse Web API
+
+Three requests per file:
+
+1. `POST {org}/api/data/v9.2/botcomponents` to create the row with `componenttype = 14`, `parentbotid@odata.bind`, and a unique `schemaname`.
+2. `PATCH {org}/api/data/v9.2/botcomponents(<id>)/filedata` with the raw bytes and `x-ms-file-name`.
+3. `PATCH {org}/api/data/v9.2/botcomponents(<id>)` with `{ "description": "<real description>" }`.
+
+Step 3 is the routing-correctness step that the portal does in the same screen as upload but the API splits into a separate request. Returns 204 No Content. The portal's knowledge-source description box reflects the new value immediately.
+
+Auth: `az account get-access-token --resource https://<org>.crm.dynamics.com --tenant <tenantId>`. Tenant must match `.mcs/conn.json#AccountInfo.TenantId` or Dataverse returns 403 "The user is not a member of the organization."
+
+### CPSAgentKit override block for source-controlled descriptions
+
+To keep descriptions reviewable in source control without colliding with the platform-generated mirror, add an explicit `cpsAgentKit.description` block at the top of the local mirror YAML:
+
+```yaml
+cpsAgentKit:
+  description: >-
+    VPN setup runbook covering split-tunnel, MFA enrolment, and macOS
+    client install. Do not use for general networking questions.
+mcs.metadata:
+  componentName: vpn-setup.md
+  description: This knowledge source searches information contained in vpn-setup.md
+kind: KnowledgeSourceConfiguration
+```
+
+`cpsAgentKit.description` is the source of truth for the description. The `mcs.metadata.description` placeholder is left untouched so Get Changes and Apply Changes stay clean. Push the override to Dataverse via the MCP tool `cps_plan_knowledge_descriptions` (returns the GET/PATCH plan) and the bundled CLI helper `node scripts/push-knowledge-descriptions.mjs <agentFolder>` (executes against `az`-acquired tokens). Both refuse to PATCH placeholder text.
+
+### Schema-name suffix for programmatic file creation
+
+`schemaname` is required on create. The portal generates a 3-char random suffix automatically; the API does not. Use the form `<solutionPrefix>_<agentSchemaName>.file.<filename>_<suffix>` and choose a stable suffix the maker controls (e.g. `_a01`, `_a02`) rather than guessing the portal's pattern. The suffix is opaque to retrieval and to the orchestrator; the only constraint is uniqueness within the agent.
+
+### Bulk workflow (until first-party tooling lands)
+
+1. Confirm `<agentFolder>/.mcs/conn.json` is current and `az login` targets the tenant in `AccountInfo.TenantId`.
+2. For each uploaded file, add or update the `cpsAgentKit.description` block at the top of `knowledge/files/<file>.mcs.yml` in a feature branch and review in PR.
+3. Call MCP `cps_plan_knowledge_descriptions` (or run `node scripts/push-knowledge-descriptions.mjs <agentFolder> --dry-run`) to see the planned PATCHes.
+4. Run `node scripts/push-knowledge-descriptions.mjs <agentFolder>` to PATCH the descriptions onto Dataverse. The helper skips placeholder mirrors and entries without a `cpsAgentKit.description` override.
+5. Validate retrieval in Activity Map. Descriptions only affect routing, so retrieval changes show up as different sources being selected for the same question.
+
 ## Common Failures
 
 - Documents recently added/changed may not be indexed yet (5-30 min delay)

@@ -87,3 +87,22 @@ for (const { label, src, dest } of targets) {
   copyDir(src, dest);
   console.log(`[copy-shared-assets] ${label}: ${path.relative(repoRoot, dest)}`);
 }
+
+// Single-file copies (e.g. LICENSE for vsce packaging).
+const fileCopies = [
+  {
+    label: "extension LICENSE",
+    src: path.join(repoRoot, "LICENSE"),
+    dest: path.join(repoRoot, "packages", "extension", "LICENSE"),
+  },
+];
+
+for (const { label, src, dest } of fileCopies) {
+  if (!fs.existsSync(src)) {
+    console.warn(`[copy-shared-assets] source missing: ${src}`);
+    continue;
+  }
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.copyFileSync(src, dest);
+  console.log(`[copy-shared-assets] ${label}: ${path.relative(repoRoot, dest)}`);
+}

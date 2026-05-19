@@ -7,3 +7,17 @@
 
 export { loadKnowledgeStore } from "./loader.js";
 export type { KnowledgeStore, KnowledgeSource } from "./loader.js";
+
+export {
+  planKnowledgeDescriptions,
+  planEntryFromYaml,
+  readConnInfo,
+  extractScalar,
+  isPlaceholderDescription,
+  buildLookupUrl,
+} from "./descriptionPlanner.js";
+export type {
+  KnowledgeConnInfo,
+  KnowledgeDescriptionPlan,
+  KnowledgeDescriptionPlanEntry,
+} from "./descriptionPlanner.js";

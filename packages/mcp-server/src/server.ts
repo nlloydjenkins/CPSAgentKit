@@ -21,6 +21,7 @@ import {
   generateTopicScaffolds,
   parsePromptConfig,
   buildPromptUpdate,
+  planKnowledgeDescriptions,
   safePath,
   type PromptSegment,
 } from "@cpsagentkit/core";
@@ -676,6 +677,47 @@ export async function createServer(): Promise<McpServer> {
           allowPlaceholderChange,
         });
         return jsonContent(result);
+      } catch (err) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: err instanceof Error ? err.message : String(err),
+            },
+          ],
+          isError: true as const,
+        };
+      }
+    },
+  );
+
+  reg.registerTool(
+    "cps_plan_knowledge_descriptions",
+    {
+      title:
+        "Plan Dataverse PATCH operations for uploaded-file knowledge descriptions",
+      description:
+        "Reads `<agentFolder>/.mcs/conn.json` and every `<agentFolder>/knowledge/files/*.mcs.yml` mirror (including child agents under `agents/*/knowledge/files/`) and returns a plan of Dataverse Web API PATCH operations to set `botcomponent.description` for each uploaded-file knowledge source. The plan does not execute network calls; callers acquire a tenant-aligned Dataverse token and issue the GET (to resolve `botcomponentid` from `name + _parentbotid_value`) followed by the PATCH. Use this to round-trip orchestrator-routing descriptions that the official Copilot Studio extension's Apply Changes does not push back to Dataverse. Sources of truth, in priority order: (1) `cpsAgentKit.description` block at the top of the mirror YAML (recommended — survives Apply Changes), (2) `mcs.metadata.description` when it is not the auto-generated placeholder. Entries with placeholder, missing, or empty descriptions are returned with `ready: false` and an explicit `notReadyReason`.",
+      inputSchema: {
+        agentFolder: z
+          .string()
+          .min(1)
+          .describe(
+            "Absolute filesystem path to the cloned CPS agent folder that contains `.mcs/conn.json` and `knowledge/files/`.",
+          ),
+      },
+    },
+    async ({ agentFolder }: { agentFolder: string }) => {
+      const pathErr = validateAbsolutePath(agentFolder, "agentFolder");
+      if (pathErr) {
+        return {
+          content: [{ type: "text" as const, text: pathErr }],
+          isError: true as const,
+        };
+      }
+      try {
+        const plan = await planKnowledgeDescriptions(agentFolder);
+        return jsonContent(plan);
       } catch (err) {
         return {
           content: [

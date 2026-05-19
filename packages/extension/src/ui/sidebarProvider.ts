@@ -306,6 +306,30 @@ export class SidebarProvider
             undefined,
             !hasAgent ? "sync a CPS agent first" : undefined,
           ),
+          new CommandTreeItem(
+            "Configure Agent Tests…",
+            "cpsAgentKit.configureAgentTests",
+            "gear",
+            init && hasAgent,
+            undefined,
+            !hasAgent ? "sync a CPS agent first" : undefined,
+          ),
+          new CommandTreeItem(
+            "Run Agent Tests",
+            "cpsAgentKit.runAgentTests",
+            "play",
+            init && hasAgent,
+            undefined,
+            !hasAgent ? "sync a CPS agent first" : undefined,
+          ),
+          new CommandTreeItem(
+            "Connect Azure OpenAI Judge…",
+            "cpsAgentKit.connectAzureOpenAIJudge",
+            "key",
+            init && hasAgent,
+            undefined,
+            !hasAgent ? "sync a CPS agent first" : undefined,
+          ),
         ];
 
       case "Demos":

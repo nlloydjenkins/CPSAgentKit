@@ -210,6 +210,20 @@ source:
 
 The `description` in `mcs.metadata` is critical at scale — beyond 25 knowledge sources, the orchestrator uses an internal GPT to filter which sources to search based on descriptions. The default auto-generated description ("This knowledge source answers questions found in the following Dataverse items: Account") is functional but should be rewritten to be specific about what domain/topic the table covers and what it does NOT cover.
 
+**Uploaded file** (`kind: KnowledgeSourceConfiguration`, `source.kind: FileKnowledge`):
+
+```yaml
+cpsAgentKit: # CPSAgentKit override — source of truth for the description
+  description: >- # SAFE to edit — pushed to Dataverse botcomponent.description by push-knowledge-descriptions.mjs
+    <description used by orchestrator for source selection>
+mcs.metadata:
+  componentName: <file name> # UNTOUCHABLE — set by upload
+  description: This knowledge source searches information contained in <file> # UNTOUCHABLE — boilerplate placeholder that does NOT round-trip on Apply Changes
+kind: KnowledgeSourceConfiguration # UNTOUCHABLE
+```
+
+For uploaded files the `mcs.metadata.description` is a platform placeholder. Editing it in the YAML and running Apply Changes does NOT push it to Dataverse. The real description lives on `botcomponent.description` and must be PATCHed via the Dataverse Web API. Use the MCP tool `cps_plan_knowledge_descriptions` to generate the request plan and `node scripts/push-knowledge-descriptions.mjs <agentFolder>` to execute it. Keep the authoritative text in the `cpsAgentKit.description` override block so descriptions are reviewable in source control.
+
 ---
 
 _Last updated: March 2026. The platform changes fast — validate against your environment._

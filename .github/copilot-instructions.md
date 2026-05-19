@@ -96,6 +96,7 @@ Read these files when you need detailed platform knowledge for design, build, or
 - `docs/knowledge/prompt-sync.md`
 - `docs/knowledge/reference-library.md`
 - `docs/knowledge/reference-patterns.md`
+- `docs/knowledge/retrieval-internals.md`
 - `docs/knowledge/tool-descriptions.md`
 - `docs/knowledge/troubleshooting.md`
 - `docs/knowledge/yaml-syntax.md`
