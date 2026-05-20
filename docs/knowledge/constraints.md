@@ -39,6 +39,8 @@
 - No multi-level chaining (parent→child→child's child blocked). Flatten hierarchy.
 - Connected agent responses are always summarised by the parent orchestrator — by design, for security.
 - Citations/links stripped in parent-child handoffs.
+- Microsoft Foundry connected agents are supported from Copilot Studio as a public preview external-agent type. They require a Foundry project endpoint and agent ID, and current documentation limits this path to agents created in the new Microsoft Foundry portal. Treat this as an invocation/delegation path, not a general Foundry management surface.
+- A2A connected agents are also supported for external agents that implement the Agent2Agent protocol. Use A2A or a custom API/connector when you need explicit authentication, full payload control, or production-grade observability around an external agent.
 - MCP tools on child agents are NOT invoked when called via parent orchestration. The child agent fires, but MCP calls don't execute. Workaround: parent owns the MCP tool and passes results to children as context.
 - Child agents have separate tool limits from the parent (benefit of using them).
 - **Autonomous triggers (scheduled)** can only be owned by top-level (parent) agents. Child agents CANNOT own triggers. If the child runs the proactive logic, triggers must be on the parent with delegation to the child.

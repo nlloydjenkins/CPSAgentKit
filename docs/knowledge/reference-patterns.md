@@ -112,7 +112,7 @@ Do not place active child-owned `.mcs.yml` files under a newly scaffolded child 
 
 Action YAML is stricter than child-agent YAML. A minimal manual `TaskDialog` stub can pass diagnostics only when it includes `action.connectionReference`, and reliable portal acceptance also requires a root `connectionreferences.mcs.yml` containing the referenced logical names. This is a reference-backed scaffold path: use it only when the artifact shape comes from a known-good export/API pattern and the active workspace contains the real tenant connection reference logical names. Treat the result as provisional until the manual acceptance and runtime validation gates pass.
 
-A validated action shape and operation ID are not enough. Do not create active `.mcs.yml` or staged `.mcs.yml.staged` action files if the active workspace lacks root `connectionreferences.mcs.yml`, exported `actions/*.mcs.yml`, child `agents/*/actions/*.mcs.yml`, or connection-reference logical names in `.mcs/botdefinition.json`. In that case, complete unrelated safe build work first, then checklist the smallest blocker: create/sync the connector or provide a real root `connectionreferences.mcs.yml` with the tenant-specific logical names.
+A validated action shape and operation ID are not enough. Do not create active `.mcs.yml` or staged `.mcs.yml.staged` action files if the active workspace lacks root `connectionreferences.mcs.yml`, exported `actions/*.mcs.yml`, child `agents/*/actions/*.mcs.yml`, or connection-reference logical names in `.mcs/botdefinition.json`. In that case, complete unrelated safe build work first, then checklist the smallest blocker: create or sync one representative connector/MCP seed that exposes the real connection reference values, or provide a real root `connectionreferences.mcs.yml` with the tenant-specific logical names. Do not list every planned tool when one seed action is enough to unblock CPSAgentKit.
 
 Reference-shaped action files should preserve the portal/export pattern:
 
@@ -130,6 +130,9 @@ Before declaring a new action blocked, use the bundled CPSAgentKit reference pat
 ### Seeding When the Active Workspace Has No Exports
 
 If the active workspace has no exported `actions/*.mcs.yml`, no `connectionreferences.mcs.yml`, and no `.mcs/conn.json`, do not stop at a broad blocker and do not fabricate `action.connectionReference` values. Ask the developer for the smallest platform-generated seed:
+
+- If the workspace has no cloned/synced Copilot Studio agent folder yet, `Requirements/build-checklist.md` should be a short first-pass action checklist: create the agent shell in Copilot Studio, add one representative required tool only if needed to generate tenant connection references or action shape, run Get Changes/clone/sync so the local agent folder and generated files exist, then run Build Agent again.
+- Keep the bootstrap checklist minimal and persistent. Update the same file after later Build passes by removing completed bootstrap items and adding only the next essential actions. Use direct checkbox items such as `Update Dataverse connection.`, `Update Office 365 Users connection.`, `Run Copilot Studio: Get Changes.`, and `Run CPSAgentKit: Build Agent again.` Do not expand the first pass into one checklist item per planned tool, topic, child agent, or knowledge source.
 
 - For connection reference values, any exported tool using the same connector reveals the tenant `connectionReference` logical name.
 - For active action YAML, prefer a reference export of the exact tool, otherwise the same operation family.

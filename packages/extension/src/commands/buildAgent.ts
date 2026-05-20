@@ -60,14 +60,34 @@ function isTemplateArchitecture(content: string): boolean {
   );
 }
 
-async function offerPreBuildAgent(message: string): Promise<void> {
-  const action = await vscode.window.showWarningMessage(
-    message,
-    "Run Pre-Build Agent",
-    "Cancel",
+async function writeCreatePlanChecklist(root: string): Promise<void> {
+  const requirementsDir = path.join(root, "Requirements");
+  const checklistPath = path.join(requirementsDir, "build-checklist.md");
+  const content = [
+    "# Build Checklist",
+    "",
+    "## Actions",
+    "- [ ] Run CPSAgentKit: Create Plan.",
+    "- [ ] Review Requirements/spec.md and Requirements/architecture.md.",
+    "- [ ] Run CPSAgentKit: Build Agent again.",
+    "",
+  ].join("\n");
+
+  await fs.mkdir(requirementsDir, { recursive: true });
+  await fs.writeFile(checklistPath, content, "utf-8");
+
+  const doc = await vscode.workspace.openTextDocument(checklistPath);
+  await vscode.window.showTextDocument(doc, { preview: true });
+}
+
+async function createPlanChecklistAndNotify(root: string): Promise<void> {
+  await writeCreatePlanChecklist(root);
+  const action = await vscode.window.showInformationMessage(
+    "CPSAgentKit: Build checklist created. Create Plan, review the plan files, then run Build Agent again.",
+    "Create Plan",
   );
-  if (action === "Run Pre-Build Agent") {
-    await vscode.commands.executeCommand("cpsAgentKit.preBuildAgent");
+  if (action === "Create Plan") {
+    await vscode.commands.executeCommand("cpsAgentKit.createSpec");
   }
 }
 
@@ -87,9 +107,7 @@ export async function buildAgentCommand(): Promise<void> {
   try {
     spec = await fs.readFile(specPath, "utf-8");
   } catch {
-    await offerPreBuildAgent(
-      "CPSAgentKit: Requirements/spec.md not found. Run Pre-Build Agent to generate reviewable spec and architecture files first?",
-    );
+    await createPlanChecklistAndNotify(root);
     return;
   }
 
@@ -99,16 +117,12 @@ export async function buildAgentCommand(): Promise<void> {
   try {
     architecture = await fs.readFile(archPath, "utf-8");
   } catch {
-    await offerPreBuildAgent(
-      "CPSAgentKit: Requirements/architecture.md not found. Run Pre-Build Agent to generate reviewable spec and architecture files first?",
-    );
+    await createPlanChecklistAndNotify(root);
     return;
   }
 
   if (isTemplateSpec(spec) || isTemplateArchitecture(architecture)) {
-    await offerPreBuildAgent(
-      "CPSAgentKit: Requirements/spec.md or Requirements/architecture.md still looks like the starter template. Run Pre-Build Agent to turn requirements docs into reviewable planning files before building?",
-    );
+    await createPlanChecklistAndNotify(root);
     return;
   }
 
@@ -340,7 +354,9 @@ function composeBuildPrompt(
     "",
     "### CRITICAL: Staged Build Protocol",
     "- If Requirements/spec.md or Requirements/architecture.md is missing or still the starter template, do not start a build. First generate both files from Requirements/docs/ so the developer can review and refine them before committing to build work. Build Agent may do this fallback planning step only for missing/template planning files; otherwise, treat reviewed spec and architecture as the build contract.",
-    "- Build is action-first and creation-first. Before writing a build checklist or stopping, create every agent, topic, tool/action, knowledge source, schema, seed record, publishing setting, and build artifact that has a verified local YAML, MCP, Dataverse/CPS Web API, or reference-backed export path available in the current workspace.",
+    "- Build is action-first and creation-first. Before writing a build checklist or stopping, create every agent, topic, tool/action, knowledge source, schema, seed record, publishing setting, and build artifact that has a verified local YAML, MCP, Dataverse/CPS Web API, or reference-backed export path available in the current workspace. Exception: when the workspace has no cloned/synced Copilot Studio agent folder yet, the checklist is the first-pass bootstrap handoff because there is no local agent surface to edit.",
+    "- Treat `Requirements/build-checklist.md` as a persistent build handoff. Create it on the first Build pass when essential portal/admin bootstrap work is required, and update the same file on every later Build pass by removing completed items and adding only newly discovered essential blockers. Do not append duplicate historical checklists.",
+    "- In a fresh workspace where the agent has not been cloned/synced into local YAML, checklist only the minimum portal seed needed for CPSAgentKit to take over: create the Copilot Studio agent shell, add exactly one representative required tool/connector/MCP action only if needed to generate tenant connection references or action shape, run Get Changes/clone/sync so the agent folder and generated files appear locally, then run Build Agent again. Do not list every planned tool, topic, child agent, or knowledge source when one seed tool is enough to expose the generated bindings.",
     "- Do not use the staged build protocol as a reason to produce only a plan. A plan is useful, but it is not sufficient when safe actions are available.",
     "- Build Agent must do this work itself, not hand it back as manual setup, whenever the required tenant value/auth context and verified path exist. Manual checklist items are only for missing tenant values, missing auth/connection context, missing verified patterns, admin/policy gates, or the explicit Apply Changes/portal inspection/Get Changes/Activity Map acceptance gate.",
     "- Do not tell the developer to create agents, child-agent shells, topic shells, agent instructions, topic descriptions, tool descriptions, settings updates, Build State updates, or Dataverse schema manually when the workspace and configured tools let you create them. Those are Build Agent responsibilities.",
@@ -351,7 +367,7 @@ function composeBuildPrompt(
     "- Reference-backed portal artifact creation is a required provisional build action when a known-good export/API pattern exists for the target artifact and tenant-specific connection/auth values are available. This includes connector action YAML, MCP attachment YAML, direct uploaded-file knowledge, SharePoint knowledge attachment, child-owned knowledge, child-owned connector actions, and Teams publishing metadata when the pattern has already survived Apply Changes, portal inspection, Get Changes, and runtime validation in this product's reference builds. Exception: child-owned artifacts must follow the two-pass child ParentId rule below.",
     "- The IT Help Desk reference build has validated these as Build Agent actions when tenant-specific connection/auth values are available: scaffold `Knowledge Specialist` and `Notification Specialist` child agents, attach `Microsoft Dataverse MCP Server` to the parent, add Office 365 Users `Get my profile (V2)` to the parent, stage Teams `Post message in a chat or channel` and Outlook `Send an email from a shared mailbox (V2)` for `Notification Specialist` until the child exists in the cloud, configure Teams publishing metadata, and add approved knowledge by a verified backend/API path. Do not list these as manual creation tasks unless the specific required tenant value, auth context, connection reference logical name, verified pattern, or required child cloud component is missing.",
     "- The reusable IT Help Desk action template consists of root `connectionreferences.mcs.yml`, parent actions `MicrosoftDataverse-MicrosoftDataverseMCPServer.mcs.yml` and `Office365Users-GetmyprofileV2.mcs.yml`, and staged child actions `MicrosoftTeams-Postmessageinachatorchannel.mcs.yml.staged` and `Office365Outlook-SendanemailV2.mcs.yml.staged` under the child actions folder until `Notification Specialist` exists in the cloud. Known operation IDs are `InvokeMCP`, `MyProfile_V2`, `PostMessageToConversation`, and `SendEmailV2`. Only create active or staged action files when the workspace contains the real tenant connection reference logical names in root `connectionreferences.mcs.yml`, exported action YAML, child action YAML, or `.mcs/botdefinition.json`. Never invent `action.connectionReference` values from connector IDs or examples. Parameterize agent folder names, Dataverse table/choice mappings, shared mailbox and Teams channel wording, and exact `modelDisplayName` values used in slash references.",
-    "- CRITICAL connection binding rule: a validated action shape and operation ID are not enough to create new action YAML. This rule applies at the point of creating or attaching connector/MCP action YAML; it must not prevent unrelated Build work. If a required tool already exists in synced `actions/` YAML, use the existing file, update only safe fields such as `modelDescription`, and reference its exact `modelDisplayName`. If the tool is missing and you need to create active `.mcs.yml` or staged `.mcs.yml.staged` action files, first verify the tenant-specific `action.connectionReference` logical name and matching root `connectionreferences.mcs.yml` entry exist for each connector/MCP tool. If the active workspace has no root `connectionreferences.mcs.yml`, no exported action YAML, no child action YAML, and no connection-reference logical names in `.mcs/botdefinition.json`, do not create tool YAML. Complete all unrelated safe build work first, then checklist the smallest blocker: create/sync the connector or provide real `connectionreferences.mcs.yml` values.",
+    "- CRITICAL connection binding rule: a validated action shape and operation ID are not enough to create new action YAML. This rule applies at the point of creating or attaching connector/MCP action YAML; it must not prevent unrelated Build work. If a required tool already exists in synced `actions/` YAML, use the existing file, update only safe fields such as `modelDescription`, and reference its exact `modelDisplayName`. If the tool is missing and you need to create active `.mcs.yml` or staged `.mcs.yml.staged` action files, first verify the tenant-specific `action.connectionReference` logical name and matching root `connectionreferences.mcs.yml` entry exist for each connector/MCP tool. If the active workspace has no root `connectionreferences.mcs.yml`, no exported action YAML, no child action YAML, and no connection-reference logical names in `.mcs/botdefinition.json`, do not create tool YAML. Complete all unrelated safe build work first, then checklist the smallest blocker: create or sync one representative connector/MCP seed that exposes the real connection reference values, not every planned tool.",
     "- CRITICAL child ParentId rule: never place active child-owned action YAML, knowledge YAML, prompt-tool YAML, or other child-owned `.mcs.yml` artifacts under `agents/<Child>/` before that child agent exists in the cloud. Copilot Studio Apply Changes can fail with `ParentId does not exist on cloud: <schema>.agent.<Child>` because it tries to create child-owned tools before the child botcomponent exists. First pass: create only the child `agent.mcs.yml`, parent-owned tools, root connection references, topics, and settings. Stage child-owned action files as `.mcs.yml.staged` or in a non-applied staging location. After Apply Changes succeeds and Get Changes confirms the child exists, rename staged child-owned files back to `.mcs.yml`, then run a second Apply Changes/Get Changes pass.",
     "- Portal-owned actions remain checklist items only when no verified export/API path exists, tenant-specific connection/auth values are missing, or the remaining step is the required manual acceptance gate. Do not leave agents, topic shells, connector actions, MCP attachment, direct knowledge upload, SharePoint knowledge attachment, child-owned tools, child-owned knowledge, or Teams publishing as manual steps just because they are portal-owned if a verified local/API/reference-backed path is available. Never checklist `create the topics` or `create the agent` when you can scaffold their YAML.",
     "- If Dataverse tables are required for connector/action setup and Dataverse MCP is configured, create or reconcile the schema before connector/action scaffolding or any deferred portal fallback. Connectors cannot be properly created against tables that do not exist yet.",
@@ -363,19 +379,22 @@ function composeBuildPrompt(
     "- `Requirements/build-checklist.md` is the final must-do list after Build has created every artifact it can through local YAML, MCP, Dataverse/CPS Web API, or verified reference-backed export paths. Do not create or update it as the first or only build action unless literally no build action is available.",
     "- Whenever the build still requires essential deferred admin/portal action, missing build-time configuration, expected synced YAML, or portal-generated artifacts after all local/API/reference-backed actions are complete, create or update `Requirements/build-checklist.md` before ending your response.",
     "- Never put an item in `Requirements/build-checklist.md` if Build Agent can perform that action itself with the current workspace files and configured tools. Perform it, then summarize it as completed instead.",
-    "- The checklist is a required build artifact, but it must be short. It is an essential action list, not a validation log, status report, or troubleshooting checklist.",
+    "- The checklist is a required build artifact, but it must be a simple action list, not a validation log, status report, troubleshooting checklist, runbook, or explanation of why work is blocked.",
+    "- The checklist is persistent across Build passes. If it already exists, update it in place: remove completed bootstrap items, keep still-blocking essentials, and add only the next smallest blockers. Do not produce a second checklist or preserve obsolete items as history.",
     "- Use these headings exactly:",
     "  # Build Checklist",
-    "  ## Essential Actions",
-    "  ## Build-Time Configuration Needed",
-    "  ## Resume Instructions",
-    "  ## Blockers",
+    "  ## Actions",
+    "- Every checklist item must be a checkbox bullet using `- [ ]` followed by one short imperative instruction.",
+    "- Do not use labels or prefixes such as `Deferred portal/admin action:`, `Needs user value:`, `Programmatic knowledge upload:`, `Manual tenant/admin prerequisite:`, `Blocker:`, or `Build Agent after sync:`.",
+    "- Do not create separate sections for blockers, configuration, resume instructions, background, reasons, or completed work. Convert each blocker or missing value into a direct action in `## Actions`.",
+    "- Keep each item under 12 words when possible. Use plain verbs: `Update`, `Add`, `Provide`, `Run`, `Upload`, `Sync`, `Enable`, `Set`.",
+    "- Keep one action per item. Do not combine multiple actions with semicolons, `and then`, or long explanatory clauses.",
     "- Only list incomplete actions that are essential before the agent can run. Do NOT list completed work, expected files, general verification, Activity Map checks, YAML hygiene checks, or troubleshooting probes.",
-    "- Keep the checklist compact: target 5-15 items. If there are many similar items, group them into one action, such as 'Apply Changes and inspect the scaffolded Dataverse connector actions...' or 'Provide the Teams channel and shared mailbox values needed to finish notification tooling...'.",
-    "- Use these item classifications only when helpful: `Needs user value`, `Deferred portal/admin action`, `Manual tenant/admin prerequisite`, `Dataverse MCP build action`, `Programmatic knowledge upload`, `Build Agent after sync`.",
-    "- `Essential Actions` is for required setup/build steps that are not done yet and block a runnable agent after Build has created every local/API/reference-backed artifact it can: missing tenant/admin values, missing auth/connection context, required Dataverse schema/data that no configured MCP can create, required knowledge upload with no API/auth path, required prompt tools with no verified path, required channels, required permissions, or Apply Changes/Get Changes when needed for the next build step.",
-    "- `Build-Time Configuration Needed` is for tenant-specific values the maker must provide, such as real email addresses, Teams channels, SharePoint libraries, Dataverse publisher prefix/table names, service accounts, business hours, or routing owners. Do not hard-code sample values from use-case docs when this section is unresolved.",
-    "- `Resume Instructions` should be one or two lines telling the developer exactly what to do after completing the essential actions, e.g. run Get Changes and reply DONE.",
+    "- Keep the checklist compact: target 3-8 items, and often fewer for a first pass.",
+    "- For connection-reference blockers, write direct connection actions, for example: `- [ ] Update Dataverse connection.`, `- [ ] Update Office 365 Users connection.`, `- [ ] Update Teams connection.`, `- [ ] Update Outlook connection.`, `- [ ] Run Copilot Studio: Get Changes.`",
+    "- For missing build-time configuration, write direct value actions, for example: `- [ ] Provide IT support shared mailbox.`, `- [ ] Provide Teams escalation channel.`, `- [ ] Confirm office location choices.`",
+    "- For first-pass bootstrap with no cloned/synced agent folder, the checklist should usually contain only: `- [ ] Create Copilot Studio agent shell.`, `- [ ] Add one required connector or MCP tool.`, `- [ ] Run Copilot Studio: Get Changes.`, `- [ ] Run CPSAgentKit: Build Agent again.`",
+    "- The final item should usually be `- [ ] Run CPSAgentKit: Build Agent again.` unless the remaining actions complete the build without another pass.",
     "- Put diagnostic checks and validation guidance in troubleshooting notes or the final response only when something fails. Do not put routine 'verify/check/confirm' items in the checklist unless they are the actual required setup action.",
     "- Keep `Requirements/architecture.md` Build State aligned at a high level, but do not mirror every diagnostic gate into `Requirements/build-checklist.md`.",
     "",
@@ -466,7 +485,7 @@ function composeBuildPrompt(
         multiAgentRules +
         autonomousPipelineRules +
         [
-          "## Task: Full Build (Create Local/API Artifacts → Checklist Only Blockers)",
+          "## Task: Full Build (Create Local/API Artifacts → Short Action Checklist)",
           "",
           "Run this as an action-first staged build. In the current response, create every artifact you can before writing or updating `Requirements/build-checklist.md`: agents, topics, tools/actions, knowledge sources, Dataverse schema, seed data, publishing metadata, and build artifacts. Do not stop at planning when you can create/reconcile Dataverse schema, update existing safe YAML fields, scaffold deterministic topic YAML, provision direct uploaded-file knowledge, attach SharePoint knowledge through a verified backend/API or export-shaped path, create reference-backed connector/MCP action YAML, configure Teams publishing metadata from a verified pattern, or update build artifacts. Do not hand-author portal-owned generated structures when no verified export/API pattern exists, such as prompt tool YAML, trigger YAML, or unverified execution nodes.",
           "",
@@ -479,7 +498,7 @@ function composeBuildPrompt(
           "3. Topic inventory — every custom/system topic to create or update and why it exists.",
           "4. Knowledge inventory — sources to attach or upload, descriptions to use, routing intent, owner agent, and creation path: existing YAML, programmatic uploaded-file knowledge via Dataverse botcomponent/filedata, verified backend/API/export-shaped attachment, or unresolved portal fallback only when no verified path exists.",
           "5. Settings — generative orchestration, general knowledge, web browsing, semantic search, file analysis, auth, content moderation, and channel settings.",
-          "6. Deferred portal/admin blockers — exact portal or admin work that remains only after all local/API/reference-backed build work is complete.",
+          "6. Remaining user actions — exact portal, admin, connection, sync, or value steps that remain only after all local/API/reference-backed build work is complete.",
           "7. Sync/acceptance dependency — the minimum Apply Changes, portal inspection, Get Changes, or generated artifact acceptance gate needed before the next local implementation pass can continue.",
           "8. Validation gates — keep these in your reasoning and final notes, but do not expand them into `Requirements/build-checklist.md` unless they are required setup actions.",
           "",
@@ -493,11 +512,11 @@ function composeBuildPrompt(
                 "",
               ]
             : []),
-          "### Stage 2 — Create every buildable artifact, then checklist only blockers",
+          "### Stage 2 — Create every buildable artifact, then write a short action checklist",
           "",
-          "Before listing portal steps, create every artifact available in this workspace and through configured tools or verified reference-backed patterns. Agents, child-agent shells, topic shells, instructions, descriptions, settings updates, Dataverse schema, seed data, and existing tool descriptions must be created or updated before any blocker list. Then give exact portal instructions only for unresolved blockers. Include:",
+          "Before listing remaining user actions, create every artifact available in this workspace and through configured tools or verified reference-backed patterns. Agents, child-agent shells, topic shells, instructions, descriptions, settings updates, Dataverse schema, seed data, and existing tool descriptions must be created or updated before the checklist. Then write only the exact remaining user actions. Include:",
           "- Do not begin Stage 2 by hunting for connection files. Begin by inventorying the current agent YAML and creating buildable non-action artifacts. Only when a required new connector/MCP action is missing should you proactively search active-workspace reference folders and findings files for validated tool patterns: `Reference/`, `Requirements/*tool*yaml*findings*.md`, `Requirements/*product*notes*.md`, `Requirements/*implementation*sketch*.md`, root `connectionreferences.mcs.yml`, exported `actions/*.mcs.yml`, and child `agents/*/actions/*.mcs.yml`. Use only files under the active workspace root during a Build Agent run. Use validated findings as build inputs.",
-          "- If build-time configuration values are missing or sample defaults need confirmation, ask for those values in the chat response and record them in `Requirements/build-checklist.md` under Build-Time Configuration Needed. Continue with safe work that does not depend on those values. Do not hard-code sample email addresses, Teams channels, service accounts, SharePoint URLs, or Dataverse prefixes as if they were tenant facts.",
+          "- If build-time configuration values are missing or sample defaults need confirmation, ask for those values in the chat response and record each missing value as a short checkbox action in `Requirements/build-checklist.md`. Continue with safe work that does not depend on those values. Do not hard-code sample email addresses, Teams channels, service accounts, SharePoint URLs, or Dataverse prefixes as if they were tenant facts.",
           "- Create/attach every agent with exact name and role. Top-level instructions and existing agent YAML updates are local Build work. When no portal-generated child folder exists and a verified child-agent shape is available, scaffold `agents/<SafeFolderName>/agent.mcs.yml` locally, then require Apply Changes and portal acceptance before any child-owned artifacts become active `.mcs.yml` files. For the IT Help Desk reference build, `Knowledge Specialist` and `Notification Specialist` are known guarded child-agent scaffolds; create them before writing a checklist unless the scaffold already failed validation.",
           "- Create/attach every connector/action, MCP server, prompt tool, Power Automate flow, knowledge source, and trigger that has a verified local YAML, MCP, Dataverse/CPS Web API, or reference-backed export path and the real tenant binding values required by that path. Portal-first is the fallback only for the specific missing generated action, binding, prompt-tool, trigger, flow, or auth artifact when no verified reference/API path exists or tenant connection references are missing; it is never a reason to defer agents, topic shells, instructions, descriptions, settings, Dataverse schema, or existing tool updates. Uploaded-file knowledge must be ingested through Dataverse `botcomponent` + `filedata` when tenant-aligned API auth is available; SharePoint knowledge must use a verified backend/API or export-shaped path when tenant site/library values are available. Otherwise ask only for the missing tenant value or auth path, not for the maker to recreate the artifact by hand. Do not create local knowledge YAML for ingestion. Use reference-backed action scaffolding when a working export pattern exists and root `connectionreferences.mcs.yml` or exported YAML provides the real connection reference logical names, including round-trip/runtime validation gates. For the IT Help Desk reference build, Dataverse MCP attachment, Office 365 Users `Get my profile (V2)`, and Teams publishing metadata are known reference-backed patterns, but create their action YAML only when tenant connection references are known. Stage child-owned Teams `Post message in a chat or channel` and Outlook `Send an email from a shared mailbox (V2)` as `.mcs.yml.staged` only when their real connection references are known and until Get Changes confirms `Notification Specialist` exists in the cloud; only then rename them to `.mcs.yml` for the second Apply Changes pass. For MCP tools, include subtool discovery validation and the off-refresh-on portal remediation if subtools are missing.",
           "- When using the IT Help Desk tool template, create or parameterize root `connectionreferences.mcs.yml`, parent actions `MicrosoftDataverse-MicrosoftDataverseMCPServer.mcs.yml` and `Office365Users-GetmyprofileV2.mcs.yml`, and staged child actions `MicrosoftTeams-Postmessageinachatorchannel.mcs.yml.staged` and `Office365Outlook-SendanemailV2.mcs.yml.staged` only when the real connection reference logical names are available. Preserve verified operation IDs: `InvokeMCP`, `MyProfile_V2`, `PostMessageToConversation`, and `SendEmailV2`. Rename staged child actions to `.mcs.yml` only after Apply Changes/Get Changes confirms the child exists in the cloud.",
@@ -506,10 +525,10 @@ function composeBuildPrompt(
           "- Specify authentication/run-as choices and any service-account or delegated identity requirements.",
           "- Specify content moderation and DLP/channel settings that are genuinely portal-only only after all local/API/reference-backed work is done.",
           "- Tell the developer to run Copilot Studio Apply Changes/Get Changes only after Build has created every local/API/reference-backed artifact available, so generated or portal-corrected YAML appears locally for the next pass.",
-          "- Save only the essential incomplete actions to `Requirements/build-checklist.md` after creating every buildable artifact. Do not include completed work, expected-file inventories, routine verification items, troubleshooting probes, or broad validation checklists.",
+          "- Save only short imperative checkbox actions to `Requirements/build-checklist.md` after creating every buildable artifact. Do not include completed work, expected-file inventories, reasons, classifications, routine verification items, troubleshooting probes, or broad validation checklists.",
           "",
           "End Stage 2 with a short build summary and this next step:",
-          "Complete only the remaining blockers or acceptance gates, run Copilot Studio Get Changes, then run Build Agent again.",
+          "Complete the checklist actions, run Copilot Studio Get Changes when listed, then run Build Agent again.",
           "",
           "### Stage 3 — Implementation after developer replies DONE",
           "",
@@ -528,7 +547,7 @@ function composeBuildPrompt(
           "5. **System topic customisation** — ConversationStart (greeting listing agent capabilities from architecture), Fallback (domain-specific re-prompting with capability guidance), Escalation (helpdesk contact + escalation logging from architecture), OnError (timestamp, test/prod branching, telemetry, CancelAllDialogs)",
           "6. **Trigger descriptions** — for each autonomous trigger in the architecture's trigger table, replace the generic description with the architecture-specific trigger definition (e.g. AT-001 Daily Operations Scan)",
           "7. **Settings coherence** — validate settings.mcs.yml against architecture: useModelKnowledge, webBrowsing, isSemanticSearchEnabled, content moderation level. Flag any mismatches.",
-          "8. **Deferred portal/admin blockers** — anything that still must be configured in the CPS portal UI after all local/API/reference-backed paths are exhausted. Explicitly flag content moderation as portal-only (no YAML surface).",
+          "8. **Remaining portal/admin actions** — anything that still must be configured in the CPS portal UI after all local/API/reference-backed paths are exhausted. Write these as short checklist actions. Explicitly flag content moderation as portal-only in the final notes, not as a verbose checklist explanation.",
           "9. **Settings coherence (mandatory)** — After generating all agent config, validate settings.mcs.yml against the architecture spec. Check: useModelKnowledge, webBrowsing, isSemanticSearchEnabled, isFileAnalysisEnabled, optInUseLatestModels vs modelNameHint, authenticationMode, GenerativeActionsEnabled. Flag portal defaults that contradict the architecture. If useModelKnowledge is false, note that follow-up clarifying questions are disabled.",
           "",
           "If CPS agent YAML files exist in the workspace after local scaffolding, Apply Changes, or Get Changes, modify them directly and report the file changes you made. If required generated runtime YAML files are still missing after reference discovery and no verified path exists, continue with every local/API/reference-backed artifact that remains possible, then identify only the unresolved blocker or acceptance gate instead of inventing files.",
@@ -536,7 +555,7 @@ function composeBuildPrompt(
           "Exception: if the developer explicitly opted into reference-backed action scaffolding, supplied a working reference export, or the product has a validated reference build for the exact first-party pattern, create reference-shaped `TaskDialog` action YAML and root `connectionreferences.mcs.yml`. Treat every scaffolded action as provisional until Apply Changes, Get Changes round-trip, portal enabled/no-error status, and Activity Map runtime execution are verified. For the IT Help Desk reference build, this includes Dataverse MCP attachment and Office 365 Users `Get my profile (V2)` as active parent-owned actions in the first pass, with child-owned Teams `Post message in a chat or channel` and Outlook `Send an email from a shared mailbox (V2)` staged until the child exists in the cloud.",
           "If these actions are created from a validated reference pattern, the remaining checklist item is the acceptance gate: Apply Changes, inspect the scaffolded tools in Copilot Studio, run Get Changes, validate MCP subtool discovery, and test in Activity Map. Do not phrase that checklist item as manual tool creation.",
           "Exception: if uploaded-file knowledge is required and you have a tenant-aligned Dataverse/CPS Web API auth path from `.mcs/conn.json`, you must upload the file by creating a `botcomponent` row with `componenttype = 14` and uploading raw bytes to the `filedata` column. Do not create local knowledge YAML as the ingestion mechanism. After upload, require Ready/processing confirmation, Get Changes, local descriptor verification, and Activity Map retrieval testing. If the auth path is unavailable, complete every other local/API/reference-backed action first, then require manual portal upload rather than fabricating YAML.",
-          "When required YAML files or configuration values are still missing, create or update `Requirements/build-checklist.md` with only the essential remaining actions and concise resume instructions before reporting the blocker.",
+          "When required YAML files or configuration values are still missing, create or update `Requirements/build-checklist.md` with only short checkbox actions before reporting the blocker.",
           "Do not return a plan that tells the developer to paste child-agent instruction blocks into Overview pages when those child-agent YAML files already exist in the workspace.",
           "When you find a child agent with YAML shaped like `kind: AgentDialog` plus `settings.instructions`, update that `settings.instructions` field directly.",
           "If the parent needs deterministic status lookup or a one-question clarification loop, create or update the relevant parent Topic(s) and wire that logic there. Do not describe this as a workflow to scaffold.",

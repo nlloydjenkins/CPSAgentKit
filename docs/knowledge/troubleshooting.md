@@ -113,7 +113,39 @@ For agent pipelines under iteration, ad-hoc testing is the fastest way to lose t
 2. Try adding instruction on parent: "Return connected agent responses exactly as received including all links."
 3. Try child agents instead of connected agents (slightly less summarisation).
 4. For full fidelity, expose sub-agent logic as a custom tool/API.
-5. [YOUR CONNECTED AGENT FIX FINDINGS GO HERE]
+
+## Foundry Agent Works in Foundry but Fails After Copilot Publish
+
+If the same prompt works reliably in Microsoft Foundry but fails only after the agent is connected to or published through Copilot Studio, treat the Azure AI Search index and Foundry retrieval path as provisionally healthy. The fault is usually at the Copilot Studio/Foundry boundary: connected-agent auth, network reachability, version binding, output shape, or parent-orchestrator summarisation.
+
+**Fast isolation path:**
+
+1. Test a non-retrieval prompt through the published Copilot agent: "Reply with exactly: Foundry connection OK." If this fails, diagnose connection, auth, network, or agent ID/version binding before changing search or prompts.
+2. Test a deterministic retrieval prompt in Foundry and in the published Copilot surface. If Foundry succeeds but Copilot fails, inspect what the parent receives from the connected agent rather than rebuilding the index.
+3. Republish both sides after changes: publish/update the Foundry agent, then refresh or republish the Copilot Studio agent/channel. Connected-agent descriptions and bindings can be stale.
+4. Use Copilot Studio Activity Map/Transcript and Foundry traces/logs together. Copilot may show only a generic failure while Foundry confirms successful retrieval and response generation.
+
+**Common causes:**
+
+- Copilot Studio connected-agent runtime cannot access the Foundry project, agent, model deployment, Azure AI Search connection, or private network path used by Foundry testing.
+- The connected agent was created in an older Foundry portal/runtime. Copilot Studio's Microsoft Foundry connected-agent preview supports agents created in the new Microsoft Foundry portal; older agents may fail with errors such as `404 - Version not found`.
+- Copilot is bound to an older Foundry agent version or stale local connected-agent description.
+- The Foundry agent returns content that Copilot struggles to broker: large tables, raw CSV/JSON, long citations, tool traces, or very large multi-record responses.
+- Parent orchestration summarises or strips citations/links from the connected-agent response by design.
+
+**Workarounds:**
+
+1. Add a Copilot-safe wrapper agent in Foundry. The wrapper calls the working retrieval logic and returns compact plain text only.
+2. Constrain connected-agent output: no raw JSON, CSV, markdown tables, or tool traces; max 5 records; ask a clarifying question for larger result sets; keep responses under a defined character budget.
+3. If exact row lookup is required, expose an authenticated lookup/API tool that queries Azure AI Search directly and returns only the matched rows, then let the agent summarise.
+4. For diagnostics, add a narrow tool or agent that can invoke the target Foundry agent, query AI Search directly, compare results, and report whether the failure is connection/auth/version/output-shape.
+5. If the Microsoft Foundry connected-agent preview is unstable for the channel, wrap the Foundry logic behind an A2A endpoint or custom API/connector with explicit auth and observability.
+
+Example Copilot-safe wrapper instruction:
+
+```text
+When responding through Copilot Studio, return plain text only. Keep the answer under 1,500 characters. Do not emit raw JSON, CSV, markdown tables, tool traces, or more than five records. If more records match, state the count and ask the user to narrow by ID, category, or date.
+```
 
 ## Content Filtered Error
 

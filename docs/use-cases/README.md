@@ -1,6 +1,6 @@
 # Use Case Requirements
 
-Six realistic agentic Copilot Studio use cases. Five are self-contained single files; use case 6 is a folder containing the requirements document plus the knowledge base documents the agent grounds against. Drop the chosen file (or folder contents) into `Requirements/docs/` of a fresh workspace and run **Pre-Build Agent** → review `spec.md` and `architecture.md` → **Build Agent**.
+Six realistic agentic Copilot Studio use cases. Five are self-contained single files; use case 6 is a folder containing the requirements document plus the knowledge base documents the agent grounds against. Drop the chosen file (or folder contents) into `Requirements/docs/` of a fresh workspace and run **Create Plan** → review `spec.md` and `architecture.md` → **Build Agent**.
 
 | #   | File                                                                          | Scenario                                                                                                                                     | Channel                     | Primary data                                                 | Architecture                                          |
 | --- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------ | ----------------------------------------------------- |
@@ -16,7 +16,7 @@ Six realistic agentic Copilot Studio use cases. Five are self-contained single f
 1. Copy the chosen file into a fresh workspace at `Requirements/docs/business-requirements.md` (or keep the original filename — the Create Plan command reads every file in `Requirements/docs/`).
    - For use case 6, copy the **entire folder contents** into `Requirements/docs/`. The `knowledge/*.md` files should be uploaded **directly to Copilot Studio** as the agent's knowledge sources (not staged via SharePoint).
 2. Run **CPSAgentKit: Initialise CPS Project** if not already initialised.
-3. Run **CPSAgentKit: Pre-Build Agent** to generate reviewable `Requirements/spec.md` and `Requirements/architecture.md` from the requirements documents.
+3. Run **CPSAgentKit: Create Plan** to generate reviewable `Requirements/spec.md` and `Requirements/architecture.md` from the requirements documents.
 4. Review and refine `Requirements/spec.md` and `Requirements/architecture.md`.
 5. Run **CPSAgentKit: Build Agent** to generate agent instructions, tool descriptions, topic content, and settings.
 6. Apply changes via the CPS extension, test in the portal, iterate.

@@ -46,3 +46,12 @@
 - Evaluation datasets must be JSONL format.
 - Custom evaluators require Azure AI Projects SDK v2 (`azure-ai-projects>=2.0.0b2`).
 - Built-in evaluators may require specific data columns — check required fields before creating datasets.
+
+## Copilot Studio Connected-Agent Boundary
+
+- Copilot Studio can connect to Microsoft Foundry agents as external connected agents in public preview. The connection requires the Foundry project endpoint URL and agent ID.
+- Current Copilot Studio documentation limits this path to agents created in the new Microsoft Foundry portal. Agents created in the previous portal can fail during connection or invocation with errors such as `404 - Version not found`.
+- A successful Foundry playground/test run does not prove the Copilot Studio connected-agent path is healthy. Copilot adds its own orchestration, auth, channel, safety, and response-brokering layers.
+- When a Foundry agent works directly but fails through Copilot Studio, check connected-agent auth, private networking, model/Search connection access, stale agent version binding, and output shape before changing retrieval/indexing.
+- Prefer a Copilot-safe wrapper for production interop: compact plain text, bounded length, no raw JSON/CSV, no large markdown tables, no tool traces, and clarifying questions when result sets are large.
+- A Copilot Studio agent can invoke a connected Foundry agent, but it cannot manage Foundry agents unless explicit management tools/APIs with appropriate RBAC are added.

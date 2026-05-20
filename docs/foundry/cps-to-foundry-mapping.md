@@ -78,6 +78,25 @@ The migration rosetta stone — how Copilot Studio concepts translate to Microso
 
 See [ai-toolkit-extension.md](ai-toolkit-extension.md) for the full command and tool reference.
 
+## Copilot Studio and Foundry Interop
+
+Copilot Studio can connect to Microsoft Foundry agents as external connected agents in public preview. The supported portal path is **Agents → Add an agent → Connect to an external agent → Microsoft Foundry**. The connection needs the Foundry project endpoint URL and the target Foundry agent ID. Current documentation notes that this path only supports agents created in the new Microsoft Foundry portal; older portal agents can fail with errors such as `404 - Version not found`.
+
+Use this path for invocation and task delegation, not for general Foundry administration. A Copilot Studio "agent builder" agent can call a Foundry agent if connected, but it cannot automatically inspect, create, update, publish, or repair arbitrary Foundry agents unless you give it explicit tools such as Foundry APIs/MCP tools, Azure AI Search query tools, Azure Functions, Power Platform connectors, or an A2A/custom API wrapper with the right RBAC.
+
+Recommended diagnostic/builder pattern:
+
+```text
+Copilot Studio parent agent
+  -> connected Foundry diagnostic/wrapper agent
+	-> invokes target Foundry agent with a known prompt
+	-> queries Azure AI Search directly when needed
+	-> checks response size and format
+	-> returns compact Copilot-safe plain text
+```
+
+If a Foundry agent works in Foundry but fails after Copilot publish, first validate the interop boundary: connected-agent auth, network access, agent ID/version binding, stale descriptions, and response size/format. Rebuilding the Azure AI Search index should be a later step only after direct index queries or Foundry traces show retrieval failure.
+
 ## What You Gain in Migration
 
 - Full control over orchestration — no involuntary summarisation, no routing degradation

@@ -100,17 +100,30 @@ export async function buildCommand(): Promise<void> {
     return;
   }
   const archPath = path.join(root, "Requirements", "architecture.md");
+  const checklistPath = path.join(root, "Requirements", "build-checklist.md");
 
   // Require architecture.md
   try {
     await fs.access(archPath);
   } catch {
+    try {
+      await fs.access(checklistPath);
+      const doc = await vscode.workspace.openTextDocument(checklistPath);
+      await vscode.window.showTextDocument(doc, { preview: true });
+      vscode.window.showInformationMessage(
+        "CPSAgentKit: Opened build-checklist.md. Complete the checklist, then run Build Agent again.",
+      );
+      return;
+    } catch {
+      // Fall through to the Create Plan prompt below.
+    }
+
     const action = await vscode.window.showWarningMessage(
       "CPSAgentKit: Requirements/architecture.md not found. Create specification first?",
-      "Create Specification",
+      "Create Plan",
       "Cancel",
     );
-    if (action === "Create Specification") {
+    if (action === "Create Plan") {
       await vscode.commands.executeCommand("cpsAgentKit.createSpec");
     }
     return;

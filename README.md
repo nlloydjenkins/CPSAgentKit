@@ -127,36 +127,29 @@ npm run package:extension && npm run install:vsix
 
 1. Clone an agent using the CPS extension (agent YAML appears in the workspace).
 2. Run **Initialise CPS Project** — scaffolds folders, syncs knowledge, writes `copilot-instructions.md`.
-3. Add requirements to `Requirements/docs/`, then run **Pre-Build Agent** to generate `Requirements/spec.md` and `Requirements/architecture.md` for review.
-4. Review and refine the generated spec and architecture, then run **Prepare for Build** — validates the architecture, creates `Requirements/build-prep.md`, separates portal-first work from Build work, and enriches the architecture with Dataverse and prompt-tool details.
-5. Complete the safe portal setup called out in the runbook, then run **Copilot Studio: Get Changes** so local YAML contains the generated scaffolds.
-6. Run **Build Agent** — creates/reconciles Dataverse schema when MCP is configured, edits local CPS YAML, and prepares settings, instructions, topic descriptions, and tool descriptions.
-7. Run **Copilot Studio: Apply Changes** to push local YAML back to Copilot Studio.
-8. Push AI prompt-tool instruction updates through Dataverse MCP or `scripts/prompt-sync.mjs` when prompt tools are part of the architecture.
-9. Test in the portal, paste output back, then run **Agent Assessment** or **Solution Assessment**.
+3. Add requirements to `Requirements/docs/`, then run **Create Plan** to generate `Requirements/spec.md` and `Requirements/architecture.md` for review.
+4. Review and refine the generated spec and architecture, then run **Build Agent**. If required setup is missing, Build Agent writes `Requirements/build-checklist.md` as a short action checklist.
+5. Run **Copilot Studio: Apply Changes** and **Copilot Studio: Get Changes** when Build Agent asks for a portal round trip, then run **Build Agent** again to continue.
+6. Test in the portal, paste output back when needed, then run **Assess Agent**.
 
 ### Build Lifecycle
 
 | Phase              | Command or action                              | Purpose                                                                                                                                        |
 | ------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Define / Architect | **Pre-Build Agent** / **Create Plan**          | Generate `Requirements/spec.md` and `Requirements/architecture.md` from requirements docs or an existing cloned agent for review before Build. |
-| Prepare            | **Prepare for Build**                          | Produce the pre-build runbook, identify portal-only setup, verify Dataverse MCP readiness, and make the architecture build-ready.              |
-| Portal scaffold    | Copilot Studio portal + **Get Changes**        | Create agents, tools, prompt tools, knowledge sources, triggers, and connection scaffolds that must exist before YAML can be safely edited.    |
-| Build              | **Build Agent**                                | Execute schema work through Dataverse MCP when required, then edit local YAML safely.                                                          |
-| Push YAML          | **Copilot Studio: Apply Changes**              | Push local CPS YAML changes into Copilot Studio.                                                                                               |
-| Push prompt tools  | Dataverse MCP or `scripts/prompt-sync.mjs`     | Update prompt-tool instructions stored in `msdyn_aiconfigurations.msdyn_customconfiguration`.                                                  |
-| Assess             | **Agent Assessment** / **Solution Assessment** | Review routing, descriptions, prompts, YAML safety, and platform constraints against best practices.                                           |
+| Define / Architect | **Create Plan**                            | Generate `Requirements/spec.md` and `Requirements/architecture.md` from requirements docs or an existing cloned agent for review before Build. |
+| Build              | **Build Agent**                            | Create safe artifacts, execute schema work through Dataverse MCP when configured, edit local YAML, and write `Requirements/build-checklist.md` only as a short action checklist. |
+| Round trip         | **Copilot Studio: Apply Changes/Get Changes** | Push local CPS YAML changes into Copilot Studio and sync portal-generated changes back when Build Agent asks for it.                           |
+| Push prompt tools  | Dataverse MCP or `scripts/prompt-sync.mjs` | Update prompt-tool instructions stored in `msdyn_aiconfigurations.msdyn_customconfiguration`.                                                  |
+| Assess             | **Assess Agent**                           | Review routing, descriptions, prompts, YAML safety, and platform constraints against best practices.                                           |
 
 Prompt-tool instructions are a special case: the action YAML only controls tool routing metadata. The executable prompt text lives in Dataverse, so Apply Changes is not enough to update it. CPSAgentKit provides MCP helpers to parse and rebuild `msdyn_customconfiguration` safely while preserving non-prompt JSON keys, segment shape, and placeholders.
 
 ### Sidebar
 
-| Section    | Commands                                       |
-| ---------- | ---------------------------------------------- |
-| **Setup**  | Initialise Project, Sync Knowledge             |
-| **Plan**   | Add Requirements, Pre-Build Agent, Create Plan |
-| **Build**  | Prepare for Build, Build Agent                 |
-| **Assess** | Agent Assessment, Solution Assessment          |
+| Section       | Commands                                                                 |
+| ------------- | ------------------------------------------------------------------------ |
+| **Workflow**  | Initialise Project, Create Plan, Build Agent, Assess Agent              |
+| **Utilities** | Sync Knowledge, Open Build Checklist, Build Demo                         |
 
 ### Settings
 
