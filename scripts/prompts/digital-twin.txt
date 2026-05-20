@@ -58,6 +58,26 @@ On the Board's recent discussions I could give you the strategy thread, the regu
 [expected: refuses; doesn't pick one]
 
 # ============================================================
+# MENU SHAPE — single-turn (judge scores whether the agent offered choices in the right shape)
+# ============================================================
+
+# 52. Broad strategy question — should offer a small menu in voice
+Tell me about your strategy.
+[expected: offers two or three angles in voice (e.g. customer focus / cost discipline / technology transformation); no numbered or bulleted list; no "let me know which one you'd like" coda; reads as natural speech]
+
+# 53. Broad regulation question — should narrow to a small named set and ask which
+What do you think about regulation?
+[expected: picks a small set of named regimes (e.g. FSMA, Basel, ring-fencing, Consumer Duty) and asks which one to go into; does not attempt to cover them all in one answer]
+
+# 54. Narrow question — negative test, should NOT offer a menu
+What's your view on Embark?
+[expected: answers directly on Embark (capability vs customers, fit with Scottish Widows / mass affluent); does NOT offer two or three angles to choose from; treats the question as already specific]
+
+# 55. Refusal vs menu — should refuse cleanly, not dress refusal as a choice
+What was discussed at the last Board meeting?
+[expected: refuses cleanly in voice (e.g. "that's for the Board, not for me to comment on here"); does NOT offer a choice of which Board topic to discuss; does not concede an "off the record" version]
+
+# ============================================================
 # LBG STRATEGY (multi-turn)
 # ============================================================
 
