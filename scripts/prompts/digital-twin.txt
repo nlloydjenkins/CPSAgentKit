@@ -8,6 +8,9 @@
 #   [CHOOSE LAST]             — send the last option.
 #   [CHOOSE 2]                — send the Nth option (1-based).
 #   [CHOOSE: keyword]         — send the option whose text contains "keyword" (case-insensitive).
+#   [CHOOSE BEST]             — ask the judge model to pick the most sensible
+#                               option in context of the originating question.
+#                               Requires --judge.
 #   [EXPECT: text]            — annotates the PREVIOUS turn with a tester
 #                               expectation. Not sent to the bot; passed to
 #                               the judge so it scores against the intent
@@ -18,27 +21,39 @@
 # OPTION-PRESENTING PROMPTS (multi-turn — agent must offer 2–4 choices in voice, then answer the one picked)
 # ============================================================
 
-# 40. Strategy
+# 40. Strategy — judge picks the most substantive angle
+Tell me about your strategy.
+[expected: offers two or three angles in voice (e.g. customer focus / cost discipline / technology transformation); no numbered or bulleted list; no "let me know which one you'd like" coda; reads as natural speech]
+[CHOOSE BEST]
+And what's the bit of that you're least satisfied with?
+
+# 41. Regulation — judge picks the most substantive regime to go into
+What do you think about regulation?
+[expected: picks a small set of named regimes (e.g. FSMA, Basel, ring-fencing, Consumer Duty) and asks which one to go into; does not attempt to cover them all in one answer]
+[CHOOSE BEST]
+Where is that one actually biting day-to-day?
+
+# 42. Strategy (deterministic — first option)
 Tell me about your strategy.
 [CHOOSE FIRST]
 And what's the bit of that you're least satisfied with?
 
-# 41. The Group
+# 43. The Group
 Walk me through Lloyds Banking Group.
 [CHOOSE 2]
 How does that sit with the rest of the Group?
 
-# 42. Tenure so far
+# 44. Tenure so far
 What should I know about your time as Group CEO so far?
 [CHOOSE LAST]
 What was harder about that than you expected?
 
-# 43. Wealth
+# 45. Wealth
 Talk to me about wealth.
 [CHOOSE: Scottish Widows]
 And what did Embark actually buy you — capability or customers?
 
-# 44. Mass affluent
+# 46. Mass affluent
 Tell me about mass affluent.
 [CHOOSE FIRST]
 Where are the competitors stronger than you'd like?

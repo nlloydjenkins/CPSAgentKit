@@ -346,10 +346,14 @@ function extractReplyText(activities) {
 //
 // Two special directives are recognised inside a group:
 //   [CHOOSE FIRST] / [CHOOSE LAST] / [CHOOSE 2] / [CHOOSE: keyword]
+//   [CHOOSE BEST]
 //     The actual prompt text is resolved at runtime from the previous
 //     agent reply (see `resolveChoose`). Useful when the agent offers a
 //     menu of options and the test wants to pick one without hard-coding
-//     the exact wording.
+//     the exact wording. [CHOOSE BEST] hands the option list to the
+//     judge model and asks it to pick the most sensible answer in the
+//     context of the originating question; requires --judge to be
+//     configured.
 //   [EXPECT: text]   (or [expected: text])
 //     Tester expectation attached to the PREVIOUS turn — not sent to the
 //     bot. Passed to the judge as extra context so it can score against
@@ -402,11 +406,15 @@ async function loadPrompts(file) {
 //   1. A numbered or bulleted list ("1. X", "- X", "* X").
 //   2. A natural-language "X, Y, or Z" / "X, Y or Z" phrase (the most
 //      common shape Charlie uses when offering options).
-function resolveChoose(directive, previousReply) {
+//
+// `[CHOOSE BEST]` additionally requires `ctx.judgeCfg` (and uses
+// `ctx.originatingPrompt` for context) to ask the judge model to pick the
+// best option.
+async function resolveChoose(directive, previousReply, ctx = {}) {
   if (!previousReply) {
     return { ok: false, reason: "no previous agent reply to choose from" };
   }
-  const m = directive.match(/^\[choose\s*(first|last|\d+|:\s*[\s\S]+)\]$/i);
+  const m = directive.match(/^\[choose\s*(best|first|last|\d+|:\s*[\s\S]+)\]$/i);
   if (!m) return { ok: false, reason: `unrecognised CHOOSE directive: ${directive}` };
   const arg = m[1].trim();
 
@@ -440,6 +448,25 @@ function resolveChoose(directive, previousReply) {
 
   if (/^first$/i.test(arg)) return { ok: true, text: items[0] };
   if (/^last$/i.test(arg)) return { ok: true, text: items[items.length - 1] };
+  if (/^best$/i.test(arg)) {
+    if (!ctx.judgeCfg) {
+      return {
+        ok: false,
+        reason: "[CHOOSE BEST] requires a configured judge (run with --judge)",
+      };
+    }
+    try {
+      const pick = await pickBestOption({
+        options: items,
+        originatingPrompt: ctx.originatingPrompt ?? "",
+        agentReply: previousReply,
+        judgeCfg: ctx.judgeCfg,
+      });
+      return { ok: true, text: pick.text, meta: { reason: pick.reason, index: pick.index } };
+    } catch (err) {
+      return { ok: false, reason: `judge pick failed: ${err.message}` };
+    }
+  }
   if (/^\d+$/.test(arg)) {
     const idx = parseInt(arg, 10) - 1;
     if (idx < 0 || idx >= items.length) {
@@ -649,6 +676,51 @@ function parseJudgement(text) {
   };
 }
 
+// Ask the judge model to pick the most sensible option from a menu the
+// agent just offered. Returns `{ index, text, reason }` where `index` is
+// 1-based into `options`. Throws on API failure or unparseable output.
+async function pickBestOption({ options, originatingPrompt, agentReply, judgeCfg }) {
+  const url = `${judgeCfg.endpoint.replace(/\/$/, "")}/openai/deployments/${judgeCfg.deployment}/chat/completions?api-version=${judgeCfg.apiVersion}`;
+  const token = await getJudgeToken(judgeCfg.tenantId);
+  const numbered = options.map((o, i) => `${i + 1}. ${o}`).join("\n");
+  const body = {
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are helping a tester drive a multi-turn conversation with a persona agent (Charlie Nunn, Group CEO of Lloyds Banking Group). The agent has just offered the user a small menu of options to pick from. Choose the single option that would yield the most substantive, on-corpus follow-up answer given the originating question and the agent's reply. Prefer options that surface a tension, a number, a named programme, or a concrete decision over generic ones. Respond ONLY as compact JSON: {\"index\": <1-based number>, \"reason\": \"<one short sentence>\"}.",
+      },
+      {
+        role: "user",
+        content: `ORIGINATING QUESTION:\n${originatingPrompt || "(none)"}\n\nAGENT REPLY:\n${agentReply}\n\nOPTIONS:\n${numbered}`,
+      },
+    ],
+    temperature: 0.2,
+    response_format: { type: "json_object" },
+  };
+  const r = await fetch(url, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    throw new Error(`pick call failed: ${r.status} ${await r.text()}`);
+  }
+  const data = await r.json();
+  const text = data.choices?.[0]?.message?.content ?? "";
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error(`judge returned non-JSON: ${text.slice(0, 200)}`);
+  }
+  const idx = Number(parsed.index);
+  if (!Number.isInteger(idx) || idx < 1 || idx > options.length) {
+    throw new Error(`judge picked invalid index ${parsed.index} (1..${options.length})`);
+  }
+  return { index: idx, text: options[idx - 1], reason: String(parsed.reason ?? "").trim() };
+}
+
 // Submit a (prompt, reply) pair to the Azure OpenAI judge deployment using
 // the strict Charlie Nunn reviewer rubric. Returns a parsed judgement.
 async function judgeReply(prompt, reply, judgeCfg, opts = {}) {
@@ -771,11 +843,18 @@ async function runBatch({
       let prompt = turnObj.prompt;
       let chooseInfo = null;
       if (/^\[choose\b/i.test(prompt)) {
-        const resolved = resolveChoose(prompt, previousReply);
+        const resolved = await resolveChoose(prompt, previousReply, {
+          judgeCfg,
+          originatingPrompt: group[0]?.prompt ?? "",
+        });
         if (resolved.ok) {
           chooseInfo = { directive: prompt, resolved: resolved.text };
+          if (resolved.meta?.reason) chooseInfo.reason = resolved.meta.reason;
+          const reasonSuffix = resolved.meta?.reason
+            ? ` ${ANSI.grey}(${resolved.meta.reason})${ANSI.reset}`
+            : "";
           process.stdout.write(
-            `\n[${globalIdx}/${totalPrompts}]${turnLabel} \x1b[33mQ:\x1b[0m ${ANSI.grey}${prompt}${ANSI.reset} \u2192 ${resolved.text}\n`,
+            `\n[${globalIdx}/${totalPrompts}]${turnLabel} \x1b[33mQ:\x1b[0m ${ANSI.grey}${prompt}${ANSI.reset} \u2192 ${resolved.text}${reasonSuffix}\n`,
           );
           prompt = resolved.text;
         } else {
