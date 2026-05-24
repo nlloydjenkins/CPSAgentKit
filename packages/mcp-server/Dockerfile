@@ -28,8 +28,12 @@ COPY --from=build /build/packages/mcp-server/dist/ ./dist/
 COPY --from=build /build/packages/mcp-server/resources/ ./resources/
 COPY --from=build /build/packages/mcp-server/package.json ./
 
+# Strip devDependencies (which reference the workspace-only @cpsagentkit/core
+# package that isn't published to npm) so the production install resolves cleanly.
+RUN node -e "const p=require('./package.json');delete p.devDependencies;require('fs').writeFileSync('./package.json',JSON.stringify(p,null,2));"
+
 # Install only production dependencies (external: @modelcontextprotocol/sdk, zod)
-RUN npm install --omit=dev --ignore-scripts && \
+RUN npm install --omit=dev --ignore-scripts --no-package-lock && \
     npm cache clean --force
 
 ENV PORT=8080
