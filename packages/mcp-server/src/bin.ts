@@ -147,6 +147,11 @@ async function runHttp(host: string, port: number): Promise<void> {
   }
 
   const httpServer = http.createServer(async (req, res) => {
+    if (req.url === "/healthz" || req.url === "/" || req.url === "/livez") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: "ok", version: MCP_SERVER_VERSION }));
+      return;
+    }
     if (req.url !== "/mcp") {
       res.writeHead(404, { "Content-Type": "text/plain" });
       res.end("Not found. MCP endpoint is /mcp.");
