@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "id": "cps-docs-qa-agent",
+  "name": "CPSAgentKit Docs Q&A Agent",
+  "version": "1.0.0",
+  "description": "Standalone Q&A agent that answers questions about Microsoft Copilot Studio using the CPSAgentKit knowledge and best-practice docs via the cpsagentkit-mcp server.",
+  "mcpServer": {
+    "name": "cpsagentkit-mcp",
+    "transport": "streamable-http",
+    "url": "https://ca-mcp-6frsoq6bw5vuk.salmonstone-8b839f60.uksouth.azurecontainerapps.io/mcp",
+    "promptName": "cps_docs_qa_agent"
+  },
+  "allowedTools": [
+    "cps_search_docs",
+    "cps_list_knowledge_topics",
+    "cps_get_knowledge",
+    "cps_get_best_practice"
+  ],
+  "disallowedTools": [
+    "cps_detect_project_state",
+    "cps_list_agents",
+    "cps_parse_agent",
+    "cps_parse_solution",
+    "cps_find_solution_folders",
+    "cps_validate_tool_description",
+    "cps_compose_review_prompt",
+    "cps_generate_topic_scaffolds",
+    "cps_detect_dataverse_mcp",
+    "cps_parse_prompt_config",
+    "cps_build_prompt_update"
+  ],
+  "systemPromptSource": {
+    "type": "mcp-prompt",
+    "promptName": "cps_docs_qa_agent",
+    "fallbackFile": "docs-qa-agent-system-prompt.md"
+  },
+  "suggestedModelHints": {
+    "temperature": 0.2,
+    "toolChoice": "auto",
+    "maxToolCallsPerTurn": 6
+  },
+  "uiHints": {
+    "placeholder": "Ask about Copilot Studio constraints, anti-patterns, tools, multi-agent…",
+    "starterQuestions": [
+      "What are the rules for tool descriptions?",
+      "When should I use a multi-agent pattern instead of topics?",
+      "How do I configure a Dataverse MCP connection?",
+      "What are the known pipeline-stability gotchas?"
+    ]
+  }
+}

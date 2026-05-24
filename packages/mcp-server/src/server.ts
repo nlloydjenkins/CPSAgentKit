@@ -27,6 +27,7 @@ import {
 } from "@cpsagentkit/core";
 
 import { MCP_SERVER_VERSION } from "./index.js";
+import { DOCS_QA_AGENT_SYSTEM_PROMPT } from "./prompts/docsQaAgent.js";
 
 /**
  * Resolve the directory where bundled knowledge markdown lives.
@@ -248,6 +249,108 @@ export async function createServer(): Promise<McpServer> {
         return markdownContent(candidate.content);
       }
       return markdownContent(doc.content);
+    },
+  );
+
+  reg.registerTool(
+    "cps_search_docs",
+    {
+      title: "Search CPS knowledge and best-practice docs",
+      description:
+        "Keyword search across every bundled knowledge and best-practice document. Returns the matching documents (slug, category, title) ranked by score, each with up to three short snippets showing where the terms appear. Use this to find the right slug before calling cps_get_knowledge or cps_get_best_practice.",
+      inputSchema: {
+        query: z
+          .string()
+          .min(1)
+          .describe(
+            "Free-text search query. Split into whitespace-separated terms; matches are case-insensitive substring matches. Title hits score higher than body hits.",
+          ),
+        category: z
+          .enum(["knowledge", "bestpractices"])
+          .optional()
+          .describe("Optional filter. Omit to search both categories."),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(25)
+          .optional()
+          .describe("Maximum number of documents to return. Defaults to 8."),
+      },
+    },
+    async ({
+      query,
+      category,
+      limit,
+    }: {
+      query: string;
+      category?: KnowledgeCategory;
+      limit?: number;
+    }) => {
+      const terms = query
+        .toLowerCase()
+        .split(/\s+/)
+        .map((t) => t.trim())
+        .filter((t) => t.length > 1);
+      if (terms.length === 0) {
+        return jsonContent({ query, matches: [] });
+      }
+      const topics = category ? store.filter(category) : store.list();
+      const max = limit ?? 8;
+
+      type Match = {
+        slug: string;
+        category: KnowledgeCategory;
+        title: string;
+        score: number;
+        snippets: string[];
+      };
+      const results: Match[] = [];
+      for (const topic of topics) {
+        const doc = store.get(topic.slug);
+        if (!doc) continue;
+        const titleLc = doc.title.toLowerCase();
+        const bodyLc = doc.content.toLowerCase();
+        let score = 0;
+        const snippets: string[] = [];
+        for (const term of terms) {
+          let count = 0;
+          let idx = bodyLc.indexOf(term);
+          while (idx !== -1) {
+            count++;
+            if (snippets.length < 3) {
+              const start = Math.max(0, idx - 60);
+              const end = Math.min(doc.content.length, idx + term.length + 60);
+              const snippet = doc.content
+                .slice(start, end)
+                .replace(/\s+/g, " ")
+                .trim();
+              snippets.push(
+                (start > 0 ? "…" : "") +
+                  snippet +
+                  (end < doc.content.length ? "…" : ""),
+              );
+            }
+            idx = bodyLc.indexOf(term, idx + term.length);
+          }
+          score += count;
+          if (titleLc.includes(term)) score += 10;
+        }
+        if (score > 0) {
+          results.push({
+            slug: doc.slug,
+            category: doc.category,
+            title: doc.title,
+            score,
+            snippets,
+          });
+        }
+      }
+      results.sort((a, b) => b.score - a.score);
+      return jsonContent({
+        query,
+        matches: results.slice(0, max),
+      });
     },
   );
 
@@ -730,6 +833,30 @@ export async function createServer(): Promise<McpServer> {
         };
       }
     },
+  );
+
+  // ── Prompts ────────────────────────────────────────────────
+  // Exposed via MCP `prompts` capability so any host can adopt the
+  // CPSAgentKit Docs Q&A Agent persona without copy/pasting markdown.
+
+  server.registerPrompt(
+    "cps_docs_qa_agent",
+    {
+      title: "CPSAgentKit Docs Q&A Agent",
+      description:
+        "System prompt for a standalone Q&A agent that answers questions about Microsoft Copilot Studio using the CPSAgentKit knowledge and best-practice docs. Pair with the cps_search_docs, cps_list_knowledge_topics, cps_get_knowledge, and cps_get_best_practice tools; do not enable the parse/assess tools.",
+    },
+    () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: DOCS_QA_AGENT_SYSTEM_PROMPT,
+          },
+        },
+      ],
+    }),
   );
 
   // ── Resources ──────────────────────────────────────────────

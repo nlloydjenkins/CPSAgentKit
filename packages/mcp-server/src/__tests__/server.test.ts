@@ -66,6 +66,7 @@ describe("createServer", () => {
       "cps_list_knowledge_topics",
       "cps_get_knowledge",
       "cps_get_best_practice",
+      "cps_search_docs",
       "cps_detect_project_state",
       "cps_list_agents",
       "cps_parse_agent",
