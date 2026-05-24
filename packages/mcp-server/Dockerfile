@@ -3,7 +3,7 @@ FROM node:20-slim AS build
 WORKDIR /build
 
 # Copy monorepo root manifests and lockfile
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/core/package.json packages/core/
 COPY packages/mcp-server/package.json packages/mcp-server/
 
