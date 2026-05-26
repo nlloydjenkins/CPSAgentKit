@@ -185,60 +185,38 @@ export class SidebarProvider
       return [];
     }
 
-    // Root level — return section headers
-    return [
-      new SectionHeader("Setup"),
-      new SectionHeader("Plan"),
-      new SectionHeader("Build"),
-      new SectionHeader("Assess"),
-      new SectionHeader("Demos"),
-    ];
+    // Root level — keep the user-facing path compact and sequential.
+    return [new SectionHeader("Workflow"), new SectionHeader("Utilities")];
   }
 
   private getCommandsForSection(section: string): CommandTreeItem[] {
     const init = this.state.isInitialised;
-    const hasSpec = this.state.hasSpec;
     const hasArch = this.state.hasArchitecture;
     const hasAgent = this.state.hasCpsExtensionAgent;
     const hasDocs = this.state.hasRequirementsDocs;
 
     switch (section) {
-      case "Setup":
+      case "Workflow":
         return [
           new CommandTreeItem(
-            "Initialise Project",
+            "1. Initialise Project",
             "cpsAgentKit.init",
             "folder-opened",
             true,
             init ? "✓ done" : undefined,
           ),
           new CommandTreeItem(
-            "Sync Knowledge",
-            "cpsAgentKit.syncKnowledge",
-            "cloud-download",
-            init,
-          ),
-        ];
-
-      case "Plan":
-        return [
-          new CommandTreeItem(
-            "Add Requirements",
-            undefined,
-            "file-add",
-            init,
-            hasDocs
-              ? "✓ docs found"
-              : init
-                ? "add files to Requirements/docs/"
-                : undefined,
-          ),
-          new CommandTreeItem(
-            "Create Plan",
+            "2. Create Plan",
             "cpsAgentKit.createSpec",
             "notebook",
             init && (hasDocs || hasAgent),
-            hasArch ? "✓ customised" : undefined,
+            hasArch
+              ? "✓ plan ready"
+              : hasDocs
+                ? "docs found"
+                : hasAgent
+                  ? "synced agent found"
+                  : undefined,
             !init
               ? undefined
               : !(hasDocs || hasAgent)
@@ -257,10 +235,6 @@ export class SidebarProvider
                 ? "add requirements docs first"
                 : undefined,
           ),
-        ];
-
-      case "Build":
-        return [
           new CommandTreeItem(
             "Prepare for Build",
             "cpsAgentKit.prepareForBuild",
@@ -270,33 +244,39 @@ export class SidebarProvider
             !hasArch ? "create plan first" : undefined,
           ),
           new CommandTreeItem(
-            "Build Checklist",
-            "cpsAgentKit.buildChecklist",
-            "checklist",
-            init && hasArch,
-            this.buildChecklist.exists ? "✓ done" : undefined,
-            !hasArch ? "create plan first" : undefined,
-            this.buildChecklist.items.length > 0 ? "buildChecklist" : undefined,
-          ),
-          new CommandTreeItem(
-            "Build Agent",
+            "3. Build Agent",
             "cpsAgentKit.buildAgent",
             "rocket",
             init && hasArch,
-            undefined,
+            this.buildChecklist.exists ? "checklist open" : undefined,
             !hasArch ? "create plan first" : undefined,
           ),
-        ];
-
-      case "Assess":
-        return [
           new CommandTreeItem(
-            "Run Agent Assessment",
+            "4. Assess Agent",
             "cpsAgentKit.reviewSolution",
             "beaker",
             init && hasAgent,
             undefined,
             !hasAgent ? "sync a CPS agent first" : undefined,
+          ),
+        ];
+
+      case "Utilities":
+        return [
+          new CommandTreeItem(
+            "Sync Knowledge",
+            "cpsAgentKit.syncKnowledge",
+            "cloud-download",
+            init,
+          ),
+          new CommandTreeItem(
+            "Open Build Checklist",
+            "cpsAgentKit.buildChecklist",
+            "checklist",
+            init && (hasArch || this.buildChecklist.exists),
+            this.buildChecklist.exists ? "✓ available" : undefined,
+            !hasArch ? "create plan first" : undefined,
+            this.buildChecklist.items.length > 0 ? "buildChecklist" : undefined,
           ),
           new CommandTreeItem(
             "Run Solution Assessment",
@@ -330,10 +310,6 @@ export class SidebarProvider
             undefined,
             !hasAgent ? "sync a CPS agent first" : undefined,
           ),
-        ];
-
-      case "Demos":
-        return [
           new CommandTreeItem(
             "Build Demo",
             "cpsAgentKit.buildDemo",

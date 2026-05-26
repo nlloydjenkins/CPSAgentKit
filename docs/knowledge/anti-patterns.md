@@ -142,6 +142,21 @@ Common causes when a working agent suddenly breaks:
 
 **Renaming a generic tool's `modelDisplayName` but not removing it.** Even after renaming the generic "Add a new row" to something specific like "Create application record", the portal Activity Map may still show the old name. The orchestrator may still treat it as the generic tool. Pre-bound actions (created as new tools with hardcoded `entityName`) are more reliable than renaming the generic one.
 
+## Using Global Variables as an Invocation Contract
+
+**Telling the orchestrator to populate `Global.*` variables before calling a topic.** A generative orchestrator can describe or reason about state, but runtime mutation of variables happens only through executed topic/action nodes such as `SetVariable`. If a workflow contract says "set these globals, then call this topic," the planner may narrate success while the topic still sees blank variables. The receiving topic runs with stale or empty `Global.*`, writes nothing or writes garbage, and the orchestrator reports success based on its own plan rather than observable side effects.
+
+**Fix:** Use topic inputs as the invocation contract (see `yaml-syntax.md` → Topic Inputs as the Orchestrator-to-Topic ABI). The orchestrator binds typed arguments at invocation time; the receiving topic reads them as `Topic.<InputName>`. Inside the topic, copy inputs into globals only if downstream existing logic still depends on global scope (see `pipeline-patterns.md` → Topic-Input Handoff Pattern).
+
+**Diagnostic symptoms:**
+
+- Activity Map shows the write/publish topic was not invoked, or was invoked with blank input guards.
+- The agent reports success while the target SharePoint list or Dataverse table has no new row.
+- A hard-coded test topic that bypasses the orchestrator works, proving connector wiring is sound.
+- Topic-entry diagnostic `SendActivity` nodes show empty values for the inputs the orchestrator claimed to set.
+
+This is closely related to Pipeline Early Termination — the orchestrator narrates a successful plan instead of executing it.
+
 ## Pipeline Early Termination in Generative Orchestration
 
 **Assuming the orchestrator will automatically chain all stages.** Generative orchestration treats child agent outputs as potential final answers. After a child returns, the orchestrator may display the output and stop — even if instructions describe further stages. This is the single most common failure mode for multi-stage autonomous pipelines.
@@ -219,6 +234,14 @@ These instructions must be emphatic and repeated per stage. A single top-level "
 **Letting specialist child agents return polished narrative responses.** In autonomous pipelines, verbose outputs from child agents are expensive in two ways: they consume context budget and they encourage the orchestrator to surface the output to the user or transcript as if it were final. This is a common cause of `SystemError` and repeated early termination.
 
 **Fix:** Make specialist outputs machine-oriented and compact. Use short labeled blocks for interpretation, verdicts, and revision instructions. Only the final presentation specialist should return full user-facing text — and even then, return the artifact only, with no notes.
+
+## Editing YAML to Satisfy a Design-Time Type Error Without Verifying the Cache
+
+**Rewriting topic or action YAML to make a CPS extension type error go away, without first confirming the type against the live platform schema.** The Copilot Studio VS Code extension type-checks Power Fx expressions against a local cached schema in `<agentFolder>/.mcs/botdefinition.json`, not against the portal. The cache is refreshed incrementally based on `<agentFolder>/.mcs/changetoken.txt` and can go stale when a prompt tool or connector input type changes on the platform. The LSP then reports a type mismatch on YAML that runs correctly in the portal, and Apply Changes refuses to push.
+
+If you edit the YAML to satisfy the stale error, you can introduce a real bug on top of a phantom one — and recovery later requires both reverting the YAML and refreshing the cache.
+
+**Fix:** Before changing YAML in response to a design-time type error, verify the live schema in the portal and refresh the local cache. See `troubleshooting.md` → Stale Local Schema Cache (`.mcs/botdefinition.json`) for the non-destructive `changetoken.txt` re-fetch and escalation path. Local CPS/LSP diagnostics are not authoritative for portal-owned schemas.
 
 ## Removing and Re-Adding Connector Actions in Power Automate Designer
 

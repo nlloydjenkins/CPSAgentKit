@@ -123,6 +123,36 @@ This makes the exact input and output of each stage visible in the test pane. Co
 
 This pairs with the labeled raw block pattern (see `multi-agent-patterns.md` → Output Preservation Pattern). The labeled blocks are what the pipeline passes around in production; the echo nodes surface the same blocks in the test pane during iteration.
 
+### Topic-Entry Diagnostics for Handoff Validation
+
+When a topic writes to external systems and is invoked from a parent agent or generative orchestrator, confirm at runtime that the topic was actually entered and that every input was bound before guards or connector actions run. Insert a `dbg_topic_entered` `SendActivity` immediately after the topic's input copy/default nodes and before guards:
+
+```
+=== dbg_topic_entered <TopicName> ===
+CanonicalId: {Topic.CanonicalIdGuid}
+Score:       {Topic.OverallScore}
+ReportLen:   {Len(Topic.FinalReportText)}
+=== END dbg_topic_entered ===
+```
+
+Emit only non-secret IDs, counts, labels, and row keys — never full payloads or PII. If the diagnostic shows the topic was entered but inputs are blank, the orchestrator failed to bind arguments (see `anti-patterns.md` → Using Global Variables as an Invocation Contract). If the diagnostic never fires at all, the topic was never invoked. Remove or gate the diagnostic before production.
+
+## Observable Write Evidence in Success Gates
+
+When a topic writes to external systems, success must be gated on the observable side effect, not on the orchestrator's belief that its plan completed.
+
+- The receiving topic's final user-visible message must include the concrete write identifiers — for example, a SharePoint item URL and a Dataverse row ID — named explicitly.
+- The parent orchestrator's success criterion must require all expected identifiers to be present and non-empty in the topic's response before reporting success.
+- Partial-success paths must name which write succeeded and which failed; do not collapse partial failure into a generic success message.
+
+Failure signals to watch for in Activity Map and transcripts:
+
+- Orchestrator narrates success while no identifiers appear in the topic response.
+- Identifiers appear but are empty strings or placeholders.
+- The receiving topic was never invoked (no Activity Map entry) yet the orchestrator reports completion.
+
+As a future enhancement, declaring write identifiers on the topic's `outputType` lets the orchestrator gate on a typed output rather than parsing a natural-language message. See `pipeline-patterns.md` → Topic-Input Handoff Pattern.
+
 ## Testing Discipline for Iterative Prompt Work
 
 For agent pipelines under iteration, ad-hoc testing is the fastest way to lose track of what works:
@@ -226,6 +256,93 @@ Dynamic connectors (SendEmailV2, Dataverse Create/Update/List rows) produce "Inp
 3. Get Changes to pull the portal-generated bindings into local YAML.
 
 **Corollary:** `item/cr85a_fieldname` syntax in `BeginDialog` for Dataverse Record-type inputs compiles locally but is flagged "not found" by the extension — same dynamic schema issue. Portal-bound `item.'cr85a_*'` ManualTaskInput entries work at runtime; hand-authored ones do not.
+
+**Other observed LSP error strings on dynamic connector schemas** (same root cause — local diagnostics not authoritative for portal-owned schemas):
+
+- `File Content is of incorrect type: Unspecified`
+- `Input variable 'Item' is of incorrect type`
+- `Output variable 'Response' is of incorrect type: UnresolvedDynamicType`
+
+**Validation hierarchy** for dynamic connector schemas, in increasing order of authority:
+
+1. YAML parse (local).
+2. `Apply Changes` succeeds.
+3. Portal-visible action with bound inputs.
+4. Activity Map shows the action executing at runtime.
+5. Real external side effect (row created, file uploaded, email sent).
+
+Do not refactor YAML to satisfy a level-1 or level-2 error without first checking the portal. See also: Stale Local Schema Cache (`.mcs/botdefinition.json`) below, and `anti-patterns.md` → Editing YAML to Satisfy a Design-Time Type Error Without Verifying the Cache.
+
+## Stale Local Schema Cache (`.mcs/botdefinition.json`)
+
+The Copilot Studio VS Code extension stores a local snapshot of connector and AI Builder model schemas in `<agentFolder>/.mcs/botdefinition.json`. The design-time LSP type-checks Power Fx expressions against that cache, not against the portal. The cache is refreshed incrementally based on `<agentFolder>/.mcs/changetoken.txt`. When a prompt tool or connector input type changes on the platform (for example, a prompt upgraded from String to File input), the change-token-driven incremental fetch can fail to pick up the new type, leaving the cache permanently stale. The LSP then reports a type mismatch on YAML that runs correctly in the portal, and Apply Changes refuses to push.
+
+**Symptom triplet to recognise:**
+
+- A topic or action YAML reports a design-time type error in VS Code (for example, `Input variable 'Document_20input' is of incorrect type: File`).
+- The same YAML has been observed to run correctly via the portal or test pane.
+- The local YAML has not been edited since the last successful run, but `.mcs/changetoken.txt` or `.mcs/botdefinition.json` was written recently.
+
+When all three hold, the YAML is innocent and the cache is wrong.
+
+**Resolution order:**
+
+1. **First response (non-destructive).** Delete `<agentFolder>/.mcs/changetoken.txt` and run `Copilot Studio: Get changes`. The extension rebuilds `botdefinition.json` from a full fetch and the design-time error clears without modifying YAML.
+
+   ```powershell
+   Remove-Item "<agentFolder>\.mcs\changetoken.txt"
+   # then in VS Code: Copilot Studio: Get changes
+   ```
+
+2. **If a full re-fetch does not clear it.** Make a trivial edit to the source prompt tool or connector in the portal (for example, add and remove a space in the description), save, then run `Get changes` again. Some cache pipelines key off the source object's modified timestamp.
+3. **Last resort.** Delete `<agentFolder>/.mcs/` entirely and re-open the agent through the extension. Guaranteed fresh cache, but more disruptive (loses any other locally cached state).
+
+**Do not** rewrite the offending YAML to satisfy the LSP unless you have first confirmed the type against the live platform schema. A prior "refactor" commit may have already mutated the YAML in response to a stale cache, in which case recovery requires both reverting the YAML and refreshing the cache. See `anti-patterns.md` → Editing YAML to Satisfy a Design-Time Type Error Without Verifying the Cache.
+
+Local CPS/LSP diagnostics are not authoritative when the cache is suspect — use the validation hierarchy in Dynamic Connector YAML above.
+
+## Composite Connector Payload Round-Trip Fragility (field observation)
+
+> Field observation from a single environment. Not yet reproduced in a second exported agent — treat as a diagnostic checklist item, not canonical platform behaviour.
+
+In at least one observed build, `Copilot Studio: Get changes` rewrote a working composite `item: |- =\{...\}` Power Fx record payload on a SharePoint "Create item" / Dataverse "Add a new row" connector node back to flat `item.<column>` bindings. The flat form then failed to compile or failed at runtime against the connector's expected shape.
+
+**Symptoms:**
+
+- A connector node worked before Get Changes; after Get Changes it fails with a binding or type error.
+- Diff shows `item: |- =\{ '@odata.bind': ..., ... \}` replaced by individual `item.<column>` `ManualTaskInput`/`AutomaticTaskInput` entries.
+- Reverting only the YAML restores runtime behaviour without portal changes.
+
+**Diagnostic checklist:**
+
+1. After every `Get changes` that touches a SharePoint Create item or Dataverse Add row node, diff the action YAML.
+2. If a composite `item: |- =\{...\}` payload was replaced by flat `item.<column>` bindings, test the node before assuming the new shape is correct.
+3. Prefer portal-owned binding metadata where possible; preserve locally validated action-body expressions only when they have been runtime-tested.
+
+This observation is environment- and connector-shape-specific. If you cannot reproduce it on a fresh export, treat the original report as a one-off and do not generalise to all dynamic connectors. Related: Dynamic Connector YAML — "Input Binding Not Found" above.
+
+## Power Fx Record Literals for `@odata.bind` and String Coercion (field observation)
+
+> Field observation. These are general Power Fx behaviours surfacing through CPS connector binding, not CPS-specific rules. Verify in a second exported connector node before treating either pattern as required.
+
+When authoring Power Fx record literals inside connector action bodies that target Dataverse, two coercion patterns have been observed to be required:
+
+- **Quoted `@odata.bind` keys.** Record literal keys that contain special characters (such as `@` or `.`) follow the general Power Fx rule for non-identifier keys and may need to be single-quoted:
+
+  ```
+  ={ 'cr85a_owner@odata.bind': Concatenate("systemusers(", Text(Global.OwnerId), ")") }
+  ```
+
+  This is general Power Fx syntax for keys with special characters — not a CPS-specific behaviour. If an unquoted variant has been working in your environment, do not change it on the basis of this note alone.
+
+- **`Text()` coercion for GUID and path values into String-typed columns.** When a Dataverse column is typed `String` but the source value is a GUID, integer, or other non-string type, explicit `Text(...)` coercion has been observed to be required to avoid type errors at the connector boundary:
+
+  ```
+  ={ 'cr85a_documentidentityid': Text(Global.CanonicalDocumentIdGuid),
+     'cr85a_sourcepath':         Text(Global.SharePointItemPath) }
+  ```
+
+Before generalising either pattern to all Dataverse record literals, confirm the behaviour in a second exported connector node. Do not re-introduce any framing that suggests Power Fx "drops `@`-keys" — that earlier theory was retracted. If a design-time error appears on a record literal that previously worked, suspect the local schema cache first (see Stale Local Schema Cache above) before rewriting the expression.
 
 ## CPS Extension Issues
 

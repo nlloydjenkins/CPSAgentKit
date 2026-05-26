@@ -383,6 +383,55 @@ outputType:
       type: String
 ```
 
+### Topic Inputs as the Orchestrator-to-Topic ABI
+
+When a parent agent or generative orchestrator needs to invoke a topic with concrete values, the topic's declared inputs are the supported handoff contract. The orchestrator binds typed arguments at invocation time; the receiving topic reads them as `Topic.<InputName>`. This is materially different from instructing the orchestrator to populate `Global.*` variables before invoking the topic — `Global.*` only changes when a runtime node such as `SetVariable` executes (see `anti-patterns.md` → Using Global Variables as an Invocation Contract).
+
+Guidance:
+
+- Use topic inputs for deterministic argument passing into a topic.
+- Treat `Global.*` as persisted conversation state, not an invocation parameter bag.
+- If an existing topic body already reads `Global.*`, add deterministic copy nodes at topic entry (`Topic.X` → `Global.X`) as a migration bridge. See `pipeline-patterns.md` → Topic-Input Handoff Pattern.
+- Keep the topic's routing metadata and input descriptions aligned with the expected values so the planner has enough signal to bind arguments.
+
+Input description quality is routing data, not decoration. The same description-quality rule that applies to connector `AutomaticTaskInput` (see `tool-descriptions.md` and `anti-patterns.md` → Connector Action Input Anti-Patterns) applies to topic inputs: state the source, the format, an example, and whether the value is required or has a default. The orchestrator uses these descriptions to decide what value to bind from conversation context.
+
+Portal-first authoring is recommended for declaring new topic inputs. The portal emits a paired schema (a top-level `inputs:` array plus the bottom `inputType.properties` map). Hand-authoring the paired shape from scratch is fragile; prefer creating inputs in the portal and pulling them down with `Copilot Studio: Get changes`.
+
+### Portal-Observed Paired Input Schema (field observation)
+
+> Field observation from a single portal export. Not yet confirmed canonical — reproduce in a second independent export before relying on the exact shape. Always prefer portal-first authoring over hand-authoring this schema.
+
+After declaring topic inputs in the portal, exported topic YAML has been observed to contain both:
+
+- A top-level `inputs:` array (sibling to `beginDialog`) with one entry per declared input. Entries have been observed using the `AutomaticTaskInput` kind with `propertyName`, `description`, and prompting behaviour. The reuse of `AutomaticTaskInput` for topic inputs (the same kind name used for connector and flow inputs) is a single-observation finding and may vary for manual/required/defaulted inputs.
+- A bottom `inputType.properties` map containing the display name and type for each input.
+
+Sketch (illustrative — confirm against your portal export):
+
+```yaml
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: CanonicalDocumentIdGuid
+    description: GUID of the Dataverse identity row created in the previous stage.
+  - kind: AutomaticTaskInput
+    propertyName: OverallScore
+    description: Numeric score as a string from 0 to 100; the topic converts it with Value().
+
+# ... beginDialog ...
+
+inputType:
+  properties:
+    CanonicalDocumentIdGuid:
+      displayName: CanonicalDocumentIdGuid
+      type: String
+    OverallScore:
+      displayName: OverallScore
+      type: String
+```
+
+If a second export differs, treat the observation above as portal-specific shape rather than canonical schema and do not generalise from it. See `troubleshooting.md` → Stale Local Schema Cache before assuming an unexpected shape is wrong.
+
 ## Start Behavior (System Topics)
 
 ```yaml

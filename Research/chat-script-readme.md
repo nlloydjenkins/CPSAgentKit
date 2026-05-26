@@ -1,5 +1,91 @@
 # `scripts/chat.mjs` — Direct Line chat & batch evaluator
 
+## Quick start (technical)
+
+**How the script talks to a Copilot Studio agent**
+
+It calls the Copilot Studio **Dataverse-backed authenticated Direct Line**
+endpoint directly — not the anonymous Web Channel secret. Two URL pieces drive
+the calls, both derived from the CPS environment and the agent's schema name:
+
+- Environment hostname:
+  `https://<envhex30>.<envhex2>.environment.api.powerplatform.com`
+  (you can paste the env GUID and the script formats the hostname, or paste
+  the hostname directly from a Power Platform / CPS URL).
+- Per-agent base path:
+  `/copilotstudio/dataverse-backed/authenticated/bots/<botSchemaName>`
+
+The three calls used per conversation:
+
+| Step | Method + path | Notes |
+|---|---|---|
+| List agents | `GET .../bots?api-version=2022-03-01-preview` | Used by the agent picker. |
+| Start conversation | `POST .../bots/<schema>/conversations?...` body `{}` | Returns `conversationId`. |
+| Send turn + poll | `POST/GET .../bots/<schema>/conversations/<id>?...` | Sends user activity, polls for bot activities, concatenates message text. |
+
+**Auth — Direct Line side (delegated user token)**
+
+- Identity model: **Entra public client app** (no client secret), delegated
+  flow, MSAL device-code on first run, silent refresh thereafter.
+- Required permission on the app reg:
+  `Power Platform API → CopilotStudio.Copilots.Invoke` (delegated), admin
+  consent granted in the **CPS environment's tenant**.
+- Token scope acquired: `https://api.powerplatform.com/CopilotStudio.Copilots.Invoke`
+- Token cache: `~/.cpsagentkit/msal-cache.json`.
+- Optional permission (only for `--list-envs`): `Power Platform API` BAP
+  scope `https://api.bap.microsoft.com/.default`.
+- The signed-in user must have at least Maker / Environment Maker access to
+  the CPS environment and a role on the agent.
+
+**Auth — Judge side (Azure OpenAI)**
+
+- The judge is an Azure OpenAI deployment (default `gpt-4o`) called via
+  `POST {judgeEndpoint}/openai/deployments/{deployment}/chat/completions?api-version=...`.
+- Auth uses `DefaultAzureCredential` **pinned to `judgeTenantId`** because
+  the OpenAI resource usually lives in a different tenant from the CPS env.
+- Sign in once per machine with:
+  `az login --tenant <judgeTenantId> --scope https://cognitiveservices.azure.com/.default --use-device-code`
+- The signed-in identity needs `Cognitive Services OpenAI User` (or higher)
+  on the OpenAI resource. No API keys are used.
+
+**Config resolution order (highest wins)**
+
+1. Env vars for the judge: `AZURE_AI_ENDPOINT`, `AZURE_AI_DEPLOYMENT_NAME`,
+   `AZURE_AI_API_VERSION`, `AZURE_AI_TENANT_ID`.
+2. Workspace `.cpsagentkit/test-config.json` → `directLine` block.
+3. User `~/.cpsagentkit/chat.json` (clientId, tenantId, environmentHostname,
+   botSchemaName, judge* fields).
+
+**Batch + judge flow**
+
+- Prompts file is grouped by blank lines. Each group opens a fresh
+  conversation (clean agent memory); lines within a group are sequential
+  turns on the same conversation.
+- For each turn: send → poll until terminal activity → capture reply →
+  (optional) POST reply + rubric to judge → parse JSON verdict → record
+  timings and token usage → write `scripts/results/run-<ts>.{json,md}`.
+
+**Minimum prerequisites checklist**
+
+1. Entra public-client app reg in the CPS tenant with
+   `CopilotStudio.Copilots.Invoke` delegated + admin consent.
+2. The user account has access to the CPS environment and agent.
+3. `judgeEndpoint` is reachable and the user has
+   `Cognitive Services OpenAI User` on it (only needed for `--judge`).
+4. Node 20+, repo `npm install` done, `az login` to `judgeTenantId` if grading.
+
+Then:
+
+```pwsh
+node scripts/chat.mjs                                                # REPL
+node scripts/chat.mjs --prompts scripts/prompts/smoke.txt            # batch
+node scripts/chat.mjs --prompts scripts/prompts/smoke.txt --judge    # batch + grade
+```
+
+---
+
+## Overview
+
 A standalone Node.js script for talking to a Copilot Studio agent through the
 Direct Line (Dataverse-backed) API. Two modes:
 
