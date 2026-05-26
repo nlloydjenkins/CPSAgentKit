@@ -76,6 +76,39 @@ Distinct from `OpenAIMaxTokenLengthExceeded`. In autonomous multi-agent pipeline
 
 **Escalation path:** Reduce prompts → compact child outputs → if still failing → CPS workflow.
 
+## Connected Agent Returns PluginActionNoOutputSetInEmitMode
+
+A connected-agent YAML using `mode: Generated` parses cleanly, passes Apply Changes, appears enabled in the portal, and **still fails at runtime** with:
+
+```
+PluginActionNoOutputSetInEmitMode
+The action '<name>' with output mode 'Generate a Message' must have at least one output set.
+```
+
+Minimal repro shape:
+
+```yaml
+kind: TaskDialog
+response:
+  activity:
+  mode: Generated
+modelDisplayName: Digital Twin
+modelDescription: ...
+action:
+  kind: InvokeConnectedAgentTaskAction
+  botSchemaName: cr86a_DigitalTwin
+  historyType:
+    kind: ConversationHistory
+```
+
+`mode: Generated` requires at least one declared `outputs:` entry. The fix is **portal-only** — toggle the output mode in the connected-agent edit panel or add an output property in the portal, then Get Changes. Hand-authoring the `outputs:` block is unsafe because the schema is portal-generated.
+
+This is a textbook validation-state-model failure: locally generated, local diagnostics clean, Apply Changes accepted, portal-visible, portal-enabled — none of those gates catch it. Only runtime / Activity Map validation does.
+
+## Connector Tool Added With Incomplete Input Bindings
+
+Adding certain connector actions from the portal (observed with `Microsoft Copilot Studio - Execute Agent and wait`) initially produces an action YAML with only one input bound and the others not declared. Calls fail with `400 Invalid request body`. Fix: edit the tool in the portal and bind a "Dynamically fill with AI" input for each missing field; Get Changes then re-emits the YAML with the full `AutomaticTaskInput` block. Cheap defensive step: **after adding any connector tool, verify every required input has a declared binding before testing.**
+
 ## Pipeline Debugging with Echo Nodes
 
 When specialist output is being compressed or structurally degraded between stages and you cannot tell which stage is responsible, insert `SendActivity` echo nodes between stages that emit the raw output with distinctive delimiters:

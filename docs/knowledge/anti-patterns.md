@@ -2,6 +2,8 @@
 
 ## Tool/Action Connection Anti-Patterns
 
+**Using `Microsoft Copilot Studio - Execute Agent` (or `Execute Agent and wait`) for in-CPS agent-to-agent calls.** The connector exposes `ExecuteCopilot` and `ExecuteCopilotAsyncV2`. Despite the second one being labelled "and wait", both return only a `ConversationId` — the agent reply text is delivered out-of-band on the conversation, not in the connector response. These operations are designed for **external automation** (Power Automate flows fire-and-forgetting into CPS), not for agent-to-agent orchestration inside CPS. If you see a CPS agent calling another CPS agent and only receiving a conversation id, the fix is not "configure the output schema" — replace the connector tool with a **connected agent**. Connected agents are invoked through the orchestrator and the reply comes back inline (with the documented summarisation tradeoff). See `multi-agent-patterns.md` → Agent-to-Agent Invocation.
+
 **Renaming a tool without updating all references.** You CAN rename a tool/action connector, but if you do, you MUST update EVERY `/ToolName` reference in instructions, topic triggers, and any other YAML that references it. A single missed reference = broken agent. Prefer keeping existing names unless the user explicitly asks to rename.
 
 **Using shortened or altered tool names in /ToolName references.** If the tool is "Microsoft Dataverse MCP Server (Preview)", referencing it as "/Dataverse MCP" or "/MCP Dataverse" won't match. The orchestrator requires exact name match.
@@ -87,6 +89,26 @@
 ## Dataverse Connector Query Anti-Patterns
 
 **Passing text labels for choice/option-set columns.** The Dataverse MCP Server and connector actions both require integer values for choice columns. Passing text like "High" or "Open" causes a `FormatException` with no useful error detail. Always include the integer mappings in agent instructions, tool descriptions, and connector action input descriptions (e.g. `Priority: Low=100000000, High=100000002`).
+
+**Seeding currency or large-count metrics into a default `decimal` column without verifying its range.** `create_table` decimals silently cap at `0 → 1,000,000,000`. The first `create_record` with a value above 1B fails — and if it's part of a parallel batch, the table is left with a few rows in raw units and the rest never inserted. Validate the range with one test row before any bulk insert, pre-scale to millions, or use a `Currency` column. See `dataverse-mcp-setup.md` → Known Gotchas.
+
+**Assuming `update_table` can widen an existing column.** `update_table` is add-only — it cannot alter range, required-ness, display name, or type. If a column was created with the wrong shape, plan to add-and-migrate, drop+recreate the table (destructive), or edit in the maker portal. There is no in-MCP fix.
+
+**Calling `read_query` with parameter name `query`.** The Dataverse MCP uses `querytext`. Every other SQL-shaped MCP server uses `query`, so the first call from a fresh agent typically fails with a schema-validation error. Set the parameter name explicitly in instructions and `modelDescription`.
+
+## Settings Coherence Anti-Patterns
+
+**Leaving `isSemanticSearchEnabled: true` on agents with zero knowledge sources.** Test harnesses, automation drivers, and strict tool-only agents have no corpus to search. The default `aISettings.isSemanticSearchEnabled: true` lets the built-in Search topic fire when generative orchestration can't decide on a tool, surfacing canned responses like "No information was found that could help answer this." or "I'm sorry, I'm not sure how to help with that. Can you try rephrasing?". Users read this as a broken agent. Rule: **if the agent has zero knowledge sources, `isSemanticSearchEnabled` MUST be `false`** for deterministic tool routing. Same shape as the existing `useModelKnowledge` guidance, just for the search lever. See `constraints.md` → Settings Coherence.
+
+## Test-Harness Anti-Patterns
+
+**Describing a target agent's persona in detail inside a test-harness prompt without explicitly disowning it.** When the harness needs rubrics for judging replies — refusal patterns, voice, in-character behaviour — the orchestrator picks up the most-described identity in the prompt and runs with it. Symptom: the user types "run tests" and the harness answers *as the persona under test*. Mitigations:
+
+1. Top-of-prompt `# Trigger` / `# Identity` block, before role, explicitly disowning the persona ("You are NOT &lt;Persona&gt;. You are a tester.").
+2. Single deterministic mapping for ANY user input → run the suite.
+3. Explicit prohibitions on the most-likely drift outputs ("never say 'I'm not sure how to help'", "never defer to knowledge search").
+
+This is a generalisation of the tool-first rule: when an agent's instructions extensively describe behaviour belonging to *another* agent (persona under test, target style guide, target voice), expect identity drift unless explicitly defended against.
 
 **Using "Get user profile (V2)" when you need the current user.** This Office 365 Users action requires a UPN input parameter. Use "Get my profile (V2)" instead — it returns the logged-in user automatically with no input.
 

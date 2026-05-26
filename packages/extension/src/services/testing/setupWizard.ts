@@ -170,7 +170,7 @@ export async function runSetupWizard(
 
 // ─── Steps ────────────────────────────────────────────────────────────────
 
-async function pickAgent(
+export async function pickAgent(
   workspaceRoot: string,
   preselected?: string,
 ): Promise<

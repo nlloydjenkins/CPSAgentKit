@@ -61,6 +61,14 @@
 - Standard Dataverse choice columns use integer values starting at `100000000` by default. Custom choices may differ — always verify mappings against the live schema after table creation. A wrong mapping (e.g. swapping `100000001` for `100000002`) is invisible at the YAML level and produces silently incorrect behavior.
 - This applies to creates, updates, and OData filter queries via both MCP and connector actions.
 
+## Dataverse MCP — Numeric Column Ranges and Schema Mutability
+
+- `create_table` does not expose `precision`, `scale`, `minValue`, or `maxValue` for `decimal` columns. New decimal columns inherit the Dataverse default range `0 → 1,000,000,000`. Values above 1B (currency at institutional scale, populations, JPY/IDR/VND amounts) fail at first `create_record` with `outside the valid range(0 to 1000000000)`. Pre-scale to a smaller unit (e.g. millions) and store the unit on the row, use a `Currency` column for monetary values, or create the column in the maker portal first when raw >1e9 values are required. See `dataverse-mcp-setup.md` → Known Gotchas.
+- `update_table` is **add-only**. It cannot alter range, required, display name, or type of an existing column. There is no MCP path to widen a column after the fact — plan schema before seeding, or fix in the maker portal (breaks pure-MCP IaC).
+- `describe_table` does not surface range, precision, or default-value metadata. Do not rely on it for schema validation; verify in the maker portal.
+- `read_query` uses parameter name `querytext` (not `query`, which is the convention in mssql / postgres / sqlite MCP servers). First call from a fresh agent typically fails with a schema-validation error if the parameter name is assumed.
+- Parallel `create_record` batches have per-call success/fault semantics — there is no transactional batch insert. Validate column shape with a single representative row, then batch the rest, otherwise a partial failure leaves the table in a mixed-state.
+
 ## Connector Action Input Modes
 
 The CPS portal exposes three input modes per connector action input:
@@ -240,7 +248,7 @@ Agent Flow `workflow.json` files are owned by Power Automate, not by Copilot Stu
 
 Settings flags in `settings.mcs.yml` and capabilities in `agent.mcs.yml` must be consistent with each other and with what the agent actually has configured:
 
-- `isSemanticSearchEnabled: true` without any knowledge sources configured is a misconfiguration — either add knowledge sources or disable it. Semantic search with nothing to search wastes compute and can cause unexpected behaviour if knowledge is added accidentally later.
+- `isSemanticSearchEnabled: true` without any knowledge sources configured is a misconfiguration — either add knowledge sources or disable it. Semantic search with nothing to search wastes compute and can cause unexpected behaviour if knowledge is added accidentally later. **Field-observed symptom:** on tool-only agents (test harnesses, automation drivers) the built-in Search topic fires when the orchestrator can't decide on a tool, surfacing canned responses such as "No information was found that could help answer this." or "I'm sorry, I'm not sure how to help with that. Can you try rephrasing?" — read by users as a broken agent. Rule: if the agent has zero knowledge sources, `isSemanticSearchEnabled` MUST be `false` for deterministic tool routing.
 - `useModelKnowledge: false` combined with `gptCapabilities.webBrowsing: true` is contradictory — web browsing IS model knowledge from the web. If the agent should only use its own tools and data, disable both.
 - `useModelKnowledge: false` also suppresses the agent's follow-up clarifying questions. If the agent should ask clarifying questions before acting, `useModelKnowledge` must be `true` — or the agent must implement clarifying logic explicitly in topic prompts.
 - `optInUseLatestModels` and `aISettings.model.modelNameHint` can conflict — `modelNameHint` requests a specific model while `optInUseLatestModels` tells the platform to override with whatever is newest. Clarify which should take priority and document the intended model strategy.

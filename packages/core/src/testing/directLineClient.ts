@@ -64,10 +64,13 @@ class DirectLineClientImpl implements DirectLineClient {
   }
 
   async createConversation(): Promise<{ conversationId: string }> {
+    // IMPORTANT: the endpoint silently 4xxs (with an opaque "post_request_failed
+    // / invalid_grant" body) when this POST has no request body. Docs imply none
+    // is needed, but the service requires at least an empty JSON object.
     const response = await this.request<{
       conversationId?: string;
       id?: string;
-    }>("POST", this.url(), undefined);
+    }>("POST", this.url(), {});
     const id = response.conversationId ?? response.id;
     if (!id) {
       throw new DirectLineApiError(

@@ -92,6 +92,7 @@ Environments with Customer Managed Keys (CMK) enabled may restrict delegated cre
 ## Content Filtering Issues
 
 - **Zero transparency on ContentFiltered responses.** When an agent response is blocked by content filtering, Microsoft provides no logging, no reason code, and no detail explaining what triggered the filter. The response simply doesn't appear or shows a generic error.
+- **Empty payloads are a moderation symptom.** Field-observed: even with `contentModeration: Low` on the parent agent, jailbreak-style and out-of-corpus prompts to a connected agent returned **empty text payloads** — no error, no diagnostic, just nothing. If a small, semantically clustered set of prompt types consistently produces empty replies while everything else works, parent-side moderation suppression is the first hypothesis. Test harnesses should retry once and mark the result `INCONCLUSIVE` rather than `FAIL` when the reply is empty.
 - **No way to tune or override content moderation.** The built-in responsible AI filtering cannot be adjusted. If your legitimate business use case triggers the filter (e.g. medical terminology, legal language, discussion of security vulnerabilities), you have no recourse except filing a support ticket.
 - **Word, Excel, PowerPoint DLP messaging unclear.** When Purview DLP blocks a Copilot interaction in Office apps, the user messaging may not clearly state that it was blocked by an organisational policy. The interaction is still blocked, but the user may not understand why.
 

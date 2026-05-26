@@ -75,3 +75,30 @@ Every bundled knowledge and best-practice document is also registered as an MCP 
 ## License
 
 MIT — see [LICENSE](../../LICENSE).
+
+## Hosted endpoint
+
+A public anonymous instance is hosted on Azure Container Apps:
+
+```
+https://ca-mcp-6frsoq6bw5vuk.salmonstone-8b839f60.uksouth.azurecontainerapps.io/mcp
+```
+
+(Once DNS is configured, `https://cpsagentkit.codeworks.app/mcp` will resolve to the same endpoint.)
+
+The hosted instance runs with `MCP_HOSTED=1`, which exposes only the tools that don't need access to your local workspace: `cps_list_knowledge_topics`, `cps_get_knowledge`, `cps_get_best_practice`, `cps_validate_tool_description`, `cps_parse_prompt_config`, `cps_build_prompt_update`. For workspace parsing / review composition use the stdio transport described above.
+
+VS Code `.vscode/mcp.json`:
+
+```jsonc
+{
+  "servers": {
+    "cpsagentkit-hosted": {
+      "type": "http",
+      "url": "https://ca-mcp-6frsoq6bw5vuk.salmonstone-8b839f60.uksouth.azurecontainerapps.io/mcp"
+    }
+  }
+}
+```
+
+Deployment details, including how to enable optional API-key auth, live in [`docs/deployment/mcp-server-azure.md`](../../docs/deployment/mcp-server-azure.md).

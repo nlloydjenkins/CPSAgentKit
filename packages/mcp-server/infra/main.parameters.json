@@ -7,6 +7,12 @@
     },
     "location": {
       "value": "${AZURE_LOCATION}"
+    },
+    "containerImage": {
+      "value": "${CONTAINER_IMAGE=mcr.microsoft.com/azuredocs/containerapps-helloworld:latest}"
+    },
+    "mcpApiKey": {
+      "value": "${MCP_API_KEY=}"
     }
   }
 }

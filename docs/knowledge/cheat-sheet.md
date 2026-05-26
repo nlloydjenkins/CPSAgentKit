@@ -89,6 +89,15 @@ Things that catch people out, behave unexpectedly, or aren't in the docs. For de
 - Switching models can change agent behaviour — prompts that worked on one model may not work on another.
 - Suggested prompts cache aggressively — may need cache clearing, new sessions, or channel re-add after publishing.
 - Dataverse MCP Server requires **integer values** for choice columns — text labels cause `FormatException`. _(See constraints.md → Dataverse Choice/Option-Set Columns)_
+- Dataverse MCP `create_table` decimals silently cap at `0 → 1,000,000,000` — currency/population values above 1B fail on first insert. Pre-scale to millions, use a `Currency` column, or create the column in the maker portal. _(See dataverse-mcp-setup.md → Known Gotchas)_
+- Dataverse MCP `update_table` is **add-only** — cannot widen range, required, or display name on existing columns. Plan schema before seeding. _(See dataverse-mcp-setup.md → Known Gotchas)_
+- Dataverse MCP `read_query` parameter is `querytext`, not `query`. _(See dataverse-mcp-setup.md → Known Gotchas)_
+- Dataverse MCP `describe_table` omits range/precision metadata — verify column constraints in the maker portal, not in MCP output. _(See dataverse-mcp-setup.md → Known Gotchas)_
+- For in-CPS agent-to-agent calls, use a **connected agent**, not the `Microsoft Copilot Studio - Execute Agent` connector — the connector returns only a `ConversationId`. _(See anti-patterns.md → Tool/Action Connection Anti-Patterns and multi-agent-patterns.md → Agent-to-Agent Invocation)_
+- Connected-agent action with `mode: Generated` requires `outputs:` — fails at runtime only with `PluginActionNoOutputSetInEmitMode`. Fix in the portal. _(See troubleshooting.md → Connected Agent Returns PluginActionNoOutputSetInEmitMode)_
+- `/ToolName` rewritten as `{System.Bot.Components.Agents...}` = portal save just round-tripped the file — unsaved local edits to that file are gone. Apply Changes before any Get Changes. _(See yaml-syntax.md → Power FX-Resolved Tool References)_
+- Tool-only agents (test harnesses, automation drivers) MUST set `isSemanticSearchEnabled: false` — otherwise the Search topic fires with canned "I'm not sure how to help" responses. _(See constraints.md → Settings Coherence and anti-patterns.md → Settings Coherence Anti-Patterns)_
+- Test-harness prompts that describe the persona under test in detail leak into that persona unless an explicit `# Identity` disowning block sits before the role. _(See prompt-engineering.md → Persona Leakage and anti-patterns.md → Test-Harness Anti-Patterns)_
 - Office 365 Users "Get user profile (V2)" needs a UPN input — use "Get my profile (V2)" for the current user. _(See constraints.md → Connector Action Gotchas)_
 - `conversationStarters` must use `title`/`text` object format — plain strings cause `MissingRequiredProperty` errors. _(See constraints.md → conversationStarters Format)_
 

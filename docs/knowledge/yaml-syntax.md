@@ -28,6 +28,21 @@ conversationStarters:
 
 ---
 
+## Power FX-Resolved Tool References (Diagnostic Marker)
+
+When a `/ToolName` reference (e.g. `/Digital Twin`) shows up in YAML rewritten as a Power FX expression like:
+
+```
+{System.Bot.Components.Agents.'cr86a_DigitalTwinTest.InvokeConnectedAgentTaskAction.DigitalTwin'.DisplayName}
+```
+
+…the file has just been normalised by a portal save (Apply Changes / Get Changes round-trip). Two implications:
+
+1. **Any unsaved local edits to that file at the time of the sync are gone.** Field-observed: a 100-line instructions edit silently reverted because Get Changes ran before Apply Changes.
+2. **Both forms work** — the resolved form is portal-canonical, the `/X` form is the authoring shorthand. Don't manually convert resolved references back to slash form; the portal will rewrite them again on the next save.
+
+Recommended workflow: **Apply Changes immediately after authoring instructions**, before any Get Changes round-trip. If you're going to be away from the keyboard, save first.
+
 ## Topic File Structure
 
 ```yaml

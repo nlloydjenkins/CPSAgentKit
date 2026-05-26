@@ -38,6 +38,24 @@ Empirical evidence from a production build: reducing an orchestrator from an ove
 - Vague terms ("show in the typing box")
 - Instructing professional tone (it's already the default)
 
+## Persona Leakage in Test-Harness / Reviewer Prompts
+
+When an agent's prompt extensively describes behaviour belonging to *another* agent (persona under test, target style guide, target voice), the orchestrator picks up the most-described identity and runs with it. Field-observed symptom: a test harness whose prompt described a `Charlie Nunn` persona in detail (refusal patterns, "menu in voice", first-person rubric) answered the user prompt `run tests` *as Charlie Nunn*:
+
+> "I don't run technical tests or operational procedures myself. If you're referring to how I approach questions, I break them down before answering. I speak plainly, in my own voice…"
+
+Mitigations that worked, in order:
+
+1. **Top-of-prompt `# Trigger` / `# Identity` block, before role**, explicitly disowning the persona ("You are NOT &lt;Persona&gt;. You are a tester.").
+2. **Single deterministic mapping** for ANY user input → run the suite. No conversation, no clarifying questions.
+3. **Explicit prohibitions on the most-likely drift outputs** ("never say 'I'm not sure how to help'", "never defer to knowledge search").
+
+This is a generalisation of the tool-first rule: positive scope alone is insufficient when the prompt also describes a competing identity in detail. Defend explicitly.
+
+## Model Choice for Long Deterministic Tool Runs
+
+Field observation, not a hard rule: `Sonnet46` was visibly more disciplined than `GPT5Chat` at completing 50-test sequential tool sweeps without short-circuiting. `GPT5Chat` shortcut to template output, invented test ids that didn't exist in the test file, and stopped early. Situational — model availability and quality move — but worth considering Sonnet-family models when the workload is long, deterministic, tool-heavy, and intolerant of summarisation shortcuts.
+
 ## The Instruction Accumulation Trap
 
 Field observation from production multi-agent deployments: adding more instructions does not linearly improve output. After a certain density, new instructions can cause regressions in previously-working behaviour. This is distinct from hitting the 8,000-char limit — it's a quality plateau that occurs well before the hard cap.

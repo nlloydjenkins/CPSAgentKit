@@ -147,15 +147,51 @@ async function runHttp(host: string, port: number): Promise<void> {
   }
 
   const httpServer = http.createServer(async (req, res) => {
-    if (req.url === "/healthz" || req.url === "/" || req.url === "/livez") {
+    const urlPath = (req.url ?? "").split("?", 1)[0];
+    // Liveness/readiness probe for hosting platforms (e.g. Container Apps).
+    if (
+      urlPath === "/healthz" ||
+      urlPath === "/health" ||
+      urlPath === "/livez" ||
+      urlPath === "/"
+    ) {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ status: "ok", version: MCP_SERVER_VERSION }));
       return;
     }
-    if (req.url !== "/mcp") {
+
+    if (urlPath !== "/mcp") {
       res.writeHead(404, { "Content-Type": "text/plain" });
       res.end("Not found. MCP endpoint is /mcp.");
       return;
+    }
+
+    // Optional API-key gate. If MCP_API_KEY is set, require the same value in
+    // either the `x-api-key` header or as a `Bearer` token in `Authorization`.
+    // If MCP_API_KEY is empty/unset, the endpoint is anonymous.
+    const requiredKey = process.env.MCP_API_KEY;
+    if (requiredKey) {
+      const apiKeyHeader = req.headers["x-api-key"];
+      const headerKey = Array.isArray(apiKeyHeader)
+        ? apiKeyHeader[0]
+        : apiKeyHeader;
+      const authHeader = req.headers["authorization"];
+      const authValue = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+      const bearer = authValue?.toLowerCase().startsWith("bearer ")
+        ? authValue.slice(7).trim()
+        : undefined;
+      const presented = headerKey ?? bearer;
+      if (presented !== requiredKey) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            error: { code: -32000, message: "Unauthorized" },
+            id: null,
+          }),
+        );
+        return;
+      }
     }
 
     const sessionId = req.headers["mcp-session-id"];

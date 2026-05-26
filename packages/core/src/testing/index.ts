@@ -7,3 +7,4 @@ export * from "./azureOpenAIJudge.js";
 export * from "./testRunner.js";
 export * from "./reportWriter.js";
 export * from "./starterSuiteGenerator.js";
+export * from "./textPromptsSuite.js";

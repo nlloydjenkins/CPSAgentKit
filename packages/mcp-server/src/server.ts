@@ -155,7 +155,7 @@ export async function createServer(): Promise<McpServer> {
   // zod's recursive types, which TypeScript can't instantiate (TS2589) when
   // multiple zod versions coexist in the graph. Registration is runtime-safe;
   // we preserve type safety inside each handler by annotating parameters.
-  const reg = server as unknown as {
+  const innerReg = server as unknown as {
     registerTool: (
       name: string,
       config: {
@@ -171,6 +171,33 @@ export async function createServer(): Promise<McpServer> {
       config: { title?: string; description?: string; mimeType?: string },
       handler: (uri: URL) => Promise<unknown> | unknown,
     ) => void;
+  };
+
+  // In hosted mode (MCP_HOSTED=1) the server runs on Azure and has no access
+  // to the client's local workspace. Tools that take an absolute filesystem
+  // path as input would always fail, so we hide them from the tool list to
+  // avoid confusing remote callers. The knowledge/validation/prompt-config
+  // tools are always safe to expose.
+  const HOSTED_SAFE_TOOLS = new Set<string>([
+    "cps_list_knowledge_topics",
+    "cps_get_knowledge",
+    "cps_get_best_practice",
+    "cps_validate_tool_description",
+    "cps_parse_prompt_config",
+    "cps_build_prompt_update",
+  ]);
+  const hostedMode = process.env.MCP_HOSTED === "1";
+
+  const reg = {
+    registerTool: (
+      name: string,
+      config: Parameters<typeof innerReg.registerTool>[1],
+      handler: Parameters<typeof innerReg.registerTool>[2],
+    ): void => {
+      if (hostedMode && !HOSTED_SAFE_TOOLS.has(name)) return;
+      innerReg.registerTool(name, config, handler);
+    },
+    registerResource: innerReg.registerResource.bind(innerReg),
   };
 
   // ── Tools ──────────────────────────────────────────────────

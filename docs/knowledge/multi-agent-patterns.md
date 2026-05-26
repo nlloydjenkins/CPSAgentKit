@@ -1,5 +1,15 @@
 # CPS Multi-Agent Patterns
 
+## Agent-to-Agent Invocation — Use Connected Agents, Not the Connector
+
+For in-CPS agent-to-agent calls, use a **connected agent** (`InvokeConnectedAgentTaskAction`) — never the `Microsoft Copilot Studio - Execute Agent` / `Execute Agent and wait` connector. Both `ExecuteCopilot` and `ExecuteCopilotAsyncV2` return only a `ConversationId`; the reply text is delivered out-of-band on the conversation, so the calling agent never sees it. The connector is intended for *external* Power Automate automation firing into a CPS agent, not orchestrator-driven agent composition.
+
+Connected-agent tradeoffs that still apply:
+
+- The orchestrator summarises connected-agent replies. For pipelines whose specialists emit strict templates and nothing else, prefer prompt tools (see Prompt Tools Over Child Agents below).
+- Connected agents must be published with sharing enabled before the parent can invoke them.
+- Connected-agent action YAML with `mode: Generated` requires at least one declared `outputs:` entry, otherwise runtime fails with `PluginActionNoOutputSetInEmitMode`. See `troubleshooting.md` → Connected Agent Returns PluginActionNoOutputSetInEmitMode.
+
 ## When to Use Multiple Agents
 
 Split into multiple agents when:

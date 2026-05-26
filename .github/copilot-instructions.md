@@ -115,6 +115,7 @@ Read these files when designing, building, or reviewing agents:
 
 Read these directories for proven multi-agent designs and working examples when proposing architectures:
 
+- `docs/templates/agent-test-harness/`
 - `docs/templates/content-review-multi-agent/`
 - `docs/templates/cpsagentkit-advisor-agent/`
 
