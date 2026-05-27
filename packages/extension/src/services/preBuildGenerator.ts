@@ -4,10 +4,10 @@ export {
   readRequirements,
   detectDataverseMcp,
   readAgentConnection,
-} from "@cpsagentkit/core";
+} from "@agent-workbench/core";
 export type {
   DataverseMcpStatus,
   McpServerEntry,
   CpsAgentConnection,
   TopicScaffold,
-} from "@cpsagentkit/core";
+} from "@agent-workbench/core";

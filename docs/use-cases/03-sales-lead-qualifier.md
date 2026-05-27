@@ -4,11 +4,11 @@
 
 Northwind Traders receives 150-300 inbound sales enquiries per week. Business Development Representatives currently read each enquiry, check whether the company already exists in Dynamics 365 / Dataverse, score the lead against a BANT-lite rubric, and assign it to an Account Executive. First-touch response averages 18 hours; the target is to qualify high-value leads in minutes and give Sales a consistent handoff.
 
-This use case is intentionally build-friendly for CPSAgentKit. The first version is a single Copilot Studio agent used by Sales Operations or BDRs in Teams: a user pastes or forwards an inbound enquiry, the agent qualifies it, checks Dataverse, creates or updates the right sales record, and drafts the next action. Autonomous mailbox monitoring, adaptive cards, and shared-mailbox sending are optional phase 2 enhancements after the core qualification loop works.
+This use case is intentionally build-friendly for Agent Workbench. The first version is a single Copilot Studio agent used by Sales Operations or BDRs in Teams: a user pastes or forwards an inbound enquiry, the agent qualifies it, checks Dataverse, creates or updates the right sales record, and drafts the next action. Autonomous mailbox monitoring, adaptive cards, and shared-mailbox sending are optional phase 2 enhancements after the core qualification loop works.
 
 ## Build-Time Configuration
 
-Northwind values are sample defaults. During Build, CPSAgentKit must ask the maker to confirm or replace only the tenant-specific values needed for the next blocked action. Missing values should not block neutral schema planning, instructions, topics, or Dataverse MCP work.
+Northwind values are sample defaults. During Build, Agent Workbench must ask the maker to confirm or replace only the tenant-specific values needed for the next blocked action. Missing values should not block neutral schema planning, instructions, topics, or Dataverse MCP work.
 
 - Sales mailbox or intake source, default `sales@northwind.com`
 - Sales Teams channel for qualified lead notifications, default `#sales-leads`
@@ -73,7 +73,7 @@ Northwind values are sample defaults. During Build, CPSAgentKit must ask the mak
 - **Optional notification:** Microsoft Teams channel post after real connection references are available.
 - **Optional phase 2 automation:** Outlook shared mailbox trigger, shared-mailbox acknowledgement send, adaptive-card AE workflow, and business-hours queue.
 
-## Recommended CPSAgentKit Build Shape
+## Recommended Agent Workbench Build Shape
 
 Use a single parent agent for v1. Do not create child agents or prompt tools unless the maker explicitly chooses a later automation phase.
 

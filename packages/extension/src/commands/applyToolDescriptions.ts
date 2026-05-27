@@ -15,7 +15,7 @@ export async function applyToolDescriptionsCommand(): Promise<void> {
   const { architecture } = await readRequirements(root);
   if (!architecture || isTemplateOnly(architecture)) {
     vscode.window.showWarningMessage(
-      "CPSAgentKit: Requirements/architecture.md is missing or still the empty template.",
+      "Agent Workbench: Requirements/architecture.md is missing or still the empty template.",
     );
     return;
   }
@@ -23,7 +23,7 @@ export async function applyToolDescriptionsCommand(): Promise<void> {
   const agentFolders = await findCpsAgentFolders(root);
   if (agentFolders.length === 0) {
     vscode.window.showWarningMessage(
-      "CPSAgentKit: No cloned CPS agent folders found. Clone the agent first.",
+      "Agent Workbench: No cloned CPS agent folders found. Clone the agent first.",
     );
     return;
   }
@@ -31,7 +31,7 @@ export async function applyToolDescriptionsCommand(): Promise<void> {
   const selected = await vscode.window.showQuickPick(
     ["All detected agents", ...agentFolders],
     {
-      title: "CPSAgentKit: Apply Tool Descriptions",
+      title: "Agent Workbench: Apply Tool Descriptions",
       placeHolder: "Choose which cloned agent folders to update",
       ignoreFocusOut: true,
     },
@@ -75,6 +75,6 @@ export async function applyToolDescriptionsCommand(): Promise<void> {
       ? ` Unmatched tool descriptions: ${[...unmatchedSpecs].join(", ")}.`
       : "";
   vscode.window.showInformationMessage(
-    `CPSAgentKit: Updated ${totalUpdated} action file(s). Matched ${totalMatched} tool description spec(s).${unmatchedText}`,
+    `Agent Workbench: Updated ${totalUpdated} action file(s). Matched ${totalMatched} tool description spec(s).${unmatchedText}`,
   );
 }

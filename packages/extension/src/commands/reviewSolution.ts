@@ -49,7 +49,7 @@ export async function reviewSolutionCommand(
       },
     ],
     {
-      title: "CPSAgentKit: Run Agent Assessment",
+      title: "Agent Workbench: Run Agent Assessment",
       placeHolder: "What should the review focus on?",
       ignoreFocusOut: true,
     },
@@ -62,7 +62,7 @@ export async function reviewSolutionCommand(
   const result = await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: "CPSAgentKit: Gathering agent data...",
+      title: "Agent Workbench: Gathering agent data...",
       cancellable: false,
     },
     async () => {
@@ -79,7 +79,7 @@ export async function reviewSolutionCommand(
 
   if (snapshot.agents.length === 0) {
     vscode.window.showWarningMessage(
-      "CPSAgentKit: No CPS agent folders found in the workspace. " +
+      "Agent Workbench: No CPS agent folders found in the workspace. " +
         "Agent folders must contain settings.yaml and a topics/ directory.",
     );
     return;

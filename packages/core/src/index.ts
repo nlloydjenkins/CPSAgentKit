@@ -1,4 +1,4 @@
-// @cpsagentkit/core — shared logic for the CPSAgentKit VS Code extension and MCP server.
+// @agent-workbench/core — shared logic for the Agent Workbench VS Code extension and MCP server.
 // Subpath exports: ./types, ./knowledge, ./fs, ./parsers, ./assessors, ./version.
 
 export * from "./types/index.js";

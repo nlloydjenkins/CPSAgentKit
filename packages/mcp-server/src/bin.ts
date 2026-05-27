@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Entry point for `npx @cpsagentkit/mcp-server`.
+// Entry point for `npx @agent-workbench/mcp-server`.
 // Supports stdio and streamable HTTP transports.
 
 import * as http from "node:http";
@@ -96,10 +96,10 @@ function parseArgs(argv: string[]): CliOptions {
 function printHelp(): void {
   process.stdout.write(
     [
-      `cpsagentkit-mcp ${MCP_SERVER_VERSION}`,
+      `agent-workbench-mcp ${MCP_SERVER_VERSION}`,
       "",
       "Usage:",
-      "  cpsagentkit-mcp [--transport=stdio|http] [--host=127.0.0.1] [--port=3333]",
+      "  agent-workbench-mcp [--transport=stdio|http] [--host=127.0.0.1] [--port=3333]",
       "",
       "Transports:",
       "  stdio  Default. Use for local MCP clients (Claude Desktop, Cursor, etc.).",
@@ -114,7 +114,7 @@ async function runStdio(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   // Server keeps the process alive via the transport; nothing more to do.
-  console.error(`cpsagentkit-mcp ${MCP_SERVER_VERSION} listening on stdio`);
+  console.error(`agent-workbench-mcp ${MCP_SERVER_VERSION} listening on stdio`);
 }
 
 async function runHttp(host: string, port: number): Promise<void> {
@@ -277,7 +277,7 @@ async function runHttp(host: string, port: number): Promise<void> {
     httpServer.listen(port, host, () => resolve());
   });
   console.error(
-    `cpsagentkit-mcp ${MCP_SERVER_VERSION} listening on http://${host}:${port}/mcp`,
+    `agent-workbench-mcp ${MCP_SERVER_VERSION} listening on http://${host}:${port}/mcp`,
   );
 }
 

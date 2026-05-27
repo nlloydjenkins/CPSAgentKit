@@ -1,6 +1,6 @@
 # CR005 - Brand Editor Build Feedback Review
 
-Source: Multi-session build of Coutts Brand Editor agent using CPSAgentKit knowledge base and CPS VS Code extension.
+Source: Multi-session build of Coutts Brand Editor agent using Agent Workbench knowledge base and CPS VS Code extension.
 
 ---
 
@@ -136,7 +136,7 @@ Decision: Already resolved. Documented in `yaml-syntax.md`.
 
 ## Workflow Comments
 
-These are observations about the CPS platform workflow, not the CPSAgentKit extension. Reviewed for any actionable items.
+These are observations about the CPS platform workflow, not the Agent Workbench extension. Reviewed for any actionable items.
 
 **Local changes requiring portal-side actions.** This is a platform limitation (output binding refresh requires portal interaction). Already documented in `yaml-syntax.md`. No extension change possible.
 

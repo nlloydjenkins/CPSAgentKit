@@ -7,7 +7,7 @@ import {
   findCpsAgentFolders,
   generateStarterSuite,
   readAgentSnapshot,
-} from "@cpsagentkit/core";
+} from "@agent-workbench/core";
 import type {
   AuthMode,
   AzureOpenAIAuthMode,
@@ -29,7 +29,7 @@ import { powerPlatformDiscovery } from "./discovery/powerPlatform.js";
 import { armDiscovery } from "./discovery/azureResourceManager.js";
 import { createSecretStore } from "./secretStore.js";
 
-const DEFAULT_PP_CLIENT_ID = "71ed2707-9ff6-42f3-a917-c531157bf86a"; // CPSAgentKit Test Harness app registration (CopilotStudio.Copilots.Invoke)
+const DEFAULT_PP_CLIENT_ID = "71ed2707-9ff6-42f3-a917-c531157bf86a"; // Agent Workbench Test Harness app registration (CopilotStudio.Copilots.Invoke)
 const SUPPORTED_AOAI_API_VERSIONS = [
   "2024-12-01-preview",
   "2024-10-21",
@@ -112,13 +112,13 @@ export async function runSetupWizard(
 
   const summary = renderSummary(draft, agentTarget);
   const confirm = await vscode.window.showInformationMessage(
-    "Save CPSAgentKit test configuration?",
+    "Save Agent Workbench test configuration?",
     { modal: true, detail: summary },
     "Save",
   );
   if (confirm !== "Save") {
     vscode.window.showWarningMessage(
-      'CPSAgentKit: configuration not saved. Run "Configure Agent Tests…" again to retry.',
+      'Agent Workbench: configuration not saved. Run "Configure Agent Tests…" again to retry.',
     );
     return { saved: false };
   }
@@ -131,7 +131,7 @@ export async function runSetupWizard(
   };
   const configPath = path.join(
     opts.workspaceRoot,
-    ".cpsagentkit",
+    ".agent-workbench",
     "test-config.json",
   );
   try {
@@ -140,7 +140,7 @@ export async function runSetupWizard(
   } catch (err) {
     logError("writeTestConfig", err);
     vscode.window.showErrorMessage(
-      `CPSAgentKit: failed to save test-config.json — ${(err as Error).message}`,
+      `Agent Workbench: failed to save test-config.json — ${(err as Error).message}`,
     );
     return { saved: false };
   }
@@ -162,7 +162,7 @@ export async function runSetupWizard(
   }
 
   vscode.window.showInformationMessage(
-    `CPSAgentKit: test configuration saved at .cpsagentkit/test-config.json for ${agentTarget.displayName}.`,
+    `Agent Workbench: test configuration saved at .agent-workbench/test-config.json for ${agentTarget.displayName}.`,
   );
 
   return { saved: true, config: finalConfig, agentTarget };
@@ -180,7 +180,7 @@ export async function pickAgent(
   const folders = await findCpsAgentFolders(workspaceRoot);
   if (folders.length === 0) {
     vscode.window.showErrorMessage(
-      "CPSAgentKit: no CPS agent folders found. Each agent folder must contain settings.yaml/settings.mcs.yml and topics/.",
+      "Agent Workbench: no CPS agent folders found. Each agent folder must contain settings.yaml/settings.mcs.yml and topics/.",
     );
     return undefined;
   }
@@ -207,7 +207,7 @@ export async function pickAgent(
     ? `Confirm the agent under test (current: ${preselected})`
     : "Pick the agent under test";
   const pick = await vscode.window.showQuickPick(items, {
-    title: "CPSAgentKit: agent under test",
+    title: "Agent Workbench: agent under test",
     placeHolder: placeholder,
     ignoreFocusOut: true,
   });
@@ -236,7 +236,7 @@ async function runDirectLineSteps(
     const detected = await safeDiscover(() => authProvider.getTenantId());
     if (detected === undefined) return undefined;
     const entered = await vscode.window.showInputBox({
-      title: "CPSAgentKit: confirm tenant id",
+      title: "Agent Workbench: confirm tenant id",
       prompt:
         "Tenant id (GUID) for the Power Platform environment you want to test against.",
       value: detected ?? current?.tenantId ?? "",
@@ -254,7 +254,7 @@ async function runDirectLineSteps(
   if (!envs) return undefined;
   if (envs.length === 0) {
     vscode.window.showErrorMessage(
-      "CPSAgentKit: no Power Platform environments returned. Confirm you have access to the BAP API.",
+      "Agent Workbench: no Power Platform environments returned. Confirm you have access to the BAP API.",
     );
     return undefined;
   }
@@ -275,7 +275,7 @@ async function runDirectLineSteps(
   });
 
   const envPick = await vscode.window.showQuickPick(envItems, {
-    title: "CPSAgentKit: pick Power Platform environment",
+    title: "Agent Workbench: pick Power Platform environment",
     ignoreFocusOut: true,
   });
   if (!envPick) return undefined;
@@ -285,13 +285,13 @@ async function runDirectLineSteps(
     hostname = envPick.payload.hostname;
     if (!hostname) {
       vscode.window.showErrorMessage(
-        `CPSAgentKit: could not derive Power Platform API hostname for environment ${envPick.payload.displayName}. Pick "Enter hostname manually" instead.`,
+        `Agent Workbench: could not derive Power Platform API hostname for environment ${envPick.payload.displayName}. Pick "Enter hostname manually" instead.`,
       );
       return undefined;
     }
   } else {
     const entered = await vscode.window.showInputBox({
-      title: "CPSAgentKit: Power Platform API hostname",
+      title: "Agent Workbench: Power Platform API hostname",
       prompt:
         "Enter the Power Platform API hostname for the environment, e.g. " +
         "abc1234567890123456789abcdef0.12.environment.api.powerplatform.com. " +
@@ -333,14 +333,14 @@ async function runAuthStep(
         payload: "clientCredentials" as AuthMode,
       },
     ],
-    { title: "CPSAgentKit: authentication mode", ignoreFocusOut: true },
+    { title: "Agent Workbench: authentication mode", ignoreFocusOut: true },
   );
   if (!modePick) return undefined;
 
   const clientIdChoice = await vscode.window.showQuickPick(
     [
       {
-        label: "Use the CPSAgentKit Test Harness app registration",
+        label: "Use the Agent Workbench Test Harness app registration",
         description: DEFAULT_PP_CLIENT_ID,
         detail:
           "Requires CopilotStudio.Copilots.Invoke delegated permission + admin consent in this tenant",
@@ -352,14 +352,14 @@ async function runAuthStep(
         payload: "custom",
       },
     ],
-    { title: "CPSAgentKit: client id", ignoreFocusOut: true },
+    { title: "Agent Workbench: client id", ignoreFocusOut: true },
   );
   if (!clientIdChoice) return undefined;
 
   let clientId = current?.clientId ?? DEFAULT_PP_CLIENT_ID;
   if (clientIdChoice.payload === "custom") {
     const entered = await vscode.window.showInputBox({
-      title: "CPSAgentKit: app registration client id",
+      title: "Agent Workbench: app registration client id",
       prompt:
         "Paste the application (client) id of your Entra app registration. It must have CopilotStudio.Copilots.Invoke delegated permission granted.",
       value: clientId,
@@ -401,7 +401,7 @@ async function runJudgeStep(
       },
     ],
     {
-      title: "CPSAgentKit: judge provider",
+      title: "Agent Workbench: judge provider",
       ignoreFocusOut: true,
       placeHolder: current ? `Current: ${current.provider}` : undefined,
     },
@@ -447,7 +447,7 @@ async function runAzureOpenAISubWizard(
       description: s.subscriptionId,
       payload: s,
     })),
-    { title: "CPSAgentKit: pick Azure subscription", ignoreFocusOut: true },
+    { title: "Agent Workbench: pick Azure subscription", ignoreFocusOut: true },
   );
   if (!subPick) return undefined;
 
@@ -480,7 +480,7 @@ async function runAzureOpenAISubWizard(
       detail: `${a.location}${a.sku ? " · " + a.sku : ""}`,
       payload: a,
     })),
-    { title: "CPSAgentKit: pick Azure OpenAI resource", ignoreFocusOut: true },
+    { title: "Agent Workbench: pick Azure OpenAI resource", ignoreFocusOut: true },
   );
   if (!accountPick) return undefined;
 
@@ -502,7 +502,7 @@ async function runAzureOpenAISubWizard(
       detail: d.modelVersion,
       payload: d,
     })),
-    { title: "CPSAgentKit: pick model deployment", ignoreFocusOut: true },
+    { title: "Agent Workbench: pick model deployment", ignoreFocusOut: true },
   );
   if (!deploymentPick) return undefined;
 
@@ -512,7 +512,7 @@ async function runAzureOpenAISubWizard(
       description: v === DEFAULT_AOAI_API_VERSION ? "default" : undefined,
       payload: v,
     })),
-    { title: "CPSAgentKit: Azure OpenAI API version", ignoreFocusOut: true },
+    { title: "Agent Workbench: Azure OpenAI API version", ignoreFocusOut: true },
   );
   if (!apiVersionPick) return undefined;
 
@@ -532,7 +532,7 @@ async function runAzureOpenAISubWizard(
         payload: "apiKey" as AzureOpenAIAuthMode,
       },
     ],
-    { title: "CPSAgentKit: Azure OpenAI authentication", ignoreFocusOut: true },
+    { title: "Agent Workbench: Azure OpenAI authentication", ignoreFocusOut: true },
   );
   if (!authPick) return undefined;
 
@@ -561,7 +561,7 @@ async function safeDiscover<T>(fn: () => Promise<T>): Promise<T | undefined> {
   try {
     return await fn();
   } catch (err) {
-    vscode.window.showErrorMessage(`CPSAgentKit: ${(err as Error).message}`);
+    vscode.window.showErrorMessage(`Agent Workbench: ${(err as Error).message}`);
     return undefined;
   }
 }

@@ -6,5 +6,5 @@ export {
   readYamlFiles,
   findCpsAgentFolders,
   findImageFiles,
-} from "@cpsagentkit/core";
-export type { FileEntry } from "@cpsagentkit/core";
+} from "@agent-workbench/core";
+export type { FileEntry } from "@agent-workbench/core";

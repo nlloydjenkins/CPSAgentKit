@@ -5,7 +5,7 @@ let channel: vscode.OutputChannel | undefined;
 
 export function getTestingChannel(): vscode.OutputChannel {
   if (!channel) {
-    channel = vscode.window.createOutputChannel("CPSAgentKit Tests");
+    channel = vscode.window.createOutputChannel("Agent Workbench Tests");
   }
   return channel;
 }
@@ -38,7 +38,7 @@ export async function withErrorSurface<T>(
     logError(label, err);
     const msg = err instanceof Error ? err.message : String(err);
     const choice = await vscode.window.showErrorMessage(
-      `CPSAgentKit ${label}: ${msg}`,
+      `Agent Workbench ${label}: ${msg}`,
       "Show details",
     );
     if (choice === "Show details") {

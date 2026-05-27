@@ -79,7 +79,7 @@ export async function buildDemoCommand(extensionPath: string): Promise<void> {
     await fs.access(demoSrc);
   } catch {
     vscode.window.showErrorMessage(
-      "CPSAgentKit: Demo files not found in extension bundle. Reinstall the extension.",
+      "Agent Workbench: Demo files not found in extension bundle. Reinstall the extension.",
     );
     return;
   }
@@ -88,7 +88,7 @@ export async function buildDemoCommand(extensionPath: string): Promise<void> {
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: `CPSAgentKit: Setting up ${pick.label} demo...`,
+      title: `Agent Workbench: Setting up ${pick.label} demo...`,
       cancellable: false,
     },
     async (progress) => {
@@ -105,7 +105,7 @@ export async function buildDemoCommand(extensionPath: string): Promise<void> {
       );
 
       vscode.window.showInformationMessage(
-        `CPSAgentKit: Demo files copied (${reqCount + sampleCount} files). Opening walkthrough...`,
+        `Agent Workbench: Demo files copied (${reqCount + sampleCount} files). Opening walkthrough...`,
       );
     },
   );
@@ -165,7 +165,7 @@ export async function buildDemoCommand(extensionPath: string): Promise<void> {
   await openPromptInCopilotChat(prompt);
 
   vscode.window.showInformationMessage(
-    `CPSAgentKit: ${pick.label} demo walkthrough loaded into Copilot Chat — press Enter to start.`,
+    `Agent Workbench: ${pick.label} demo walkthrough loaded into Copilot Chat — press Enter to start.`,
   );
 }
 
@@ -213,7 +213,7 @@ async function ensureDataverseMcpConfig(root: string): Promise<void> {
 
   if (!instanceUrl) {
     vscode.window.showWarningMessage(
-      "CPSAgentKit: Skipped Dataverse MCP setup. You can add it manually to .vscode/mcp.json later.",
+      "Agent Workbench: Skipped Dataverse MCP setup. You can add it manually to .vscode/mcp.json later.",
     );
     return;
   }
@@ -243,7 +243,7 @@ async function ensureDataverseMcpConfig(root: string): Promise<void> {
   );
 
   vscode.window.showInformationMessage(
-    `CPSAgentKit: Dataverse MCP Server configured → ${mcpUrl}. PnP CLI for Microsoft 365 MCP Server also added.`,
+    `Agent Workbench: Dataverse MCP Server configured → ${mcpUrl}. PnP CLI for Microsoft 365 MCP Server also added.`,
   );
 }
 
@@ -291,10 +291,10 @@ function composeItHelpDeskWalkthrough(
     "",
     "Tell the user to:",
     "1. Open the VS Code Command Palette (Cmd+Shift+P / Ctrl+Shift+P)",
-    "2. Run **CPSAgentKit: Initialise CPS Project**",
+    "2. Run **Agent Workbench: Initialise CPS Project**",
     "3. Wait for the knowledge sync to complete",
     "",
-    "This creates the `.cpsagentkit/` folder, syncs platform knowledge, and generates `.github/copilot-instructions.md`.",
+    "This creates the `.agent-workbench/` folder, syncs platform knowledge, and generates `.github/copilot-instructions.md`.",
     "",
     "---",
     "",
@@ -302,7 +302,7 @@ function composeItHelpDeskWalkthrough(
     "",
     "Tell the user to:",
     "1. Open the Command Palette",
-    "2. Run **CPSAgentKit: Create Specification**",
+    "2. Run **Agent Workbench: Create Specification**",
     '3. Select **"Generate from requirements docs"**',
     "4. Press Enter in Copilot Chat when the runner instruction appears",
     "5. Wait for Copilot to generate both `Requirements/spec.md` and `Requirements/architecture.md`",
@@ -317,7 +317,7 @@ function composeItHelpDeskWalkthrough(
     "",
     "Tell the user to:",
     "1. Open the Command Palette",
-    "2. Run **CPSAgentKit: Run Pre-Build Checklist**",
+    "2. Run **Agent Workbench: Run Pre-Build Checklist**",
     "3. Review the output — it will list what needs to be created in the Copilot Studio portal",
     "",
     "---",
@@ -371,7 +371,7 @@ function composeItHelpDeskWalkthrough(
     "",
     "Tell the user to:",
     "1. Open the Command Palette",
-    "2. Run **CPSAgentKit: Build Agent**",
+    "2. Run **Agent Workbench: Build Agent**",
     '3. Select **"Full build"**',
     "4. Press Enter in Copilot Chat when the build prompt appears",
     "5. Copilot will generate:",
@@ -427,7 +427,7 @@ function composeItHelpDeskWalkthrough(
     '6. **"Can you help me submit my expenses?"** — should politely decline (out of scope)',
     '7. **"I think my account has been compromised"** — should escalate to human agent',
     "",
-    "If any step misroutes or produces unexpected results, tell the user to copy the test pane output, then run **CPSAgentKit: Build Agent** → **Rebuild from test feedback** and paste the output.",
+    "If any step misroutes or produces unexpected results, tell the user to copy the test pane output, then run **Agent Workbench: Build Agent** → **Rebuild from test feedback** and paste the output.",
     "",
     "---",
     "",
@@ -464,7 +464,7 @@ function composeApplicationIntakeWalkthrough(
     "## Step 1: Verify Prerequisites",
     "",
     "Tell the user to ensure:",
-    "1. VS Code with the CPSAgentKit extension installed",
+    "1. VS Code with the Agent Workbench extension installed",
     "2. GitHub Copilot Chat enabled",
     "3. A Copilot Studio environment with a managed Dataverse environment",
     "4. Access to a shared mailbox (e.g. applications@contoso.com) with Send As permission for the maker account",
@@ -487,10 +487,10 @@ function composeApplicationIntakeWalkthrough(
     "",
     "Tell the user to:",
     "1. Open the VS Code Command Palette (Cmd+Shift+P / Ctrl+Shift+P)",
-    "2. Run **CPSAgentKit: Initialise CPS Project**",
+    "2. Run **Agent Workbench: Initialise CPS Project**",
     "3. Wait for the knowledge sync to complete",
     "",
-    "This creates the `.cpsagentkit/` folder, syncs platform knowledge, and generates `.github/copilot-instructions.md`.",
+    "This creates the `.agent-workbench/` folder, syncs platform knowledge, and generates `.github/copilot-instructions.md`.",
     "",
     "---",
     "",
@@ -498,7 +498,7 @@ function composeApplicationIntakeWalkthrough(
     "",
     "Tell the user to:",
     "1. Open the Command Palette",
-    "2. Run **CPSAgentKit: Create Specification**",
+    "2. Run **Agent Workbench: Create Specification**",
     '3. Select **"Generate from requirements docs"**',
     "4. Press Enter in Copilot Chat when the runner instruction appears",
     "5. Wait for Copilot to generate both `Requirements/spec.md` and `Requirements/architecture.md`",
@@ -516,7 +516,7 @@ function composeApplicationIntakeWalkthrough(
     "",
     "Tell the user to:",
     "1. Open the Command Palette",
-    "2. Run **CPSAgentKit: Run Pre-Build Checklist**",
+    "2. Run **Agent Workbench: Run Pre-Build Checklist**",
     "3. Review the output — expect flags for:",
     "   - Shared mailbox trigger configuration (portal)",
     "   - Pre-bound Dataverse actions per table (portal)",
@@ -612,7 +612,7 @@ function composeApplicationIntakeWalkthrough(
     "",
     "Tell the user to:",
     "1. Open the Command Palette",
-    "2. Run **CPSAgentKit: Build Agent**",
+    "2. Run **Agent Workbench: Build Agent**",
     '3. Select **"Full build"**',
     "4. Press Enter in Copilot Chat when the build prompt appears",
     "5. Copilot will generate:",
@@ -665,7 +665,7 @@ function composeApplicationIntakeWalkthrough(
     "- Compliance Evaluator invoked for every outbound email",
     "- Accessibility Presenter invoked after compliance pass",
     "",
-    "If any step misroutes or stops early, tell the user to paste the test output back into **CPSAgentKit: Build Agent** → **Rebuild from test feedback**.",
+    "If any step misroutes or stops early, tell the user to paste the test output back into **Agent Workbench: Build Agent** → **Rebuild from test feedback**.",
     "",
     "---",
     "",

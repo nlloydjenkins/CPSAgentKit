@@ -1,15 +1,15 @@
-<!-- AUTO-GENERATED for CPSAgentKit repo maintenance. Regenerate after source knowledge changes. -->
+<!-- AUTO-GENERATED for Agent Workbench repo maintenance. Regenerate after source knowledge changes. -->
 
-# CPSAgentKit Product Development Assistant
+# Agent Workbench for Copilot Studio — Product Development Assistant
 
-You are helping maintain and evolve the CPSAgentKit product in this repository. This workspace is the source code and documentation for the product, not a target Copilot Studio agent project.
+You are helping maintain and evolve the Agent Workbench product in this repository. This workspace is the source code and documentation for the product, not a target Copilot Studio agent project.
 
-CPSAgentKit is a VS Code extension plus MCP server that helps makers build Copilot Studio agents. It writes project-level `.github/copilot-instructions.md` files into customer or demo workspaces during **Initialise CPS Project** and **Sync Knowledge**. Those generated project instructions turn GitHub Copilot into a Copilot Studio architect/builder/reviewer for that target workspace. Do not apply those project-agent workflow phases to this repository unless you are editing the template that will be emitted into projects.
+Agent Workbench is a VS Code extension plus MCP server that helps makers build Copilot Studio agents. It writes project-level `.github/copilot-instructions.md` files into customer or demo workspaces during **Initialise Agent Workbench Project** and **Sync Knowledge**. Those generated project instructions turn GitHub Copilot into a Copilot Studio architect/builder/reviewer for that target workspace. Do not apply those project-agent workflow phases to this repository unless you are editing the template that will be emitted into projects.
 
 ## Product Boundary
 
-- Treat `templates/copilot-instructions-template.md` as the **project-agent instruction template** that CPSAgentKit writes into initialized/synced CPS workspaces.
-- Treat this file, `templates/repo-copilot-instructions-template.md`, as the **repo-maintenance instruction template** for people developing CPSAgentKit itself.
+- Treat `templates/copilot-instructions-template.md` as the **project-agent instruction template** that Agent Workbench writes into initialized/synced CPS workspaces.
+- Treat this file, `templates/repo-copilot-instructions-template.md`, as the **repo-maintenance instruction template** for people developing Agent Workbench itself.
 - Keep `.github/copilot-instructions.md` generated from `templates/repo-copilot-instructions-template.md` via `npm run generate:repo-instructions`.
 - Do not let repo-level instructions tell Copilot to create `Requirements/spec.md`, build a CPS agent, or treat this repo as a customer solution.
 - When product behavior changes, update source docs/templates first, then regenerate generated instructions and packaged assets.
@@ -43,12 +43,12 @@ Prefer focused product changes over broad rewrites. Preserve existing extension 
 
 ## Product Principles
 
-- CPSAgentKit should help makers reach a complete working agent, not just produce advice.
+- Agent Workbench should help makers reach a complete working agent, not just produce advice.
 - Build should perform safe backend/API actions when a supported path exists, such as Dataverse schema creation, sample data insertion, prompt instruction updates, and uploaded-file knowledge ingestion.
 - Build must not fabricate portal/runtime-owned state. Connector bindings, prompt tool scaffolds, MCP discovery, and Power Automate flow internals require portal/API-backed creation or known-good exported patterns.
 - Build checklists should be essential-only action lists. Do not generate long verification inventories; routine checks belong in troubleshooting or final notes unless they block a runnable agent.
 - Use-case sample values such as email addresses, Teams channels, SharePoint libraries, service accounts, and Dataverse prefixes are build-time defaults to confirm or replace, not fixed tenant facts.
-- Keep project-agent instructions clear that they operate in the target CPS workspace. Keep repo-level instructions clear that they operate on CPSAgentKit itself.
+- Keep project-agent instructions clear that they operate in the target CPS workspace. Keep repo-level instructions clear that they operate on Agent Workbench itself.
 
 ## Common Product Areas
 
@@ -126,6 +126,6 @@ Read these directories for proven multi-agent designs and working examples when 
 - **Current phase:** Extension development / knowledge authoring
 - **Knowledge source mode:** Source docs under `docs/knowledge/`
 - **Best practices source mode:** Source docs under `docs/bestpractices/`
-- **Generated file purpose:** Repo-level Copilot context for maintaining CPSAgentKit itself
+- **Generated file purpose:** Repo-level Copilot context for maintaining Agent Workbench itself
 
 **Next step:** Keep source docs authoritative. Regenerate this file after knowledge or best-practice updates so Copilot sees the latest reference library.

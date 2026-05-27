@@ -8,7 +8,7 @@ The solution is an autonomous agent that runs on a scheduled trigger each weekda
 
 ## Build-Time Configuration
 
-The Adventure Works/sample values are placeholders. During Build, CPSAgentKit must ask the maker to confirm or replace the tenant-specific values before finalising tenant-bound schema names, connector descriptions, prompt instructions, or portal setup steps. Missing values should block only the specific tenant-bound action that needs them; Build should still perform safe work that does not depend on those values:
+The Adventure Works/sample values are placeholders. During Build, Agent Workbench must ask the maker to confirm or replace the tenant-specific values before finalising tenant-bound schema names, connector descriptions, prompt instructions, or portal setup steps. Missing values should block only the specific tenant-bound action that needs them; Build should still perform safe work that does not depend on those values:
 
 - Internal email domains used to identify external meetings, default `@adventure-works.com`
 - User population or security group to brief

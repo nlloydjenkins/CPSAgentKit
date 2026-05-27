@@ -195,7 +195,7 @@ Important gotchas:
 
 Build implication: when uploaded files are listed in `Requirements/docs/` or architecture as knowledge to add, Build must use the backend ingestion path. If Build has an authenticated Dataverse/CPS Web API path aligned to the tenant in `.mcs/conn.json`, upload the files programmatically through `botcomponent` + `filedata`. If that auth path is unavailable, stop and classify the item as a manual portal upload. Never generate local knowledge YAML as a substitute for ingestion.
 
-Product command target: CPSAgentKit should expose backend upload as a first-class operation, for example `cps knowledge upload --agent "IT Help Desk" --child-agent "Knowledge Specialist" --file /path/to/article.md`. The command should read `.mcs/conn.json`, acquire a tenant-aligned Dataverse token, create the `botcomponent`, upload `filedata`, wait for Ready/processing, prompt for or run Get Changes, verify the mirrored descriptor, and require Activity Map retrieval testing.
+Product command target: Agent Workbench should expose backend upload as a first-class operation, for example `cps knowledge upload --agent "IT Help Desk" --child-agent "Knowledge Specialist" --file /path/to/article.md`. The command should read `.mcs/conn.json`, acquire a tenant-aligned Dataverse token, create the `botcomponent`, upload `filedata`, wait for Ready/processing, prompt for or run Get Changes, verify the mirrored descriptor, and require Activity Map retrieval testing.
 
 ## Uploaded-File Knowledge Descriptions Are Orchestrator Routing Inputs
 
@@ -231,7 +231,7 @@ Step 3 is the routing-correctness step that the portal does in the same screen a
 
 Auth: `az account get-access-token --resource https://<org>.crm.dynamics.com --tenant <tenantId>`. Tenant must match `.mcs/conn.json#AccountInfo.TenantId` or Dataverse returns 403 "The user is not a member of the organization."
 
-### CPSAgentKit override block for source-controlled descriptions
+### Agent Workbench override block for source-controlled descriptions
 
 To keep descriptions reviewable in source control without colliding with the platform-generated mirror, add an explicit `cpsAgentKit.description` block at the top of the local mirror YAML:
 

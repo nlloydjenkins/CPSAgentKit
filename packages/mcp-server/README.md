@@ -1,6 +1,6 @@
 # @cpsagentkit/mcp-server
 
-**Model Context Protocol server** exposing [CPSAgentKit](https://github.com/nlloydjenkins/CPSAgentKit)'s Copilot Studio knowledge, parsing, and assessment tools to any MCP-aware LLM client (Claude Desktop, VS Code, Cursor, custom agents).
+**Model Context Protocol server** exposing [Agent Workbench for Copilot Studio](https://github.com/nlloydjenkins/CPSAgentKit)'s Copilot Studio knowledge, parsing, and assessment tools to any MCP-aware LLM client (Claude Desktop, VS Code, Cursor, custom agents).
 
 ## Install
 

@@ -320,7 +320,7 @@ describe("readRequirementsDocs", () => {
 
 describe("readBestPracticesDocs", () => {
   it("reads best practice markdown files", async () => {
-    const bpDir = path.join(tmpDir, ".cpsagentkit", "bestpractices");
+    const bpDir = path.join(tmpDir, ".agent-workbench", "bestpractices");
     await fs.mkdir(bpDir, { recursive: true });
     await fs.writeFile(
       path.join(bpDir, "part1.md"),

@@ -1,5 +1,5 @@
 // Azure Resource Manager discovery: subscriptions, Azure OpenAI accounts, deployments.
-import type { TokenProvider } from "@cpsagentkit/core";
+import type { TokenProvider } from "@agent-workbench/core";
 import { getJson } from "./http.js";
 
 export interface AzureSubscription {

@@ -1,2 +1,2 @@
-export { detectProjectState } from "@cpsagentkit/core";
-export type { ProjectState } from "@cpsagentkit/core";
+export { detectProjectState } from "@agent-workbench/core";
+export type { ProjectState } from "@agent-workbench/core";

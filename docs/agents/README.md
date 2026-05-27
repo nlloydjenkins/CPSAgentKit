@@ -1,6 +1,6 @@
-# CPSAgentKit Docs Q&A Agent — React App Integration
+# Agent Workbench Docs Q&A Agent — React App Integration
 
-This folder packages everything a standalone React chat app needs to wire up the **CPSAgentKit Docs Q&A Agent** against the `cpsagentkit-mcp` server.
+This folder packages everything a standalone React chat app needs to wire up the **Agent Workbench Docs Q&A Agent** against the `cpsagentkit-mcp` server.
 
 ## Files
 
@@ -26,7 +26,7 @@ The React app does not need to ship the system prompt text. On startup it should
 
 1. Connect to the hosted MCP endpoint (see [MCP transport](#mcp-transport) below).
 2. Call `prompts/get` with name `cps_docs_qa_agent` and use the returned text as the LLM system prompt.
-3. Expose **only** the four tools listed in `allowedTools` to the LLM (filter the `tools/list` response). All other CPSAgentKit tools must be hidden or rejected so the agent stays a pure Q&A assistant.
+3. Expose **only** the four tools listed in `allowedTools` to the LLM (filter the `tools/list` response). All other Agent Workbench tools must be hidden or rejected so the agent stays a pure Q&A assistant.
 4. Forward the LLM's `tools/call` requests to the MCP server and round-trip results back into the conversation.
 
 ## MCP transport

@@ -2,7 +2,7 @@
 
 Curated reference guidance based on the `microsoft/skills-for-copilot-studio` repository.
 
-Use this library to accelerate YAML authoring and review in CPSAgentKit. Treat it as a pattern catalog, not as a source of truth.
+Use this library to accelerate YAML authoring and review in Agent Workbench. Treat it as a pattern catalog, not as a source of truth.
 
 ---
 
@@ -116,14 +116,14 @@ Use as a lightweight variable-definition example only.
 ## What Not To Use From It
 
 - Do not vendor the repo into this project.
-- Do not install it as a CPSAgentKit dependency.
+- Do not install it as a Agent Workbench dependency.
 - Do not generate production YAML purely from its templates.
 - Do not use it to justify edits to fields that CPS exports generated for you.
 - Do not assume its fallback/topic behavior applies unchanged under generative orchestration.
 
-## CPSAgentKit Usage Rule
+## Agent Workbench Usage Rule
 
-When using this reference library inside CPSAgentKit:
+When using this reference library inside Agent Workbench:
 
 1. Start from a real cloned/exported CPS file.
 2. Use the external repo only to recognize patterns or missing capabilities.
@@ -138,7 +138,7 @@ When using this reference library inside CPSAgentKit:
 4. Re-test in Copilot Studio.
 5. Record any verified divergence in this repo's own knowledge docs.
 
-## Current Position In CPSAgentKit
+## Current Position In Agent Workbench
 
 This library exists to improve:
 
@@ -147,4 +147,4 @@ This library exists to improve:
 - action/tool description quality
 - troubleshooting speed when exported YAML is unclear
 
-It does **not** replace the CPSAgentKit architecture-driven workflow, local review logic, or real exported YAML as the primary build baseline.
+It does **not** replace the Agent Workbench architecture-driven workflow, local review logic, or real exported YAML as the primary build baseline.

@@ -14,9 +14,30 @@ export interface ProjectState {
   agentFolders: string[];
 }
 
-const CPS_ARCHITECT_DIR = ".cpsagentkit";
+const CPS_ARCHITECT_DIR = ".agent-workbench";
+const LEGACY_ARCHITECT_DIR = ".cpsagentkit";
 const KNOWLEDGE_DIR = "knowledge";
 const REQUIREMENTS_DIR = "Requirements";
+
+/**
+ * Return the project-state directory currently in use for `workspaceRoot`.
+ * Prefers the new `.agent-workbench/`. Falls back to the legacy `.cpsagentkit/`
+ * when only the legacy dir exists, so projects created before the rename keep
+ * working until they are migrated.
+ */
+export async function resolveArchitectDir(
+  workspaceRoot: string,
+): Promise<string> {
+  const next = path.join(workspaceRoot, CPS_ARCHITECT_DIR);
+  if (await fileExists(next)) {
+    return next;
+  }
+  const legacy = path.join(workspaceRoot, LEGACY_ARCHITECT_DIR);
+  if (await fileExists(legacy)) {
+    return legacy;
+  }
+  return next;
+}
 
 const PLACEHOLDER_LINES = new Set([
   "-",
@@ -91,18 +112,14 @@ async function dirHasFiles(dir: string): Promise<boolean> {
 export async function detectProjectState(
   workspaceRoot: string,
 ): Promise<ProjectState> {
-  const architectDir = path.join(workspaceRoot, CPS_ARCHITECT_DIR);
+  const architectDir = await resolveArchitectDir(workspaceRoot);
   const knowledgeDir = path.join(architectDir, KNOWLEDGE_DIR);
   const requirementsDir = path.join(workspaceRoot, REQUIREMENTS_DIR);
   const requirementsDocsDir = path.join(requirementsDir, "docs");
-  const bestPracticesDir = path.join(
-    workspaceRoot,
-    ".cpsagentkit",
-    "bestpractices",
-  );
+  const bestPracticesDir = path.join(architectDir, "bestpractices");
 
   // Locate templates — installed projects may have either workspace-local
-  // source templates or synced .cpsagentkit template copies.
+  // source templates or synced .agent-workbench template copies.
   const localTemplateDir = path.join(workspaceRoot, "templates");
   const syncedTemplateDir = path.join(architectDir, "templates");
   const specTemplatePaths = [

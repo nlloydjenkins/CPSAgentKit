@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
 
-/** Persisted config stored in .cpsagentkit/config.json */
+/** Persisted config stored in .agent-workbench/config.json */
 export interface CpsConfig {
   knowledgeRepoUrl: string;
   knowledgeRepoBranch: string;
@@ -13,9 +13,9 @@ export interface CpsConfig {
   version: string;
 }
 
-const CONFIG_DIR = ".cpsagentkit";
+const CONFIG_DIR = ".agent-workbench";
 const CONFIG_FILE = "config.json";
-export const CURRENT_VERSION = "0.15.23";
+export const CURRENT_VERSION = "0.15.24";
 
 /** Default config values for a fresh project */
 function defaults(): CpsConfig {
@@ -33,10 +33,18 @@ function defaults(): CpsConfig {
   };
 }
 
-/** Read a VS Code setting with fallback */
+/** Read a VS Code setting with fallback (checks new `agentWorkbench.*` namespace, then legacy `cpsAgentKit.*`). */
 function getSettingOrDefault(key: string, fallback: string): string {
-  const config = vscode.workspace.getConfiguration("cpsAgentKit");
-  return config.get<string>(key) || fallback;
+  const next = vscode.workspace
+    .getConfiguration("agentWorkbench")
+    .get<string>(key);
+  if (next !== undefined && next !== "") {
+    return next;
+  }
+  const legacy = vscode.workspace
+    .getConfiguration("cpsAgentKit")
+    .get<string>(key);
+  return legacy || fallback;
 }
 
 /** Full path to the config file */
@@ -44,7 +52,7 @@ export function configPath(workspaceRoot: string): string {
   return path.join(workspaceRoot, CONFIG_DIR, CONFIG_FILE);
 }
 
-/** Full path to the .cpsagentkit directory */
+/** Full path to the .agent-workbench directory */
 export function configDirPath(workspaceRoot: string): string {
   return path.join(workspaceRoot, CONFIG_DIR);
 }

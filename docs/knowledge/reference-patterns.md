@@ -1,6 +1,6 @@
 # External YAML Pattern Library
 
-Practical patterns distilled from `microsoft/skills-for-copilot-studio` and adapted for CPSAgentKit.
+Practical patterns distilled from `microsoft/skills-for-copilot-studio` and adapted for Agent Workbench.
 
 Use these patterns to recognize good CPS structures quickly. Validate them against a real export before treating them as implementation guidance.
 
@@ -19,7 +19,7 @@ The external template confirms a strong OnError baseline:
 - log `System.Error.Message`, `System.Error.Code`, timestamp, and conversation ID via `LogCustomTelemetryEvent`
 - finish with `CancelAllDialogs`
 
-This matches CPSAgentKit guidance and should be considered the preferred error-handling pattern.
+This matches Agent Workbench guidance and should be considered the preferred error-handling pattern.
 
 ### Fallback Pattern
 
@@ -30,7 +30,7 @@ The external fallback template shows a classic `OnUnknownIntent` topic with:
 - rephrase prompts before escalation
 - escalation to an `Escalate` topic after repeated failures
 
-Important CPSAgentKit constraint: under generative orchestration, fallback handling is planner-driven and this topic may be bypassed. Use the pattern as a classic-mode reference, not as guaranteed behavior in generative mode.
+Important Agent Workbench constraint: under generative orchestration, fallback handling is planner-driven and this topic may be bypassed. Use the pattern as a classic-mode reference, not as guaranteed behavior in generative mode.
 
 ### Conversation Start / Greeting / Disambiguation
 
@@ -57,7 +57,7 @@ The external connector-action template is useful because it makes the conceptual
 - `action.kind: InvokeConnectorTaskAction`
 - `connectionProperties.mode: Invoker`
 
-### CPSAgentKit Safe-Edit Rule
+### Agent Workbench Safe-Edit Rule
 
 Use the template to understand the shape, then switch back to the exported YAML and only edit the safe fields:
 
@@ -89,7 +89,7 @@ The top-level agent template highlights the common shape:
 - `conversationStarters`
 - `aISettings.model.modelNameHint`
 
-In CPSAgentKit, preserve model hints if the export already contains them. Avoid inventing them as a primary configuration strategy.
+In Agent Workbench, preserve model hints if the export already contains them. Avoid inventing them as a primary configuration strategy.
 
 ### Child Agent Pattern
 
@@ -104,7 +104,7 @@ The child-agent template confirms the core routing structure:
 
 This is useful when reviewing whether a child agent is too vague. If the description does not clearly separate the child from sibling tools or agents, expect routing drift.
 
-Manual child-agent scaffolding is viable when the exported parent folder already exists, no generated child folder exists yet, and CPSAgentKit has a verified child-agent shape. Use a sanitized folder name such as `KnowledgeSpecialist`, keep the display name in `mcs.metadata.componentName`, and require Apply Changes plus portal acceptance before treating the child as fully accepted. If the child needs tools, connector bindings, knowledge sources, MCP servers, prompt tools, flows, or portal-only settings, Build must create those child-owned artifacts whenever CPSAgentKit has a verified export/API pattern for that exact artifact and required tenant bindings are available; action YAML additionally requires real connection reference logical names. Portal-first is only the fallback when no verified path exists. Child-owned artifacts require a two-pass ParentId-safe order: first apply the child shell; after Get Changes confirms the child cloud component exists, apply child-owned artifacts.
+Manual child-agent scaffolding is viable when the exported parent folder already exists, no generated child folder exists yet, and Agent Workbench has a verified child-agent shape. Use a sanitized folder name such as `KnowledgeSpecialist`, keep the display name in `mcs.metadata.componentName`, and require Apply Changes plus portal acceptance before treating the child as fully accepted. If the child needs tools, connector bindings, knowledge sources, MCP servers, prompt tools, flows, or portal-only settings, Build must create those child-owned artifacts whenever Agent Workbench has a verified export/API pattern for that exact artifact and required tenant bindings are available; action YAML additionally requires real connection reference logical names. Portal-first is only the fallback when no verified path exists. Child-owned artifacts require a two-pass ParentId-safe order: first apply the child shell; after Get Changes confirms the child cloud component exists, apply child-owned artifacts.
 
 Do not place active child-owned `.mcs.yml` files under a newly scaffolded child folder before the child exists in the cloud. Apply Changes can fail with `ParentId does not exist on cloud: <schema>.agent.<Child>` when Copilot Studio tries to create child-owned tools before the child botcomponent exists. Stage child-owned YAML as `.mcs.yml.staged` or in a non-applied staging location during the first pass, then rename it to `.mcs.yml` for a second Apply Changes pass after Get Changes confirms the child.
 
@@ -112,7 +112,7 @@ Do not place active child-owned `.mcs.yml` files under a newly scaffolded child 
 
 Action YAML is stricter than child-agent YAML. A minimal manual `TaskDialog` stub can pass diagnostics only when it includes `action.connectionReference`, and reliable portal acceptance also requires a root `connectionreferences.mcs.yml` containing the referenced logical names. This is a reference-backed scaffold path: use it only when the artifact shape comes from a known-good export/API pattern and the active workspace contains the real tenant connection reference logical names. Treat the result as provisional until the manual acceptance and runtime validation gates pass.
 
-A validated action shape and operation ID are not enough. Do not create active `.mcs.yml` or staged `.mcs.yml.staged` action files if the active workspace lacks root `connectionreferences.mcs.yml`, exported `actions/*.mcs.yml`, child `agents/*/actions/*.mcs.yml`, or connection-reference logical names in `.mcs/botdefinition.json`. In that case, complete unrelated safe build work first, then checklist the smallest blocker: create or sync one representative connector/MCP seed that exposes the real connection reference values, or provide a real root `connectionreferences.mcs.yml` with the tenant-specific logical names. Do not list every planned tool when one seed action is enough to unblock CPSAgentKit.
+A validated action shape and operation ID are not enough. Do not create active `.mcs.yml` or staged `.mcs.yml.staged` action files if the active workspace lacks root `connectionreferences.mcs.yml`, exported `actions/*.mcs.yml`, child `agents/*/actions/*.mcs.yml`, or connection-reference logical names in `.mcs/botdefinition.json`. In that case, complete unrelated safe build work first, then checklist the smallest blocker: create or sync one representative connector/MCP seed that exposes the real connection reference values, or provide a real root `connectionreferences.mcs.yml` with the tenant-specific logical names. Do not list every planned tool when one seed action is enough to unblock Agent Workbench.
 
 Reference-shaped action files should preserve the portal/export pattern:
 
@@ -125,14 +125,14 @@ Reference-shaped action files should preserve the portal/export pattern:
 - connector operation IDs such as `MyProfile_V2`, `PostMessageToConversation`, or `SendEmailV2` where verified by export/reference
 - MCP metadata with `operationDetails.kind: ModelContextProtocolMetadata` and `operationDetails.operationId: InvokeMCP`
 
-Before declaring a new action blocked, use the bundled CPSAgentKit reference patterns in this file plus `yaml-syntax.md` and `multi-agent-patterns.md`, then search for validated reference-backed patterns inside the active workspace. Check current-workspace `Reference/`, `Requirements/*tool*yaml*findings*.md`, `Requirements/*product*notes*.md`, `Requirements/*implementation*sketch*.md`, root `connectionreferences.mcs.yml`, exported `actions/*.mcs.yml`, and child `agents/*/actions/*.mcs.yml`. Do not browse unrelated sibling folders or ask the developer to supply an external exported agent — the bundled CPSAgentKit reference patterns above are the authoritative product evidence. A bundled pattern or validated findings file in the active workspace changes the build path from manual portal creation to provisional reference-backed scaffold.
+Before declaring a new action blocked, use the bundled Agent Workbench reference patterns in this file plus `yaml-syntax.md` and `multi-agent-patterns.md`, then search for validated reference-backed patterns inside the active workspace. Check current-workspace `Reference/`, `Requirements/*tool*yaml*findings*.md`, `Requirements/*product*notes*.md`, `Requirements/*implementation*sketch*.md`, root `connectionreferences.mcs.yml`, exported `actions/*.mcs.yml`, and child `agents/*/actions/*.mcs.yml`. Do not browse unrelated sibling folders or ask the developer to supply an external exported agent — the bundled Agent Workbench reference patterns above are the authoritative product evidence. A bundled pattern or validated findings file in the active workspace changes the build path from manual portal creation to provisional reference-backed scaffold.
 
 ### Seeding When the Active Workspace Has No Exports
 
 If the active workspace has no exported `actions/*.mcs.yml`, no `connectionreferences.mcs.yml`, and no `.mcs/conn.json`, do not stop at a broad blocker and do not fabricate `action.connectionReference` values. Ask the developer for the smallest platform-generated seed:
 
 - If the workspace has no cloned/synced Copilot Studio agent folder yet, `Requirements/build-checklist.md` should be a short first-pass action checklist: create the agent shell in Copilot Studio, add one representative required tool only if needed to generate tenant connection references or action shape, run Get Changes/clone/sync so the local agent folder and generated files exist, then run Build Agent again.
-- Keep the bootstrap checklist minimal and persistent. Update the same file after later Build passes by removing completed bootstrap items and adding only the next essential actions. Use direct checkbox items such as `Update Dataverse connection.`, `Update Office 365 Users connection.`, `Run Copilot Studio: Get Changes.`, and `Run CPSAgentKit: Build Agent again.` Do not expand the first pass into one checklist item per planned tool, topic, child agent, or knowledge source.
+- Keep the bootstrap checklist minimal and persistent. Update the same file after later Build passes by removing completed bootstrap items and adding only the next essential actions. Use direct checkbox items such as `Update Dataverse connection.`, `Update Office 365 Users connection.`, `Run Copilot Studio: Get Changes.`, and `Run Agent Workbench: Build Agent again.` Do not expand the first pass into one checklist item per planned tool, topic, child agent, or knowledge source.
 
 - For connection reference values, any exported tool using the same connector reveals the tenant `connectionReference` logical name.
 - For active action YAML, prefer a reference export of the exact tool, otherwise the same operation family.
@@ -183,7 +183,7 @@ When using any external pattern from this library:
 1. Find the matching exported CPS file in the real agent.
 2. Compare only the conceptual structure.
 3. Keep portal-generated IDs, bindings, references, and metadata from the export.
-4. Apply the pattern only where it matches a verified CPSAgentKit safe-edit rule.
+4. Apply the pattern only where it matches a verified Agent Workbench safe-edit rule.
 5. Re-test in the target channel or test pane.
 
 ## Validation State Model
@@ -203,7 +203,7 @@ This prevents local parsing success from being mistaken for runtime readiness.
 
 ## High-Value External Files
 
-These are the highest-value assets from the external repo for CPSAgentKit reference work:
+These are the highest-value assets from the external repo for Agent Workbench reference work:
 
 - `reference/adaptive-card.schema.json`
 - `reference/bot.schema.yaml-authoring.json`

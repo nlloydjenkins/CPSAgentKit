@@ -1,4 +1,4 @@
-# Deploying the CPSAgentKit MCP Server to Azure
+# Deploying the Agent Workbench for Copilot Studio MCP Server to Azure
 
 The MCP server runs as a public, anonymous endpoint on **Azure Container Apps**, with images stored in **Azure Container Registry** and pulled via a user-assigned managed identity.
 
@@ -120,6 +120,8 @@ az containerapp update -g rg-cpsagentkit-mcp -n ca-mcp-6frsoq6bw5vuk `
 Clients then send `x-api-key: <key>` (or `Authorization: Bearer <key>`) on every `/mcp` POST.
 
 ## Custom domain — `cpsagentkit.codeworks.app`
+
+> **Brand rename note (Agent Workbench).** The existing hostname `cpsagentkit.codeworks.app`, resource group `rg-cpsagentkit-mcp`, Container App name, and ACR image tag are **intentionally retained** as part of the rename to Agent Workbench for Copilot Studio. They are addressable URLs/IDs only; renaming would force a redeploy with downtime and break any pinned clients. A future migration to `agent-workbench.codeworks.app` can be done non-disruptively by binding the second hostname to the same Container App (both managed certs valid simultaneously) and updating client configs at leisure.
 
 1. Get the verification ID and ingress FQDN (already provisioned, no Bicep change required):
    ```pwsh

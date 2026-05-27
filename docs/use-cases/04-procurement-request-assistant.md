@@ -8,7 +8,7 @@ The solution is a conversational agent in Microsoft Teams that guides the employ
 
 ## Build-Time Configuration
 
-The Fabrikam/sample values are placeholders. During Build, CPSAgentKit must ask the maker to confirm or replace the tenant-specific values before finalising tenant-bound schema names, connector descriptions, prompt text, or portal setup steps. Missing values should block only the specific tenant-bound action that needs them; Build should still perform safe work that does not depend on those values:
+The Fabrikam/sample values are placeholders. During Build, Agent Workbench must ask the maker to confirm or replace the tenant-specific values before finalising tenant-bound schema names, connector descriptions, prompt text, or portal setup steps. Missing values should block only the specific tenant-bound action that needs them; Build should still perform safe work that does not depend on those values:
 
 - Organisation name, default currency, and office/location defaults
 - Procurement escalation Teams team/channel, default `#procurement-exceptions`

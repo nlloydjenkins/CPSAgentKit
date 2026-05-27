@@ -10,7 +10,7 @@ Because every stage in this pipeline produces strict structured output (labeled 
 
 ## Build-Time Configuration
 
-The Contoso/sample values are placeholders. During Build, CPSAgentKit must ask the maker to confirm or replace the tenant-specific values before finalising tenant-bound schema names, prompt instructions, connector descriptions, or portal setup steps. Missing values should block only the specific tenant-bound action that needs them; Build should still perform safe work that does not depend on those values:
+The Contoso/sample values are placeholders. During Build, Agent Workbench must ask the maker to confirm or replace the tenant-specific values before finalising tenant-bound schema names, prompt instructions, connector descriptions, or portal setup steps. Missing values should block only the specific tenant-bound action that needs them; Build should still perform safe work that does not depend on those values:
 
 - Shared application mailbox, default `applications@contoso.com`
 - Operations service account / trigger owner

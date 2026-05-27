@@ -10,13 +10,13 @@ export class StatusBar {
       vscode.StatusBarAlignment.Left,
       50,
     );
-    this.item.command = "cpsAgentKit.syncKnowledge";
-    this.item.tooltip = "CPSAgentKit — click to sync knowledge";
+    this.item.command = "agentWorkbench.syncKnowledge";
+    this.item.tooltip = "Agent Workbench — click to sync knowledge";
     this.setChecking();
   }
 
   setChecking(): void {
-    this.item.text = "$(sync) CPSAgentKit: Checking...";
+    this.item.text = "$(sync) Agent Workbench: Checking...";
     this.item.show();
   }
 
@@ -35,27 +35,27 @@ export class StatusBar {
   }
 
   setNotInitialised(): void {
-    this.item.text = "$(circle-slash) CPSAgentKit: Not initialised";
+    this.item.text = "$(circle-slash) Agent Workbench: Not initialised";
     this.item.show();
   }
 
   setInitialised(): void {
-    this.item.text = "$(check) CPSAgentKit: Initialised";
+    this.item.text = "$(check) Agent Workbench: Initialised";
     this.item.show();
   }
 
   setSyncing(): void {
-    this.item.text = "$(sync~spin) CPSAgentKit: Syncing...";
+    this.item.text = "$(sync~spin) Agent Workbench: Syncing...";
     this.item.show();
   }
 
   setSynced(): void {
-    this.item.text = "$(check) CPSAgentKit: Synced";
+    this.item.text = "$(check) Agent Workbench: Synced";
     this.item.show();
   }
 
   setError(): void {
-    this.item.text = "$(warning) CPSAgentKit: Sync failed";
+    this.item.text = "$(warning) Agent Workbench: Sync failed";
     this.item.show();
   }
 

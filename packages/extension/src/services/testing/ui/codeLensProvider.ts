@@ -16,12 +16,12 @@ export class AgentTestsCodeLensProvider implements vscode.CodeLensProvider {
     return [
       new vscode.CodeLens(top, {
         title: "▶ Run agent tests",
-        command: "cpsAgentKit.runAgentTests",
+        command: "agentWorkbench.runAgentTests",
         arguments: [agentFolder],
       }),
       new vscode.CodeLens(top, {
         title: "⚙ Configure tests",
-        command: "cpsAgentKit.configureAgentTests",
+        command: "agentWorkbench.configureAgentTests",
         arguments: [agentFolder],
       }),
     ];

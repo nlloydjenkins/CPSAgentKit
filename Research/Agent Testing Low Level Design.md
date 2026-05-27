@@ -1,4 +1,4 @@
-# Low Level Design: CPSAgentKit Agent Testing Harness
+# Low Level Design: Agent Workbench Agent Testing Harness
 
 **Status:** Draft implementation design
 **Date:** 2026-05-18
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-CPSAgentKit should add a **Test Harness** capability that runs automated black-box tests against a published Copilot Studio agent through the Dataverse-backed Direct Line API, then evaluates the output with an independent judge such as Azure OpenAI or an optional second CPS evaluator agent.
+Agent Workbench should add a **Test Harness** capability that runs automated black-box tests against a published Copilot Studio agent through the Dataverse-backed Direct Line API, then evaluates the output with an independent judge such as Azure OpenAI or an optional second CPS evaluator agent.
 
 The first implementation should avoid modifying the production agent. It should generate or load a workspace-local test suite, run each scenario in a fresh Direct Line conversation, capture the returned activities, score the result using a structured rubric, and write markdown plus JSON reports under `Requirements/test-results/`.
 
@@ -29,7 +29,7 @@ This keeps the evaluator independent from the system under test, fits the repo's
 
 ### Goals
 
-- Add a VS Code command, `CPSAgentKit: Run Agent Tests`, that can run repeatable tests against a published CPS agent.
+- Add a VS Code command, `Agent Workbench: Run Agent Tests`, that can run repeatable tests against a published CPS agent.
 - Support test cases defined as workspace files so makers can review and version them.
 - Use one fresh Direct Line conversation per scenario for isolation.
 - Capture full raw Direct Line activities for diagnostics.
@@ -56,7 +56,7 @@ Add a contributed command:
 
 - Command id: `cpsAgentKit.runAgentTests`
 - Title: `Run Agent Tests`
-- Category: `CPSAgentKit`
+- Category: `Agent Workbench`
 - Sidebar section: `Assess`
 - Enabled when project is initialised and at least one CPS agent folder exists.
 
@@ -93,7 +93,7 @@ A code lens above each agent root YAML (`bot/*/<agent>.bot.yml`) shows **▶ Run
 
 ## 3. Workspace File Layout
 
-All generated test assets should live in the target CPS workspace, not in the CPSAgentKit repo root when used by customers.
+All generated test assets should live in the target CPS workspace, not in the Agent Workbench repo root when used by customers.
 
 ```text
 Requirements/
@@ -471,10 +471,10 @@ Update [packages/extension/package.json](../packages/extension/package.json):
 
 ```json
 [
-  { "command": "cpsAgentKit.runAgentTests", "title": "Run Agent Tests", "category": "CPSAgentKit" },
-  { "command": "cpsAgentKit.configureAgentTests", "title": "Configure Agent Tests…", "category": "CPSAgentKit" },
-  { "command": "cpsAgentKit.connectAzureOpenAIJudge", "title": "Connect Azure OpenAI Judge…", "category": "CPSAgentKit" },
-  { "command": "cpsAgentKit.changeAgentTestEnvironment", "title": "Change Power Platform Environment…", "category": "CPSAgentKit" }
+  { "command": "cpsAgentKit.runAgentTests", "title": "Run Agent Tests", "category": "Agent Workbench" },
+  { "command": "cpsAgentKit.configureAgentTests", "title": "Configure Agent Tests…", "category": "Agent Workbench" },
+  { "command": "cpsAgentKit.connectAzureOpenAIJudge", "title": "Connect Azure OpenAI Judge…", "category": "Agent Workbench" },
+  { "command": "cpsAgentKit.changeAgentTestEnvironment", "title": "Change Power Platform Environment…", "category": "Agent Workbench" }
 ]
 ```
 
@@ -737,7 +737,7 @@ If the judge returns non-JSON or JSON that fails rubric validation, retry once w
 
 ## 13. Starter Suite Generation
 
-Phase 3 should generate a draft suite from existing CPSAgentKit parsing:
+Phase 3 should generate a draft suite from existing Agent Workbench parsing:
 
 Inputs:
 
@@ -871,7 +871,7 @@ Store the unmodified Direct Line response payload per scenario. `ScenarioResult.
 
 - Publish a demo CPS agent.
 - Configure `.cpsagentkit/test-config.json`.
-- Run `CPSAgentKit: Run Agent Tests`.
+- Run `Agent Workbench: Run Agent Tests`.
 - Confirm raw activities, markdown report, and JSON results are produced.
 - Confirm `LatestPublishedVersionNotFound` maps to a clear publish/apply-changes message.
 
@@ -900,7 +900,7 @@ Open:
 
 Phase 1 is complete when:
 
-- A maker can run `CPSAgentKit: Run Agent Tests` from VS Code.
+- A maker can run `Agent Workbench: Run Agent Tests` from VS Code.
 - The command can authenticate with device-code flow.
 - The command can start a Direct Line conversation with a published CPS agent.
 - The command can execute all scenarios in `Requirements/tests/agent-tests.json` with bounded concurrency.

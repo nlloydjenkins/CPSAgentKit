@@ -4,9 +4,9 @@ import * as https from "https";
 import { CpsConfig } from "./config.js";
 import { safePath } from "./fileUtils.js";
 
-const KNOWLEDGE_DIR = path.join(".cpsagentkit", "knowledge");
-const TEMPLATES_DIR = path.join(".cpsagentkit", "templates");
-const BEST_PRACTICES_DIR = path.join(".cpsagentkit", "bestpractices");
+const KNOWLEDGE_DIR = path.join(".agent-workbench", "knowledge");
+const TEMPLATES_DIR = path.join(".agent-workbench", "templates");
+const BEST_PRACTICES_DIR = path.join(".agent-workbench", "bestpractices");
 
 /** Result of a knowledge sync operation */
 export interface SyncResult {
@@ -95,7 +95,7 @@ function httpsGet(url: string, remainingRedirects = 3): Promise<string> {
         if (res.statusCode === 404) {
           reject(
             new Error(
-              "Knowledge repo or path not found. Check cpsAgentKit.knowledgeRepoUrl and the knowledge path in config.json.",
+              "Knowledge repo or path not found. Check agentWorkbench.knowledgeRepoUrl and the knowledge path in config.json.",
             ),
           );
           return;
@@ -217,7 +217,7 @@ async function copyBundledFiles(
 
 /** Configuration for a single sync category */
 interface SyncCategoryConfig {
-  /** Workspace-relative target directory (e.g. ".cpsagentkit/knowledge") */
+  /** Workspace-relative target directory (e.g. ".agent-workbench/knowledge") */
   targetDir: string;
   /** GitHub repo path to sync from (e.g. "docs/knowledge") */
   repoPath: string;
@@ -332,7 +332,7 @@ export async function syncKnowledge(
 
 /**
  * Sync template files from the configured GitHub repo into the local workspace.
- * Templates are stored in .cpsagentkit/templates/ preserving directory structure.
+ * Templates are stored in .agent-workbench/templates/ preserving directory structure.
  */
 export async function syncTemplates(
   workspaceRoot: string,

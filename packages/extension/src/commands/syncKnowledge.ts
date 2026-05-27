@@ -26,12 +26,12 @@ export async function syncKnowledgeCommand(
   const state = await detectProjectState(root);
   if (!state.isInitialised) {
     const action = await vscode.window.showWarningMessage(
-      "CPSAgentKit: Project not initialised. Run init first?",
+      "Agent Workbench: Project not initialised. Run init first?",
       "Initialise",
       "Cancel",
     );
     if (action === "Initialise") {
-      await vscode.commands.executeCommand("cpsAgentKit.init");
+      await vscode.commands.executeCommand("agentWorkbench.init");
     }
     return;
   }
@@ -41,7 +41,7 @@ export async function syncKnowledgeCommand(
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: "CPSAgentKit: Syncing knowledge...",
+      title: "Agent Workbench: Syncing knowledge...",
       cancellable: true,
     },
     async (progress, token) => {
@@ -100,7 +100,7 @@ export async function syncKnowledgeCommand(
       ];
       if (allErrors.length > 0) {
         vscode.window.showWarningMessage(
-          `CPSAgentKit: Sync completed with errors: ${allErrors.join("; ")}`,
+          `Agent Workbench: Sync completed with errors: ${allErrors.join("; ")}`,
         );
       }
 
@@ -120,7 +120,7 @@ export async function syncKnowledgeCommand(
         templateResult.filesWritten.length +
         bestPracticesResult.filesWritten.length;
       vscode.window.showInformationMessage(
-        `CPSAgentKit: ${result.filesWritten.length} knowledge files, ${templateResult.filesWritten.length} template files, ${bestPracticesResult.filesWritten.length} best practice files synced.`,
+        `Agent Workbench: ${result.filesWritten.length} knowledge files, ${templateResult.filesWritten.length} template files, ${bestPracticesResult.filesWritten.length} best practice files synced.`,
       );
     },
   );

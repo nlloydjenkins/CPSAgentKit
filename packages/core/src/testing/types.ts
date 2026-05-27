@@ -1,4 +1,4 @@
-// Shared types for the CPSAgentKit agent testing harness.
+// Shared types for the Agent Workbench agent testing harness.
 // See: Research/Agent Testing Low Level Design.md
 
 export type TestSuiteStatus = "draft" | "reviewed";

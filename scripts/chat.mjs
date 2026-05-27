@@ -8,13 +8,13 @@
 //   node scripts/chat.mjs --prompts <file> --judge     # also grade via Azure AI
 //   node scripts/chat.mjs --reset                      # clear saved config + cache
 //
-// Reads `.cpsagentkit/test-config.json` from cwd if present, otherwise prompts
+// Reads `.agent-workbench/test-config.json` from cwd if present, otherwise prompts
 // for clientId / tenantId / bot schema name (and saves them to
-// ~/.cpsagentkit/chat.json for next time).
+// ~/.agent-workbench/chat.json for next time).
 
 import { PublicClientApplication } from "@azure/msal-node";
 import { DefaultAzureCredential } from "@azure/identity";
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, rename, stat } from "node:fs/promises";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { homedir } from "node:os";
@@ -24,8 +24,32 @@ import { join, dirname } from "node:path";
 // workspaces. `chat.json` holds non-secret settings (client/tenant/env IDs,
 // judge endpoint, etc). `msal-cache.json` is the MSAL token cache so we don't
 // device-code-login every run.
-const USER_CONFIG_PATH = join(homedir(), ".cpsagentkit", "chat.json");
-const MSAL_CACHE_PATH = join(homedir(), ".cpsagentkit", "msal-cache.json");
+const USER_CONFIG_PATH = join(homedir(), ".agent-workbench", "chat.json");
+const MSAL_CACHE_PATH = join(homedir(), ".agent-workbench", "msal-cache.json");
+
+// One-time migration from the legacy `~/.cpsagentkit/` directory. Renames the
+// folder so existing sign-in state and saved config survive the rename.
+async function migrateLegacyHomeDir() {
+  const legacy = join(homedir(), ".cpsagentkit");
+  const next = join(homedir(), ".agent-workbench");
+  try {
+    await stat(next);
+    return;
+  } catch {
+    /* not present */
+  }
+  try {
+    await stat(legacy);
+  } catch {
+    return;
+  }
+  try {
+    await rename(legacy, next);
+  } catch {
+    /* best-effort */
+  }
+}
+await migrateLegacyHomeDir();
 
 // OAuth scope for the Copilot Studio Direct Line (Dataverse-backed) endpoint.
 const DIRECT_LINE_SCOPE =
@@ -54,13 +78,13 @@ function ppHostnameFromEnvId(envId) {
 }
 
 // Load settings by merging two sources:
-//   1. Workspace-local `.cpsagentkit/test-config.json` (its `directLine` block)
-//   2. User-level `~/.cpsagentkit/chat.json`
+//   1. Workspace-local `.agent-workbench/test-config.json` (its `directLine` block)
+//   2. User-level `~/.agent-workbench/chat.json`
 // Workspace values override user-level so you can pin per-repo overrides.
 async function loadConfig() {
   let local = {};
   try {
-    const text = await readFile(".cpsagentkit/test-config.json", "utf-8");
+    const text = await readFile(".agent-workbench/test-config.json", "utf-8");
     local = JSON.parse(text)?.directLine ?? {};
   } catch {
     /* ignore */

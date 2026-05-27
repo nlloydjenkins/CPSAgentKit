@@ -19,7 +19,7 @@ There is also a companion extension — **Microsoft Foundry** (`teamsdevapp.vsco
 | Get Changes (pull from CPS)         | N/A (code is the source of truth)          |
 | Apply Changes (push to CPS env)     | Deploy Workflow / Deploy Hosted Agent      |
 | Portal-first, refine in VS Code     | Code-first, deploy from VS Code            |
-| Agent assessment via CPSAgentKit    | Evaluation via Foundry eval framework      |
+| Agent assessment via Agent Workbench    | Evaluation via Foundry eval framework      |
 
 ## Key VS Code Commands
 
@@ -64,7 +64,7 @@ There is also a companion extension — **Microsoft Foundry** (`teamsdevapp.vsco
 
 ## Copilot Chat Tools (Language Model Tools)
 
-The AI Toolkit exposes tools that GitHub Copilot can call during chat. These are the Foundry equivalent of CPSAgentKit's knowledge injection — they give Copilot real-time access to Foundry best practices, code samples, and project resources.
+The AI Toolkit exposes tools that GitHub Copilot can call during chat. These are the Foundry equivalent of Agent Workbench's knowledge injection — they give Copilot real-time access to Foundry best practices, code samples, and project resources.
 
 | Tool ID                                       | Purpose                                                      |
 | --------------------------------------------- | ------------------------------------------------------------ |
@@ -114,7 +114,7 @@ The end-to-end workflow mirrors the CPS extension workflow, reframed for code-fi
 
 This is the equivalent of: Clone → Edit YAML → Preview Changes → Apply Changes in CPS.
 
-## Integration Points for CPSAgentKit
+## Integration Points for Agent Workbench
 
 When implementing the Migrate to Foundry feature, these are the key programmatic integration points:
 

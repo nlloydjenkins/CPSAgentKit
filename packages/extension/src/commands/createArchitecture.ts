@@ -597,7 +597,7 @@ export async function createArchitectureGuided(
 
   // Step 1: Overview
   const overview = await vscode.window.showInputBox({
-    title: "CPSAgentKit: Architecture (1/5)",
+    title: "Agent Workbench: Architecture (1/5)",
     prompt: "Describe the solution in one or two sentences",
     placeHolder:
       seed?.overview ||
@@ -618,7 +618,7 @@ export async function createArchitectureGuided(
       "4+ — More (specify)",
     ],
     {
-      title: "CPSAgentKit: Architecture (2/5)",
+      title: "Agent Workbench: Architecture (2/5)",
       placeHolder: "How many agents?",
       ignoreFocusOut: true,
     },
@@ -655,7 +655,7 @@ export async function createArchitectureGuided(
   if (agents.length > 1) {
     routingLogic =
       (await vscode.window.showInputBox({
-        title: "CPSAgentKit: Architecture (4/5)",
+        title: "Agent Workbench: Architecture (4/5)",
         prompt: "How does the parent route between agents?",
         placeHolder:
           "e.g. Routes billing questions to Billing Agent, tech support to Tech Agent",
@@ -712,7 +712,7 @@ export async function createArchitectureGuided(
   await vscode.window.showTextDocument(doc);
 
   vscode.window.showInformationMessage(
-    "CPSAgentKit: architecture.md created. Review and refine it, then run CPSAgentKit: Run Pre-Build. After the manual setup is complete, run Build.",
+    "Agent Workbench: architecture.md created. Review and refine it, then run Agent Workbench: Run Pre-Build. After the manual setup is complete, run Build.",
   );
 }
 
@@ -726,12 +726,12 @@ export async function createArchitectureFromDocs(root: string): Promise<void> {
     spec = await fs.readFile(path.join(requirementsDir, "spec.md"), "utf-8");
   } catch {
     const action = await vscode.window.showWarningMessage(
-      "CPSAgentKit: spec.md not found. Create a spec first?",
+      "Agent Workbench: spec.md not found. Create a spec first?",
       "Create Spec",
       "Continue anyway",
     );
     if (action === "Create Spec") {
-      await vscode.commands.executeCommand("cpsAgentKit.createSpec");
+      await vscode.commands.executeCommand("agentWorkbench.createSpec");
       return;
     }
     if (!action) {
@@ -748,7 +748,7 @@ export async function createArchitectureFromDocs(root: string): Promise<void> {
 
   if (!spec && docs.length === 0) {
     vscode.window.showWarningMessage(
-      "CPSAgentKit: No spec.md or documents found in Requirements/docs/. Add your requirements documents there first.",
+      "Agent Workbench: No spec.md or documents found in Requirements/docs/. Add your requirements documents there first.",
     );
     return;
   }

@@ -278,7 +278,7 @@ Three things separate a script from a *test*:
 3. **A report you can share.**
    At minimum a Markdown file with: total run, passed, failed, and for each failure the question, the reply, and the rule that didn't match.
 
-You don't need to build all of this from scratch. The **CPSAgentKit** VS Code extension already wraps Direct Line, retries, judging, and reports — see §11.
+You don't need to build all of this from scratch. The **Agent Workbench** VS Code extension already wraps Direct Line, retries, judging, and reports — see §11.
 
 ---
 
@@ -334,22 +334,22 @@ A simple retry rule: wait `min(maxBackoff, base * 2^attempt) * random(0,1)` betw
 ## 10. Keeping secrets and data safe
 
 - **Never commit tokens, API keys or secrets.** Use the VS Code Secret Storage, an `.env` file in `.gitignore`, or a vault.
-- **Add `.cpsagentkit/test-results/` to `.gitignore`.** Transcripts can contain customer data.
+- **Add `.agent-workbench/test-results/` to `.gitignore`.** Transcripts can contain customer data.
 - **Use synthetic test users** in lower environments — not real customer accounts.
-- If you use an Azure OpenAI judge, **review your tenant's data-handling policy first**. Transcripts are sent to the judge model. CPSAgentKit shows a one-time confirmation before this happens; do the same in any home-built script.
+- If you use an Azure OpenAI judge, **review your tenant's data-handling policy first**. Transcripts are sent to the judge model. Agent Workbench shows a one-time confirmation before this happens; do the same in any home-built script.
 
 ---
 
-## 11. From script to product: CPSAgentKit
+## 11. From script to product: Agent Workbench
 
-If you don't want to maintain your own scripts, CPSAgentKit packages all of the above into the VS Code extension you already use:
+If you don't want to maintain your own scripts, Agent Workbench packages all of the above into the VS Code extension you already use:
 
 - A guided **setup wizard** picks your tenant, environment, agent, and (optional) Azure OpenAI judge. It derives the Direct Line host from your environment id and refuses Dataverse-shaped hosts.
 - Tests live next to the agent in `Requirements/tests/agent-tests.json`.
 - **Run Agent Tests** runs the full suite with bounded parallelism, retry, and the prompt-injection-safe judge.
 - Authentication uses **MSAL device-code flow** against your own Entra app registration (one modal prompt per run; refresh token cached in VS Code SecretStorage for silent reuse).
 - Concurrent scenarios share a single in-flight token acquisition, so you see at most one sign-in prompt per run.
-- Reports land in `.cpsagentkit/test-results/<UTC-timestamp>/report.md` and open automatically.
+- Reports land in `.agent-workbench/test-results/<UTC-timestamp>/report.md` and open automatically.
 - Code-lens links above `*.bot.yml` and `settings.yaml` let you launch tests with one click.
 
 Behind the scenes it uses the same Direct Line API endpoint, same `2022-03-01-preview` version, and same retry rules described in this paper — so if you outgrow the extension and need to embed tests in a custom pipeline, the patterns transfer directly.
@@ -386,4 +386,4 @@ Now you have a baseline. Every change to the agent, run it. When it fails, you h
 
 ---
 
-*Questions or improvements? File an issue in the CPSAgentKit repo, or share your test suite with the team — every shared scenario makes the whole community's agents more reliable.*
+*Questions or improvements? File an issue in the Agent Workbench repo, or share your test suite with the team — every shared scenario makes the whole community's agents more reliable.*

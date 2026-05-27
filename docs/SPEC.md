@@ -1,4 +1,4 @@
-# CPSAgentKit — VS Code Extension Spec
+# Agent Workbench for Copilot Studio — VS Code Extension Spec
 
 ## Purpose
 
@@ -16,7 +16,7 @@ Developers and power users who are building CPS agents for business users. They'
 
 ### Extension commands
 
-- **Initialise CPS Project** (`cpsAgentKit.init`) — scaffolds the project folder structure into the current workspace. Creates the spec template, architecture template, knowledge folder, and writes the `copilot-instructions.md`. If a CPS agent project already exists in the workspace (from the CPS extension), it initialises around it non-destructively.
+- **Initialise Agent Workbench Project** (`cpsAgentKit.init`) — scaffolds the project folder structure into the current workspace. Creates the spec template, architecture template, knowledge folder, and writes the `copilot-instructions.md`. If a CPS agent project already exists in the workspace (from the CPS extension), it initialises around it non-destructively.
 - **Sync Knowledge** (`cpsAgentKit.syncKnowledge`) — pulls the latest CPS platform knowledge from the central knowledge repo (a GitHub repo). Overwrites the local knowledge folder and regenerates the `copilot-instructions.md` to reflect any updates. Can be triggered manually or runs on workspace open if the project is already initialised.
 - **Create Plan** (`cpsAgentKit.createSpec`) — reads `requirements/docs/` or an existing synced agent and generates reviewable `requirements/spec.md` plus `requirements/architecture.md` before build work starts. This lets the developer inspect and refine the plan before committing to Build Agent.
 - **Build Agent** (`cpsAgentKit.buildAgent`) — runs the build workflow from the reviewed plan. It creates safe local/API-backed artifacts where possible and writes `requirements/build-checklist.md` only as a short action checklist for required setup.
@@ -28,7 +28,7 @@ Developers and power users who are building CPS agents for business users. They'
 project-root/
 ├── .github/
 │   └── copilot-instructions.md    ← generated, drives GHCP behaviour
-├── .cpsagentkit/
+├── .agent-workbench/
 │   ├── knowledge/                  ← synced from central repo
 │   │   ├── constraints.md
 │   │   ├── prompt-engineering.md
@@ -71,7 +71,7 @@ The instructions tell GHCP:
 
 ## Integration with the Copilot Studio VS Code Extension
 
-CPSAgentKit is designed to work alongside the official Copilot Studio VS Code extension (pre-release). Understanding how that extension works is critical to our design.
+Agent Workbench is designed to work alongside the official Copilot Studio VS Code extension (pre-release). Understanding how that extension works is critical to our design.
 
 ### How the CPS extension works
 
@@ -102,11 +102,11 @@ These commands are exposed programmatically and can be invoked via `vscode.comma
 | `microsoft-copilot-studio.reportIssue`          | Report an issue with session info     |
 | `microsoft-copilot-studio.sessionInfo`          | Show current session info             |
 
-### What this means for CPSAgentKit
+### What this means for Agent Workbench
 
 **GHCP already has full visibility of the agent.** Because the CPS extension clones agent components as YAML files in the workspace, GHCP can see and edit topics, triggers, actions, knowledge configs, and instructions through normal file context. Our extension does not need to provide any special file access.
 
-**Our extension scaffolds around the cloned agent.** When initialising, if a CPS agent already exists in the workspace (YAML files from the CPS extension), CPSAgentKit creates its files (spec, architecture, knowledge, instructions) alongside without modifying the agent files.
+**Our extension scaffolds around the cloned agent.** When initialising, if a CPS agent already exists in the workspace (YAML files from the CPS extension), Agent Workbench creates its files (spec, architecture, knowledge, instructions) alongside without modifying the agent files.
 
 **The sync model is live editing.** Apply Changes pushes directly to the environment — no staging, no branching. The spec and architecture docs we create are the only version control and intent-tracking layer.
 
@@ -117,13 +117,13 @@ These commands are exposed programmatically and can be invoked via `vscode.comma
 ```
 project-root/
 ├── .github/
-│   └── copilot-instructions.md        ← CPSAgentKit (generated)
-├── .cpsagentkit/
-│   ├── knowledge/                      ← CPSAgentKit (synced)
-│   └── config.json                     ← CPSAgentKit (config)
+│   └── copilot-instructions.md        ← Agent Workbench (generated)
+├── .agent-workbench/
+│   ├── knowledge/                      ← Agent Workbench (synced)
+│   └── config.json                     ← Agent Workbench (config)
 ├── requirements/
-│   ├── spec.md                         ← CPSAgentKit (developer + GHCP)
-│   ├── architecture.md                 ← CPSAgentKit (GHCP generated)
+│   ├── spec.md                         ← Agent Workbench (developer + GHCP)
+│   ├── architecture.md                 ← Agent Workbench (GHCP generated)
 │   └── docs/                           ← Developer domain docs (always read by GHCP)
 ├── [agent-name]/                       ← CPS Extension (cloned agent)
 │   ├── topics/
@@ -136,7 +136,7 @@ project-root/
 └── ...
 ```
 
-GHCP sees everything — the CPS agent YAML files AND the CPSAgentKit knowledge and spec. This is what makes the workflow powerful: GHCP can reference the actual agent config while having deep platform knowledge to guide decisions.
+GHCP sees everything — the CPS agent YAML files AND the Agent Workbench knowledge and spec. This is what makes the workflow powerful: GHCP can reference the actual agent config while having deep platform knowledge to guide decisions.
 
 ## Technical implementation
 
@@ -144,14 +144,14 @@ GHCP sees everything — the CPS agent YAML files AND the CPSAgentKit knowledge 
 
 - **Language:** TypeScript
 - **Extension API version:** latest stable VS Code Extension API
-- **Activation:** on command, or when a `.cpsagentkit` folder is detected in the workspace
+- **Activation:** on command, or when a `.agent-workbench` folder is detected in the workspace
 - **UI:** minimal — commands in the command palette, a status bar item showing sync status. No webview panel in v1.
 
 ### Knowledge sync mechanism
 
 - Central knowledge repo is a GitHub repo
-- Config stored in `.cpsagentkit/config.json` with the repo URL and last sync timestamp
-- Sync pulls the `/knowledge` folder from the repo via GitHub API (raw content) and writes to `.cpsagentkit/knowledge/`
+- Config stored in `.agent-workbench/config.json` with the repo URL and last sync timestamp
+- Sync pulls the `/knowledge` folder from the repo via GitHub API (raw content) and writes to `.agent-workbench/knowledge/`
 - After sync, regenerates `copilot-instructions.md` from the template + knowledge content
 - Sync runs on "Sync Knowledge" command and optionally on workspace open
 
@@ -173,22 +173,22 @@ The file is regenerated on sync and should not be manually edited.
     "commands": [
       {
         "command": "cpsAgentKit.init",
-        "title": "Initialise CPS Project",
-        "category": "CPSAgentKit"
+        "title": "Initialise Agent Workbench Project",
+        "category": "Agent Workbench"
       },
       {
         "command": "cpsAgentKit.syncKnowledge",
         "title": "Sync Knowledge",
-        "category": "CPSAgentKit"
+        "category": "Agent Workbench"
       },
       {
         "command": "cpsAgentKit.openSpec",
         "title": "Open Spec",
-        "category": "CPSAgentKit"
+        "category": "Agent Workbench"
       }
     ],
     "configuration": {
-      "title": "CPSAgentKit",
+      "title": "Agent Workbench",
       "properties": {
         "cpsAgentKit.knowledgeRepoUrl": {
           "type": "string",
@@ -209,7 +209,7 @@ The file is regenerated on sync and should not be manually edited.
     }
   },
   "activationEvents": [
-    "workspaceContains:.cpsagentkit",
+    "workspaceContains:.agent-workbench",
     "onCommand:cpsAgentKit.init"
   ],
   "extensionDependencies": []
@@ -281,4 +281,4 @@ Developer tests using scenarios from the spec's success criteria. Pastes outputs
 - **Handover package generation:** solution zip with documentation for business users
 - **Chat Participant (`@cps`):** if the instructions file approach hits context limits
 - **Template library:** pre-built architectures for common patterns (IT triage, HR onboarding, compliance checking)
-- **CPS extension detection:** auto-detect when a CPS agent is cloned into the workspace and offer to initialise CPSAgentKit around it
+- **CPS extension detection:** auto-detect when a CPS agent is cloned into the workspace and offer to initialise Agent Workbench around it

@@ -10,7 +10,7 @@ The agent does **not** replace the supervisor's sign-off — it produces a groun
 
 ## Build-Time Configuration
 
-The Helios/sample values are placeholders. During Build, CPSAgentKit must ask the maker to confirm or replace tenant-specific values before finalising tenant-bound schema names, prompt instructions, connector descriptions, uploaded knowledge targets, or portal setup steps. Missing values should block only the specific tenant-bound action that needs them; Build should still perform safe work that does not depend on those values:
+The Helios/sample values are placeholders. During Build, Agent Workbench must ask the maker to confirm or replace tenant-specific values before finalising tenant-bound schema names, prompt instructions, connector descriptions, uploaded knowledge targets, or portal setup steps. Missing values should block only the specific tenant-bound action that needs them; Build should still perform safe work that does not depend on those values:
 
 - Firm name, adviser population, office list, and Teams publishing target
 - Compliance supervisor Teams team/channel, default `#compliance-supervisors`

@@ -112,9 +112,9 @@ For small teams iterating on a few prompts, Dataverse MCP alone is often suffici
 
 ---
 
-## CPSAgentKit MCP tools (recommended for the Build Agent)
+## Agent Workbench MCP tools (recommended for the Build Agent)
 
-The CPSAgentKit MCP server exposes two helpers that wrap the structural-integrity rules. The Build Agent uses these so that prompt-text edits proposed during a build are written safely.
+The Agent Workbench MCP server exposes two helpers that wrap the structural-integrity rules. The Build Agent uses these so that prompt-text edits proposed during a build are written safely.
 
 | Tool                      | Purpose                                                                                                                                                                                                                                                                                                                           |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -131,7 +131,7 @@ The CPSAgentKit MCP server exposes two helpers that wrap the structural-integrit
 6. Build Agent calls Dataverse MCP `update_record` with the returned `newCustomConfiguration` string.
 7. Build Agent re-reads the record to verify the round-trip wrote what it expected.
 
-This loop never has to construct or hand-edit `msdyn_customconfiguration` JSON itself. The CPSAgentKit tools own the rules; Dataverse MCP owns the I/O.
+This loop never has to construct or hand-edit `msdyn_customconfiguration` JSON itself. The Agent Workbench tools own the rules; Dataverse MCP owns the I/O.
 
 ---
 

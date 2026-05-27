@@ -23,7 +23,7 @@ export async function generateRepoInstructionsCommand(): Promise<void> {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: "CPSAgentKit: Generating repo instructions...",
+        title: "Agent Workbench: Generating repo instructions...",
         cancellable: false,
       },
       async () => {
@@ -32,7 +32,7 @@ export async function generateRepoInstructionsCommand(): Promise<void> {
     );
 
     const action = await vscode.window.showInformationMessage(
-      "CPSAgentKit: Repo-level Copilot instructions regenerated.",
+      "Agent Workbench: Repo-level Copilot instructions regenerated.",
       "Open File",
     );
 
@@ -43,7 +43,7 @@ export async function generateRepoInstructionsCommand(): Promise<void> {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     vscode.window.showErrorMessage(
-      `CPSAgentKit: Failed to generate repo instructions: ${message}`,
+      `Agent Workbench: Failed to generate repo instructions: ${message}`,
     );
   }
 }

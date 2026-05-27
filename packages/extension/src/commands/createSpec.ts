@@ -94,7 +94,7 @@ function isStarterSpecTemplate(content: string): boolean {
 async function collectGuidedSpecDraft(): Promise<SpecDraft | undefined> {
   // Step 1: Agent name
   const agentName = await vscode.window.showInputBox({
-    title: "CPSAgentKit: Create Specification (1/7)",
+    title: "Agent Workbench: Create Specification (1/7)",
     prompt: "What is the agent's name?",
     placeHolder: "e.g. Dataverse Explorer, IT Triage Bot",
     ignoreFocusOut: true,
@@ -105,7 +105,7 @@ async function collectGuidedSpecDraft(): Promise<SpecDraft | undefined> {
 
   // Step 2: Purpose
   const purpose = await vscode.window.showInputBox({
-    title: "CPSAgentKit: Create Specification (2/7)",
+    title: "Agent Workbench: Create Specification (2/7)",
     prompt: "Describe the agent's purpose in one or two sentences",
     placeHolder: "e.g. Helps users find and explore Dataverse tables and data",
     ignoreFocusOut: true,
@@ -123,7 +123,7 @@ async function collectGuidedSpecDraft(): Promise<SpecDraft | undefined> {
   );
   if (capabilities.length === 0) {
     vscode.window.showWarningMessage(
-      "CPSAgentKit: At least one capability is required.",
+      "Agent Workbench: At least one capability is required.",
     );
     return undefined;
   }
@@ -171,7 +171,7 @@ async function collectGuidedSpecDraft(): Promise<SpecDraft | undefined> {
       },
     ],
     {
-      title: "CPSAgentKit: Create Specification (7/7)",
+      title: "Agent Workbench: Create Specification (7/7)",
       placeHolder: "How should users interact with the agent?",
       ignoreFocusOut: true,
     },
@@ -256,7 +256,7 @@ export async function createSpecCommand(): Promise<void> {
   }
 
   const mode = await vscode.window.showQuickPick(modeOptions, {
-    title: "CPSAgentKit: Create Specification",
+    title: "Agent Workbench: Create Specification",
     placeHolder: "How do you want to create the specification?",
     ignoreFocusOut: true,
   });
@@ -307,7 +307,7 @@ export async function createSpecCommand(): Promise<void> {
     });
 
     const existingChoice = await vscode.window.showQuickPick(options, {
-      title: "CPSAgentKit: Existing files detected",
+      title: "Agent Workbench: Existing files detected",
       placeHolder: "How should Create Specification handle the current files?",
       ignoreFocusOut: true,
     });
@@ -356,8 +356,8 @@ export async function createSpecCommand(): Promise<void> {
 
   vscode.window.showInformationMessage(
     createSpec
-      ? "CPSAgentKit: Requirements/spec.md and Requirements/architecture.md created. Review and refine them, then run Build Agent."
-      : "CPSAgentKit: Requirements/architecture.md created using the existing spec. Review and refine it, then run Build Agent.",
+      ? "Agent Workbench: Requirements/spec.md and Requirements/architecture.md created. Review and refine them, then run Build Agent."
+      : "Agent Workbench: Requirements/architecture.md created using the existing spec. Review and refine it, then run Build Agent.",
   );
 }
 
@@ -389,7 +389,7 @@ export async function createSpecificationFromDocs(
 
   if (docs.length === 0 && !existingSpec) {
     vscode.window.showWarningMessage(
-      "CPSAgentKit: No documents found in Requirements/docs/ and no existing spec.md to build from.",
+      "Agent Workbench: No documents found in Requirements/docs/ and no existing spec.md to build from.",
     );
     return;
   }
@@ -423,7 +423,7 @@ export async function createSpecificationFromDocs(
   const cpsGuidancePack = await buildCpsGuidancePack();
 
   const prompt = [
-    "You are running the CPSAgentKit Pre-Build Agent step. Read the requirements documents below and generate both a complete spec.md and a complete architecture.md for human review before Build Agent is run.",
+    "You are running the Agent Workbench Pre-Build Agent step. Read the requirements documents below and generate both a complete spec.md and a complete architecture.md for human review before Build Agent is run.",
     "Use the CPS Guidance Pack below as the authoritative repo standard for platform-safe, best-practice Copilot Studio design.",
     "Do not rely on unstated generic Copilot Studio knowledge when the guidance pack, templates, or requirements documents cover the decision.",
     "",
@@ -506,7 +506,7 @@ async function createSpecificationFromAgent(
 
   if (agents.length === 0) {
     vscode.window.showWarningMessage(
-      "CPSAgentKit: No cloned CPS agent found in the workspace.",
+      "Agent Workbench: No cloned CPS agent found in the workspace.",
     );
     return;
   }

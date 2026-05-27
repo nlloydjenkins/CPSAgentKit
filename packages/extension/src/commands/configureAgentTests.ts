@@ -43,6 +43,6 @@ async function runWizard(
     startStep,
   });
   if (result.saved) {
-    vscode.window.showInformationMessage(`CPSAgentKit: ${successLabel}.`);
+    vscode.window.showInformationMessage(`Agent Workbench: ${successLabel}.`);
   }
 }

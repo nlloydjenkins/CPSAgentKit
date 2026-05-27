@@ -222,7 +222,7 @@ The `description` in `mcs.metadata` is critical at scale — beyond 25 knowledge
 **Uploaded file** (`kind: KnowledgeSourceConfiguration`, `source.kind: FileKnowledge`):
 
 ```yaml
-cpsAgentKit: # CPSAgentKit override — source of truth for the description
+cpsAgentKit: # Agent Workbench override — source of truth for the description
   description: >- # SAFE to edit — pushed to Dataverse botcomponent.description by push-knowledge-descriptions.mjs
     <description used by orchestrator for source selection>
 mcs.metadata:
