@@ -4,10 +4,10 @@ export {
   readRequirements,
   detectDataverseMcp,
   readAgentConnection,
-} from "@agent-workbench/core";
+} from "@agent-workbench-for-copilot-studio/core";
 export type {
   DataverseMcpStatus,
   McpServerEntry,
   CpsAgentConnection,
   TopicScaffold,
-} from "@agent-workbench/core";
+} from "@agent-workbench-for-copilot-studio/core";

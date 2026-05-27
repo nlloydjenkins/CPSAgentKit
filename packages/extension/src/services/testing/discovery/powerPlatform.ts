@@ -1,5 +1,5 @@
 // Business Application Platform API discovery for Power Platform environments.
-import type { TokenProvider } from "@agent-workbench/core";
+import type { TokenProvider } from "@agent-workbench-for-copilot-studio/core";
 import { getJson } from "./http.js";
 
 export interface PowerPlatformEnvironment {

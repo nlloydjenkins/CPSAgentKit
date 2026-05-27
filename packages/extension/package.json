@@ -194,7 +194,7 @@
   },
   "dependencies": {
     "@azure/msal-node": "^5.2.2",
-    "@agent-workbench/core": "1.0.0"
+    "@agent-workbench-for-copilot-studio/core": "1.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

@@ -24,7 +24,7 @@ import {
   planKnowledgeDescriptions,
   safePath,
   type PromptSegment,
-} from "@agent-workbench/core";
+} from "@agent-workbench-for-copilot-studio/core";
 
 import { MCP_SERVER_VERSION } from "./index.js";
 import { DOCS_QA_AGENT_SYSTEM_PROMPT } from "./prompts/docsQaAgent.js";

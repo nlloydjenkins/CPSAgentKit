@@ -1,5 +1,5 @@
 // Bundles the VS Code extension into a single CJS file so we can publish
-// with `vsce package --no-dependencies` and keep the bundled @agent-workbench/core
+// with `vsce package --no-dependencies` and keep the bundled @agent-workbench-for-copilot-studio/core
 // inlined (avoids the monorepo-git enumeration bug in vsce).
 const path = require("path");
 const fs = require("fs");

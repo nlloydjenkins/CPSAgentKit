@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Entry point for `npx @agent-workbench/mcp-server`.
+// Entry point for `npx @agent-workbench-for-copilot-studio/mcp-server`.
 // Supports stdio and streamable HTTP transports.
 
 import * as http from "node:http";

@@ -1,5 +1,5 @@
 // Microsoft Graph discovery for tenant and owned app registrations.
-import type { TokenProvider } from "@agent-workbench/core";
+import type { TokenProvider } from "@agent-workbench-for-copilot-studio/core";
 import { getJson, pagedValues } from "./http.js";
 
 export interface TenantInfo {

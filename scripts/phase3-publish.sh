@@ -13,7 +13,7 @@
 #
 # Steps:
 #   preflight      - npm whoami, compile, test, smoke
-#   publish-npm    - npm publish @agent-workbench/{core,mcp-server}
+#   publish-npm    - npm publish @agent-workbench-for-copilot-studio/{core,mcp-server}
 #   deprecate-old  - npm deprecate @cpsagentkit/mcp-server (core was never published)
 #   publish-vsix   - build + vsce publish the extension
 #   github-desc    - gh repo edit description
@@ -21,7 +21,7 @@
 #
 # Prerequisites:
 #   - npm login (interactive; run separately before this script)
-#   - The @agent-workbench scope is claimed by your npm user
+#   - The @agent-workbench-for-copilot-studio scope is claimed by your npm user / org
 #   - VSCE_PAT env var set to a Marketplace PAT with Manage scope, OR `vsce login` done
 #   - gh CLI authenticated (`gh auth status` should be green)
 #   - You are on a clean commit ready to tag (no unstaged changes)
@@ -56,18 +56,18 @@ step_preflight() {
 }
 
 step_publish_npm() {
-  banner "publish @agent-workbench/* to npm"
+  banner "publish @agent-workbench-for-copilot-studio/* to npm"
   # First-time publish of a new scope under your user account.
   # If your scope is org-owned, add --access public is still required for scoped packages.
-  run npm publish --workspace @agent-workbench/core --access public
-  run npm publish --workspace @agent-workbench/mcp-server --access public
+  run npm publish --workspace @agent-workbench-for-copilot-studio/core --access public
+  run npm publish --workspace @agent-workbench-for-copilot-studio/mcp-server --access public
 }
 
 step_deprecate_old() {
   banner "deprecate legacy @cpsagentkit/* on npm"
   # @cpsagentkit/core was never published (npm view returned 404), so no deprecate needed.
   run npm deprecate "@cpsagentkit/mcp-server" \
-    "Renamed to @agent-workbench/mcp-server; install @agent-workbench/mcp-server instead."
+    "Renamed to @agent-workbench-for-copilot-studio/mcp-server; install @agent-workbench-for-copilot-studio/mcp-server instead."
 }
 
 step_publish_vsix() {

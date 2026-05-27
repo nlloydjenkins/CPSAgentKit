@@ -12,13 +12,13 @@ import {
   writeReports,
   NoneJudgeProvider,
   AzureOpenAIJudge,
-} from "@agent-workbench/core";
+} from "@agent-workbench-for-copilot-studio/core";
 import type {
   JudgeProvider,
   Rubric,
   ScenarioResult,
   TestSuite,
-} from "@agent-workbench/core";
+} from "@agent-workbench-for-copilot-studio/core";
 import { requireWorkspaceRoot } from "../ui/uiUtils.js";
 import {
   ensureGitignore,

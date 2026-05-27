@@ -1,7 +1,7 @@
 // Token acquisition using VS Code's built-in Microsoft authentication provider.
 // Exposes scoped TokenProvider factories so neither core nor wizard code touches vscode.authentication directly.
 import * as vscode from "vscode";
-import type { TokenProvider } from "@agent-workbench/core";
+import type { TokenProvider } from "@agent-workbench-for-copilot-studio/core";
 import {
   createMsalDirectLineTokenProvider,
   type MsalDirectLineOptions,

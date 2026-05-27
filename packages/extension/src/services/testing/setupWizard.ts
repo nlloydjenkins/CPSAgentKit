@@ -7,7 +7,7 @@ import {
   findCpsAgentFolders,
   generateStarterSuite,
   readAgentSnapshot,
-} from "@agent-workbench/core";
+} from "@agent-workbench-for-copilot-studio/core";
 import type {
   AuthMode,
   AzureOpenAIAuthMode,

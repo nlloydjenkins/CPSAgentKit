@@ -46,11 +46,11 @@ for (const pkgPath of workspacePackages) {
   }
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
   pkg.version = VERSION;
-  if (pkg.dependencies && pkg.dependencies["@agent-workbench/core"]) {
-    pkg.dependencies["@agent-workbench/core"] = VERSION;
+  if (pkg.dependencies && pkg.dependencies["@agent-workbench-for-copilot-studio/core"]) {
+    pkg.dependencies["@agent-workbench-for-copilot-studio/core"] = VERSION;
   }
-  if (pkg.devDependencies && pkg.devDependencies["@agent-workbench/core"]) {
-    pkg.devDependencies["@agent-workbench/core"] = VERSION;
+  if (pkg.devDependencies && pkg.devDependencies["@agent-workbench-for-copilot-studio/core"]) {
+    pkg.devDependencies["@agent-workbench-for-copilot-studio/core"] = VERSION;
   }
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf-8");
   console.log(`  updated ${path.relative(repoRoot, pkgPath)}`);

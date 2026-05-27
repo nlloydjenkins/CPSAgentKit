@@ -18,7 +18,7 @@ import {
   type TokenCacheContext,
   type DeviceCodeRequest,
 } from "@azure/msal-node";
-import type { TokenProvider } from "@agent-workbench/core";
+import type { TokenProvider } from "@agent-workbench-for-copilot-studio/core";
 import { logInfo, logError } from "./diagnostics.js";
 
 const DIRECT_LINE_SCOPE =
