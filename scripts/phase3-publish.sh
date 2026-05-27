@@ -72,14 +72,13 @@ step_deprecate_old() {
 
 step_publish_vsix() {
   banner "build + publish VSIX to VS Code Marketplace"
-  # Build the renamed extension. If you want a version bump first, run one of:
-  #   npm run build:patch   # 0.15.24 -> 0.15.25
-  #   npm run build:minor   # 0.15.24 -> 0.16.0
-  #   npm run build:major   # 0.15.24 -> 1.0.0  (recommended for the rename)
+  # The 1.0.0 version bump and packaging happened during the rename PR; this
+  # step assumes releases/agent-workbench-${VERSION}.vsix already exists. If it
+  # doesn't (or you want a fresh package), uncomment the next line first:
+  #   run npm run build:patch
   #
   # `vsce publish` reads publisher/name from packages/extension/package.json and uploads.
   # Make sure $VSCE_PAT is set OR you've already run `vsce login <publisher>`.
-  run npm run build:major
   run npx vsce publish --packagePath "releases/agent-workbench-${VERSION}.vsix" --no-dependencies
   # NOTE: shipping a final "deprecated" update for the OLD `cpsagentkit` Marketplace listing
   # is a separate operation. If the legacy listing was under the same publisher and you

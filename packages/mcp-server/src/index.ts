@@ -10,4 +10,4 @@ export type {
   KnowledgeTopic,
 } from "@agent-workbench/core";
 
-export const MCP_SERVER_VERSION = "0.15.24";
+export const MCP_SERVER_VERSION = "1.0.0";

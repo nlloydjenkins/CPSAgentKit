@@ -2,7 +2,7 @@
   "name": "agent-workbench",
   "displayName": "Agent Workbench for Copilot Studio",
   "description": "Agent Workbench for Copilot Studio — turns GitHub Copilot into a disciplined Copilot Studio specialist. Scaffolds projects, syncs platform knowledge, and generates copilot-instructions.md for deep CPS awareness.",
-  "version": "0.15.24",
+  "version": "1.0.0",
   "publisher": "nicklj",
   "license": "MIT",
   "engines": {
@@ -194,7 +194,7 @@
   },
   "dependencies": {
     "@azure/msal-node": "^5.2.2",
-    "@agent-workbench/core": "0.15.24"
+    "@agent-workbench/core": "1.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
