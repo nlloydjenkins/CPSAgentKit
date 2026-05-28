@@ -83,6 +83,7 @@ Version files may be updated by `npm run build:patch`, `npm run build:minor`, or
 
 Read these files when you need detailed platform knowledge for design, build, or troubleshooting decisions:
 
+- `docs/knowledge/agent-builder.md`
 - `docs/knowledge/anti-patterns.md`
 - `docs/knowledge/cheat-sheet.md`
 - `docs/knowledge/constraints.md`

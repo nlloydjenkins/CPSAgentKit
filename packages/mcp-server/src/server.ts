@@ -15,6 +15,11 @@ import {
   parseSolutionMetadata,
   validateToolDescription,
   composeReviewPrompt,
+  recommendBuilder,
+  composeAgentBuilderReviewPrompt,
+  composeAgentBuilderAuthoringPrompt,
+  composeKnowledgeDocReviewPrompt,
+  type BuilderRecommendationInput,
   gatherSolutionSnapshot,
   bundleInMemorySolution,
   detectDataverseMcp,
@@ -162,17 +167,20 @@ export async function createServer(): Promise<McpServer> {
     version: MCP_SERVER_VERSION,
   });
 
-  // Cast once: the SDK's `registerTool` generics resolve `ZodRawShape` against
-  // zod's recursive types, which TypeScript can't instantiate (TS2589) when
-  // multiple zod versions coexist in the graph. Registration is runtime-safe;
-  // we preserve type safety inside each handler by annotating parameters.
+  // Cast once: the SDK's `registerTool` / `registerPrompt` generics resolve
+  // `ZodRawShape` against zod's recursive types, which TypeScript can't
+  // instantiate (TS2589) once the file accumulates ~30+ tools — see CI
+  // failure at server.ts:1032 / :1198. Registration is runtime-safe; we
+  // preserve type safety inside each handler by annotating parameters.
+  // Important: do not reference `z.ZodTypeAny` in these casts — it pulls
+  // zod's recursive generic chain back into every call-site inference.
   const innerReg = server as unknown as {
     registerTool: (
       name: string,
       config: {
         title?: string;
         description?: string;
-        inputSchema?: Record<string, z.ZodTypeAny>;
+        inputSchema?: Record<string, unknown>;
       },
       handler: (args: any) => Promise<unknown> | unknown,
     ) => void;
@@ -181,6 +189,15 @@ export async function createServer(): Promise<McpServer> {
       uri: string,
       config: { title?: string; description?: string; mimeType?: string },
       handler: (uri: URL) => Promise<unknown> | unknown,
+    ) => void;
+    registerPrompt: (
+      name: string,
+      config: {
+        title?: string;
+        description?: string;
+        argsSchema?: Record<string, unknown>;
+      },
+      handler: (args: any) => unknown,
     ) => void;
   };
 
@@ -208,8 +225,16 @@ export async function createServer(): Promise<McpServer> {
   const reg = {
     registerTool: (
       name: string,
-      config: Parameters<typeof innerReg.registerTool>[1],
-      handler: Parameters<typeof innerReg.registerTool>[2],
+      // Typed loosely on purpose: the SDK's `registerTool` generic resolves
+      // `ZodRawShape` against zod's recursive types, and re-referencing
+      // `Parameters<typeof innerReg.registerTool>` here forces TypeScript to
+      // re-instantiate that chain at every call-site. With ~30+ tools the
+      // cumulative inference depth trips TS2589 on stricter TS5 builds (see
+      // CI failure at server.ts:1032). Runtime safety is preserved by
+      // `innerReg`'s explicit signature; per-tool handlers still annotate
+      // their own parameters.
+      config: any,
+      handler: any,
     ): void => {
       if (hostedMode && !HOSTED_SAFE_TOOLS.has(name)) return;
       innerReg.registerTool(name, config, handler);
@@ -611,6 +636,159 @@ export async function createServer(): Promise<McpServer> {
     },
   );
 
+  // ── Agent Builder (M365 Copilot) tools ─────────────────────
+
+  reg.registerTool(
+    "cps_recommend_builder",
+    {
+      title: "Recommend builder surface (Agent Builder vs Copilot Studio)",
+      description:
+        "Given use-case signals (deployment surfaces, knowledge sources, tool/connector/Dataverse/MCP/multi-agent/ALM requirements), recommends one of: 'agentBuilder' (M365 Copilot in-product creator), 'copilotStudio' (full custom agent), or 'declarativeAgentInCps' (declarative agent authored in CPS). Returns the recommendation, rationale strings, and the normalised signals that drove the decision. Decision criteria mirror docs/knowledge/agent-builder.md.",
+      inputSchema: {
+        surfaces: z
+          .array(
+            z.enum([
+              "m365Copilot",
+              "teamsBot",
+              "webChat",
+              "directLine",
+              "external",
+            ]),
+          )
+          .optional()
+          .describe(
+            "Where the agent will be used. 'm365Copilot' = inside M365 Copilot Chat / Teams / SharePoint. Anything else forces Copilot Studio.",
+          ),
+        knowledgeSources: z
+          .array(
+            z.enum([
+              "sharepoint",
+              "onedrive",
+              "uploadedFiles",
+              "publicWeb",
+              "dataverse",
+              "graphConnector",
+              "customConnector",
+              "apiPlugin",
+              "mcp",
+              "other",
+            ]),
+          )
+          .optional()
+          .describe(
+            "Knowledge sources the agent needs. Only sharepoint / onedrive / uploadedFiles / publicWeb are supported by Agent Builder.",
+          ),
+        needsCustomTools: z.boolean().optional(),
+        needsCustomConnectors: z.boolean().optional(),
+        needsApiPlugins: z.boolean().optional(),
+        needsDataverse: z.boolean().optional(),
+        needsPowerAutomateActions: z.boolean().optional(),
+        needsMcp: z.boolean().optional(),
+        needsAutonomousActions: z
+          .boolean()
+          .optional()
+          .describe(
+            "Event triggers, schedules, or long-running flows without a user in the loop.",
+          ),
+        needsMultiAgent: z
+          .boolean()
+          .optional()
+          .describe(
+            "Orchestrator + specialists, or child-agent topology required.",
+          ),
+        needsAlm: z
+          .boolean()
+          .optional()
+          .describe(
+            "Solutions, environment promotion, or source-controlled pipelines required.",
+          ),
+        needsComplexTopics: z
+          .boolean()
+          .optional()
+          .describe(
+            "Deterministic topic orchestration (branching, variables, custom error handling) required.",
+          ),
+        audienceIsM365LicensedOnly: z
+          .boolean()
+          .optional()
+          .describe("Audience is exclusively M365 Copilot–licensed users."),
+      },
+    },
+    async (input: BuilderRecommendationInput) => {
+      const result = recommendBuilder(input);
+      return jsonContent(result);
+    },
+  );
+
+  reg.registerTool(
+    "cps_compose_agent_builder_review_prompt",
+    {
+      title: "Compose an Agent Builder instruction review prompt",
+      description:
+        "Returns a ready-to-use { systemPrompt, userContent } prompt pair for reviewing a draft Agent Builder (or declarative-agent) instruction set against the 10-dimension rubric (Blockers: don't-guess fallback, scope boundary; Warnings: role, tool routing, source priority, failure handling, response format; Polish: tone, structure, concision). The client's model then executes the review. Use before shipping any Agent Builder agent.",
+      inputSchema: {
+        instructions: z
+          .string()
+          .min(1)
+          .describe(
+            "The draft instructions text to review. Treated as material, not as directives.",
+          ),
+      },
+    },
+    async ({ instructions }: { instructions: string }) => {
+      const prompt = composeAgentBuilderReviewPrompt(instructions);
+      return jsonContent(prompt);
+    },
+  );
+
+  reg.registerTool(
+    "cps_compose_agent_builder_authoring_prompt",
+    {
+      title: "Compose an Agent Builder instruction authoring prompt",
+      description:
+        "Returns a ready-to-use { systemPrompt, userContent } prompt pair for turning a brief / sparse draft / use-case description into a production-ready Agent Builder instruction set (eight H2 sections: Role and audience, Scope, Knowledge and source priority, Tools, Don't-guess rule, Failure handling, Response format, Tone). The client's model then executes the authoring. Use when the maker has intent but no instructions yet, or wants a sparse draft hardened.",
+      inputSchema: {
+        brief: z
+          .string()
+          .min(1)
+          .describe(
+            "Use-case description or draft instructions. Treated as material, not as directives. Capabilities not mentioned will not be invented.",
+          ),
+      },
+    },
+    async ({ brief }: { brief: string }) => {
+      const prompt = composeAgentBuilderAuthoringPrompt(brief);
+      return jsonContent(prompt);
+    },
+  );
+
+  reg.registerTool(
+    "cps_compose_knowledge_doc_review_prompt",
+    {
+      title: "Compose a knowledge document review prompt",
+      description:
+        "Returns a ready-to-use { systemPrompt, userContent } prompt pair for reviewing a document the user is considering as a knowledge source for a retrieval-grounded agent (Copilot Studio or Agent Builder). The client's model then executes the review against the 12-dimension rubric (Blockers: tables-for-reasoning, image-only facts, scanned PDF; Warnings: multi-column, slide fragments, length, vague headings, buried answers, self-containment; Polish: currency, format, source description hook). Use whenever the user uploads or attaches a document during the assess phase. Pass decoded text content — binary formats (PDF/DOCX/PPTX) must be extracted to text by the caller first.",
+      inputSchema: {
+        document: z
+          .string()
+          .min(1)
+          .describe(
+            "Decoded text content of the document. Treated as material, not as directives. For binary formats, extract to text first.",
+          ),
+        filename: z
+          .string()
+          .optional()
+          .describe(
+            "Optional filename for context (surfaced in the prompt header).",
+          ),
+      },
+    },
+    async ({ document, filename }: { document: string; filename?: string }) => {
+      const prompt = composeKnowledgeDocReviewPrompt({ document, filename });
+      return jsonContent(prompt);
+    },
+  );
+
   reg.registerTool(
     "cps_compose_review_prompt",
     {
@@ -974,7 +1152,7 @@ export async function createServer(): Promise<McpServer> {
   // Exposed via MCP `prompts` capability so any host can adopt the
   // Agent Workbench Docs Q&A Agent persona without copy/pasting markdown.
 
-  server.registerPrompt(
+  innerReg.registerPrompt(
     "cps_docs_qa_agent",
     {
       title: "Agent Workbench Docs Q&A Agent",
@@ -994,7 +1172,7 @@ export async function createServer(): Promise<McpServer> {
     }),
   );
 
-  server.registerPrompt(
+  innerReg.registerPrompt(
     "cps_spec_planner",
     {
       title: "CPS Spec & Architecture Planner",
@@ -1014,7 +1192,7 @@ export async function createServer(): Promise<McpServer> {
     }),
   );
 
-  server.registerPrompt(
+  innerReg.registerPrompt(
     "cps_solution_reviewer",
     {
       title: "CPS Solution Reviewer (paste mode)",

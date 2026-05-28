@@ -11,6 +11,7 @@ import { buildAgentCommand } from "./commands/buildAgent.js";
 import { generateRepoInstructionsCommand } from "./commands/generateRepoInstructions.js";
 import { reviewSolutionCommand } from "./commands/reviewSolution.js";
 import { reviewSolutionFileCommand } from "./commands/reviewSolutionFile.js";
+import { reviewKnowledgeDocumentCommand } from "./commands/reviewKnowledgeDocument.js";
 import { buildDemoCommand } from "./commands/buildDemo.js";
 import { runAgentTestsCommand } from "./commands/runAgentTests.js";
 import { resetDirectLineSigninCommand } from "./commands/resetDirectLineSignin.js";
@@ -123,6 +124,10 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand("agentWorkbench.reviewSolutionFile", () =>
       reviewSolutionFileCommand(extensionPath),
+    ),
+    vscode.commands.registerCommand(
+      "agentWorkbench.reviewKnowledgeDocument",
+      (uri?: vscode.Uri) => reviewKnowledgeDocumentCommand(uri),
     ),
     vscode.commands.registerCommand("agentWorkbench.buildDemo", () =>
       buildDemoCommand(extensionPath),

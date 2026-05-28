@@ -21,6 +21,8 @@ export * from "./assessors/reviewPrompt.js";
 export * from "./assessors/toolDescription.js";
 export * from "./assessors/preBuildGenerator.js";
 export * from "./assessors/solutionBundle.js";
+export * from "./assessors/agentBuilderRecommender.js";
+export * from "./assessors/agentBuilderPrompts.js";
 
 // Agent testing harness
 export * from "./testing/index.js";
