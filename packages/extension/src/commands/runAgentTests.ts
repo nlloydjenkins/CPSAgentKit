@@ -7,17 +7,18 @@ import {
   generateStarterSuite,
   parseRubric,
   parseTestSuite,
+  parseTextPromptsSuite,
   runTestSuite,
   writeReports,
   NoneJudgeProvider,
   AzureOpenAIJudge,
-} from "@cpsagentkit/core";
+} from "@agent-workbench-for-copilot-studio/core";
 import type {
   JudgeProvider,
   Rubric,
   ScenarioResult,
   TestSuite,
-} from "@cpsagentkit/core";
+} from "@agent-workbench-for-copilot-studio/core";
 import { requireWorkspaceRoot } from "../ui/uiUtils.js";
 import {
   ensureGitignore,
@@ -27,10 +28,15 @@ import {
 import type { TestConfig } from "../services/testing/testConfig.js";
 import { authProvider } from "../services/testing/authProvider.js";
 import { createSecretStore } from "../services/testing/secretStore.js";
-import { logInfo, withErrorSurface } from "../services/testing/diagnostics.js";
-import { runSetupWizard } from "../services/testing/setupWizard.js";
+import {
+  getTestingChannel,
+  logInfo,
+  withErrorSurface,
+} from "../services/testing/diagnostics.js";
+import { runSetupWizard, pickAgent } from "../services/testing/setupWizard.js";
+import { isDirectLineSignInError } from "../services/testing/msalDirectLine.js";
 
-const ONE_TIME_WARNING_KEY = "cpsAgentKit.judgeTransmissionAcknowledged";
+const ONE_TIME_WARNING_KEY = "agentWorkbench.judgeTransmissionAcknowledged";
 
 interface RunAgentTestsArgs {
   agentFolder?: string;
@@ -87,7 +93,7 @@ async function runAgentTestsInner(
     )
   ) {
     vscode.window.showWarningMessage(
-      "CPSAgentKit: stored environment hostname is not a Power Platform API host. Re-running the environment step.",
+      "Agent Workbench: stored environment hostname is not a Power Platform API host. Re-running the environment step.",
     );
     const result = await runSetupWizard({
       workspaceRoot: root,
@@ -106,7 +112,7 @@ async function runAgentTestsInner(
   // Force re-running the auth step to switch to a permitted app registration.
   if (config.directLine.clientId === "1950a258-227b-4e31-a9cf-717495945fc2") {
     vscode.window.showWarningMessage(
-      "CPSAgentKit: stored clientId is the Power Platform CLI app, which is not pre-authorised for CopilotStudio.Copilots.Invoke. Re-running the authentication step.",
+      "Agent Workbench: stored clientId is the Power Platform CLI app, which is not pre-authorised for CopilotStudio.Copilots.Invoke. Re-running the authentication step.",
     );
     const result = await runSetupWizard({
       workspaceRoot: root,
@@ -126,35 +132,75 @@ async function runAgentTestsInner(
     "tests",
     "agent-tests.json",
   );
+  const promptsTxtPath = path.join(
+    root,
+    "Requirements",
+    "tests",
+    "prompts.txt",
+  );
   let suite: TestSuite;
   let suiteWarnings: string[] = [];
-  let suiteText: string;
-  try {
-    suiteText = await fs.readFile(suitePath, "utf-8");
-  } catch {
+
+  const jsonExists = await fileExists(suitePath);
+  const txtExists = await fileExists(promptsTxtPath);
+
+  if (jsonExists) {
+    const suiteText = await fs.readFile(suitePath, "utf-8");
+    try {
+      const parsed = parseTestSuite(JSON.parse(suiteText));
+      suite = parsed.value;
+      suiteWarnings = parsed.warnings;
+    } catch (err) {
+      vscode.window.showErrorMessage(
+        `Agent Workbench: test suite invalid — ${(err as Error).message}`,
+      );
+      return;
+    }
+  } else if (txtExists) {
+    const text = await fs.readFile(promptsTxtPath, "utf-8");
+    const agentTarget = await pickAgent(root, args?.agentFolder);
+    if (!agentTarget) {
+      vscode.window.showErrorMessage(
+        "Agent Workbench: cannot run prompts.txt — no CPS agent folder selected.",
+      );
+      return;
+    }
+    suite = parseTextPromptsSuite(text, { agent: agentTarget });
+    if (suite.scenarios.length === 0) {
+      vscode.window.showErrorMessage(
+        "Agent Workbench: prompts.txt contains no prompts (only blank lines or comments).",
+      );
+      return;
+    }
+    logInfo(
+      `Loaded ${suite.scenarios.length} prompt(s) from Requirements/tests/prompts.txt for ${agentTarget.botSchemaName}.`,
+    );
+  } else {
     const proceed = await vscode.window.showInformationMessage(
-      "CPSAgentKit: no test suite found at Requirements/tests/agent-tests.json. Generate a starter suite now?",
+      "Agent Workbench: no test suite found at Requirements/tests/agent-tests.json or prompts.txt. Generate a starter suite now?",
       { modal: true },
       "Generate",
     );
     if (proceed !== "Generate") return;
-    suiteText = await generateStarterSuiteForWorkspace(root, args?.agentFolder);
-  }
-
-  try {
-    const parsed = parseTestSuite(JSON.parse(suiteText));
-    suite = parsed.value;
-    suiteWarnings = parsed.warnings;
-  } catch (err) {
-    vscode.window.showErrorMessage(
-      `CPSAgentKit: test suite invalid — ${(err as Error).message}`,
+    const suiteText = await generateStarterSuiteForWorkspace(
+      root,
+      args?.agentFolder,
     );
-    return;
+    try {
+      const parsed = parseTestSuite(JSON.parse(suiteText));
+      suite = parsed.value;
+      suiteWarnings = parsed.warnings;
+    } catch (err) {
+      vscode.window.showErrorMessage(
+        `Agent Workbench: test suite invalid — ${(err as Error).message}`,
+      );
+      return;
+    }
   }
 
   if (suite.status === "draft") {
     vscode.window.showWarningMessage(
-      'CPSAgentKit: running a DRAFT test suite. Review and mark status as "reviewed" before relying on results.',
+      'Agent Workbench: running a DRAFT test suite. Review and mark status as "reviewed" before relying on results.',
     );
   }
 
@@ -168,7 +214,7 @@ async function runAgentTestsInner(
     );
     if (!acknowledged) {
       const choice = await vscode.window.showWarningMessage(
-        "CPSAgentKit will send the agent transcript and final response to your configured Azure OpenAI deployment for judging. Continue?",
+        "Agent Workbench will send the agent transcript and final response to your configured Azure OpenAI deployment for judging. Continue?",
         { modal: true },
         "Continue",
         "Cancel",
@@ -187,7 +233,7 @@ async function runAgentTestsInner(
 
   const runDir = path.join(
     root,
-    ".cpsagentkit",
+    ".agent-workbench",
     "test-results",
     buildTimestampFolder(),
   );
@@ -205,7 +251,7 @@ async function runAgentTestsInner(
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: "CPSAgentKit: signing in to Direct Line…",
+        title: "Agent Workbench: signing in to Direct Line…",
         cancellable: false,
       },
       async () => {
@@ -213,18 +259,14 @@ async function runAgentTestsInner(
       },
     );
   } catch (err) {
-    void vscode.window.showErrorMessage(
-      `CPSAgentKit: Direct Line sign-in failed. ${
-        err instanceof Error ? err.message : String(err)
-      }`,
-    );
+    await showDirectLineSignInFailure(err);
     return;
   }
 
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: `CPSAgentKit: running ${suite.scenarios.length} scenarios…`,
+      title: `Agent Workbench: running ${suite.scenarios.length} scenarios…`,
       cancellable: false,
     },
     async (progress) => {
@@ -270,6 +312,33 @@ function summariseProgress(
   total: number,
 ): string {
   return `${done}/${total} done — last: ${result.id} (${result.status})`;
+}
+
+async function showDirectLineSignInFailure(err: unknown): Promise<void> {
+  const classified = isDirectLineSignInError(err);
+  const headline = classified
+    ? `Agent Workbench: Direct Line sign-in failed (${err.code}).`
+    : "Agent Workbench: Direct Line sign-in failed.";
+  const hint = classified
+    ? err.hint
+    : err instanceof Error
+      ? err.message
+      : String(err);
+  const detail = `${hint}\n\nFull MSAL error is in the 'Agent Workbench (Testing)' output channel.`;
+
+  const RESET = "Reset Direct Line Sign-in";
+  const OUTPUT = "Show Output";
+  const choice = await vscode.window.showErrorMessage(
+    headline,
+    { modal: true, detail },
+    RESET,
+    OUTPUT,
+  );
+  if (choice === RESET) {
+    await vscode.commands.executeCommand("agentWorkbench.resetDirectLineSignin");
+  } else if (choice === OUTPUT) {
+    getTestingChannel().show(true);
+  }
 }
 
 async function loadRubricOrDefault(workspaceRoot: string): Promise<Rubric> {
@@ -343,4 +412,13 @@ async function generateStarterSuiteForWorkspace(
   const text = JSON.stringify(suite, null, 2) + "\n";
   await fs.writeFile(path.join(dir, "agent-tests.json"), text, "utf-8");
   return text;
+}
+
+async function fileExists(p: string): Promise<boolean> {
+  try {
+    await fs.access(p);
+    return true;
+  } catch {
+    return false;
+  }
 }

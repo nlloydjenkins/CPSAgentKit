@@ -30,6 +30,8 @@ import {
 import { generateInstructions } from "./services/instructionsGenerator.js";
 import { StatusBar } from "./ui/statusBar.js";
 import { SidebarProvider } from "./ui/sidebarProvider.js";
+import { migrateLegacySettings } from "./services/migration/settingsMigration.js";
+import { migrateWorkspaceMarker } from "./services/migration/workspaceMarkerMigration.js";
 
 let statusBar: StatusBar;
 let sidebarProvider: SidebarProvider;
@@ -38,9 +40,23 @@ export function activate(context: vscode.ExtensionContext): void {
   const extensionPath = context.extensionPath;
   statusBar = new StatusBar();
 
+  // Migrate any pre-rename `cpsAgentKit.*` settings to `agentWorkbench.*`.
+  // Runs once and is safe if the user is already on the new keys.
+  void migrateLegacySettings(context).catch(() => {
+    // Migration failures should never break activation.
+  });
+
+  // Migrate the workspace marker directory from `.cpsagentkit/` to
+  // `.agent-workbench/` for each open workspace folder.
+  for (const folder of vscode.workspace.workspaceFolders ?? []) {
+    void migrateWorkspaceMarker(folder.uri.fsPath).catch(() => {
+      // Failures are non-fatal — the resolver falls back to the legacy dir.
+    });
+  }
+
   // Sidebar tree view
   sidebarProvider = new SidebarProvider();
-  const treeView = vscode.window.createTreeView("cpsAgentKit.sidebar", {
+  const treeView = vscode.window.createTreeView("agentWorkbench.sidebar", {
     treeDataProvider: sidebarProvider,
     showCollapseAll: false,
   });
@@ -53,68 +69,82 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     treeView,
     sidebarProvider,
-    vscode.commands.registerCommand("cpsAgentKit.init", async () => {
+    vscode.commands.registerCommand("agentWorkbench.init", async () => {
       await initCommand(extensionPath);
       await sidebarProvider.refreshState();
       await refreshStatusFromWorkspace();
     }),
-    vscode.commands.registerCommand("cpsAgentKit.syncKnowledge", async () => {
-      await syncKnowledgeCommand(extensionPath, statusBar);
-      await sidebarProvider.refreshState();
-      await refreshStatusFromWorkspace();
-    }),
-    vscode.commands.registerCommand("cpsAgentKit.createSpec", async () => {
+    vscode.commands.registerCommand(
+      "agentWorkbench.syncKnowledge",
+      async () => {
+        await syncKnowledgeCommand(extensionPath, statusBar);
+        await sidebarProvider.refreshState();
+        await refreshStatusFromWorkspace();
+      },
+    ),
+    vscode.commands.registerCommand("agentWorkbench.createSpec", async () => {
       await createSpecCommand();
       await sidebarProvider.refreshState();
       await refreshStatusFromWorkspace();
     }),
-    vscode.commands.registerCommand("cpsAgentKit.preBuildAgent", async () => {
-      await preBuildAgentCommand();
-      await sidebarProvider.refreshState();
-      await refreshStatusFromWorkspace();
-    }),
-    vscode.commands.registerCommand("cpsAgentKit.prepareForBuild", async () => {
-      await prepareForBuildCommand();
-      await sidebarProvider.refreshState();
-      await refreshStatusFromWorkspace();
-    }),
-    vscode.commands.registerCommand("cpsAgentKit.buildChecklist", async () => {
-      await buildCommand();
-      await sidebarProvider.refreshState();
-      await refreshStatusFromWorkspace();
-    }),
-    vscode.commands.registerCommand("cpsAgentKit.buildAgent", () =>
+    vscode.commands.registerCommand(
+      "agentWorkbench.preBuildAgent",
+      async () => {
+        await preBuildAgentCommand();
+        await sidebarProvider.refreshState();
+        await refreshStatusFromWorkspace();
+      },
+    ),
+    vscode.commands.registerCommand(
+      "agentWorkbench.prepareForBuild",
+      async () => {
+        await prepareForBuildCommand();
+        await sidebarProvider.refreshState();
+        await refreshStatusFromWorkspace();
+      },
+    ),
+    vscode.commands.registerCommand(
+      "agentWorkbench.buildChecklist",
+      async () => {
+        await buildCommand();
+        await sidebarProvider.refreshState();
+        await refreshStatusFromWorkspace();
+      },
+    ),
+    vscode.commands.registerCommand("agentWorkbench.buildAgent", () =>
       buildAgentCommand(),
     ),
     vscode.commands.registerCommand(
-      "cpsAgentKit.generateRepoInstructions",
+      "agentWorkbench.generateRepoInstructions",
       () => generateRepoInstructionsCommand(),
     ),
-    vscode.commands.registerCommand("cpsAgentKit.reviewSolution", () =>
+    vscode.commands.registerCommand("agentWorkbench.reviewSolution", () =>
       reviewSolutionCommand(extensionPath),
     ),
-    vscode.commands.registerCommand("cpsAgentKit.reviewSolutionFile", () =>
+    vscode.commands.registerCommand("agentWorkbench.reviewSolutionFile", () =>
       reviewSolutionFileCommand(extensionPath),
     ),
-    vscode.commands.registerCommand("cpsAgentKit.buildDemo", () =>
+    vscode.commands.registerCommand("agentWorkbench.buildDemo", () =>
       buildDemoCommand(extensionPath),
     ),
     vscode.commands.registerCommand(
-      "cpsAgentKit.runAgentTests",
+      "agentWorkbench.runAgentTests",
       (agentFolder?: string) => runAgentTestsCommand(context, { agentFolder }),
     ),
-    vscode.commands.registerCommand("cpsAgentKit.configureAgentTests", () =>
+    vscode.commands.registerCommand("agentWorkbench.configureAgentTests", () =>
       configureAgentTestsCommand(context),
     ),
-    vscode.commands.registerCommand("cpsAgentKit.connectAzureOpenAIJudge", () =>
-      connectAzureOpenAIJudgeCommand(context),
+    vscode.commands.registerCommand(
+      "agentWorkbench.connectAzureOpenAIJudge",
+      () => connectAzureOpenAIJudgeCommand(context),
     ),
     vscode.commands.registerCommand(
-      "cpsAgentKit.changeAgentTestEnvironment",
+      "agentWorkbench.changeAgentTestEnvironment",
       () => changeAgentTestEnvironmentCommand(context),
     ),
-    vscode.commands.registerCommand("cpsAgentKit.resetDirectLineSignin", () =>
-      resetDirectLineSigninCommand(context),
+    vscode.commands.registerCommand(
+      "agentWorkbench.resetDirectLineSignin",
+      () => resetDirectLineSigninCommand(context),
     ),
     vscode.languages.registerCodeLensProvider(
       [
@@ -123,7 +153,7 @@ export function activate(context: vscode.ExtensionContext): void {
       ],
       new AgentTestsCodeLensProvider(),
     ),
-    vscode.commands.registerCommand("cpsAgentKit.refreshSidebar", () =>
+    vscode.commands.registerCommand("agentWorkbench.refreshSidebar", () =>
       sidebarProvider.refreshState(),
     ),
     statusBar,
@@ -133,16 +163,20 @@ export function activate(context: vscode.ExtensionContext): void {
   autoSyncOnOpen(extensionPath).catch((err) => {
     const message = err instanceof Error ? err.message : String(err);
     vscode.window.showWarningMessage(
-      `CPSAgentKit: Auto-sync failed: ${message}`,
+      `Agent Workbench: Auto-sync failed: ${message}`,
     );
   });
 }
 
 /** Run knowledge sync automatically when the workspace opens, if enabled */
 async function autoSyncOnOpen(extensionPath: string): Promise<void> {
-  const syncOnOpen = vscode.workspace
-    .getConfiguration("cpsAgentKit")
-    .get<boolean>("syncOnOpen", true);
+  const syncOnOpen =
+    vscode.workspace
+      .getConfiguration("agentWorkbench")
+      .get<boolean>("syncOnOpen") ??
+    vscode.workspace
+      .getConfiguration("cpsAgentKit")
+      .get<boolean>("syncOnOpen", true);
   if (!syncOnOpen) {
     return;
   }

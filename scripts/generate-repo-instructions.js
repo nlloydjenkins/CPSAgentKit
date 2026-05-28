@@ -63,13 +63,13 @@ async function main() {
     "- **Current phase:** Extension development / knowledge authoring",
     "- **Knowledge source mode:** Source docs under `docs/knowledge/`",
     "- **Best practices source mode:** Source docs under `docs/bestpractices/`",
-    "- **Generated file purpose:** Repo-level Copilot context for maintaining CPSAgentKit itself",
+    "- **Generated file purpose:** Repo-level Copilot context for maintaining Agent Workbench itself",
     "",
     "**Next step:** Keep source docs authoritative. Regenerate this file after knowledge or best-practice updates so Copilot sees the latest reference library.",
   ].join("\n");
 
   const parts = [
-    "<!-- AUTO-GENERATED for CPSAgentKit repo maintenance. Regenerate after source knowledge changes. -->",
+    "<!-- AUTO-GENERATED for Agent Workbench repo maintenance. Regenerate after source knowledge changes. -->",
     "",
     template,
   ];

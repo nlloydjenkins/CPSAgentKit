@@ -1,0 +1,47 @@
+# Tarball uploaded to ACR for `az acr build` / `docker build`.
+# Keep this minimal: only the source the Dockerfile actually COPYs.
+
+**/node_modules
+**/dist
+**/out
+**/.git
+**/.vscode
+**/.azure
+**/.env
+**/.env.*
+**/coverage
+**/*.log
+**/*.vsix
+**/.DS_Store
+
+# Test, doc, and release artefacts not needed in the image.
+**/__tests__
+**/__snapshots__
+**/*.test.ts
+**/*.test.js
+**/test-results
+**/releases
+**/presentations
+**/Research
+**/change-requests
+**/whitepapers
+**/docs/templates
+
+# We do need docs/knowledge and docs/bestpractices (Dockerfile copies docs/).
+!docs/knowledge
+!docs/knowledge/**
+!docs/bestpractices
+!docs/bestpractices/**
+!packages/core
+!packages/core/**
+!packages/mcp-server
+!packages/mcp-server/**
+
+# But re-exclude the heavy stuff inside those packages.
+packages/*/node_modules
+packages/*/dist
+packages/*/out
+packages/*/coverage
+packages/extension
+packages/core/__tests__
+packages/mcp-server/__tests__

@@ -1,6 +1,6 @@
-# IT Help Desk Demo — CPSAgentKit Walkthrough
+# IT Help Desk Demo — Agent Workbench Walkthrough
 
-A self-contained demo that takes a set of requirement documents through the full CPSAgentKit pipeline with minimal manual intervention. The only manual steps are creating agents in the Copilot Studio portal and adding tools/connectors — everything else runs autonomously through the extension commands and Copilot Chat.
+A self-contained demo that takes a set of requirement documents through the full Agent Workbench pipeline with minimal manual intervention. The only manual steps are creating agents in the Copilot Studio portal and adding tools/connectors — everything else runs autonomously through the extension commands and Copilot Chat.
 
 ## What This Demo Builds
 
@@ -22,7 +22,7 @@ A **multi-agent IT Help Desk** for Contoso Ltd:
 
 ## Prerequisites
 
-- VS Code with the CPSAgentKit extension installed (build from source or install VSIX)
+- VS Code with the Agent Workbench extension installed (build from source or install VSIX)
 - GitHub Copilot Chat enabled
 - A Copilot Studio environment with:
   - Managed Dataverse environment with MCP Server enabled
@@ -45,8 +45,8 @@ Copy the requirement docs and sample data into your workspace:
 
 ```bash
 mkdir -p Requirements/docs
-cp <path-to-CPSAgentKit>/demo/it-help-desk/Requirements/docs/*.md Requirements/docs/
-cp -r <path-to-CPSAgentKit>/demo/it-help-desk/sample-data sample-data
+cp <path-to-Agent Workbench>/demo/it-help-desk/Requirements/docs/*.md Requirements/docs/
+cp -r <path-to-Agent Workbench>/demo/it-help-desk/sample-data sample-data
 ```
 
 Your workspace should look like:
@@ -81,14 +81,14 @@ The Notification Specialist agent will post High/Critical ticket alerts to this 
 
 ### Step 4: Initialise the Project
 
-1. Open Command Palette → **CPSAgentKit: Initialise CPS Project**
+1. Open Command Palette → **Agent Workbench: Initialise Agent Workbench Project**
 2. Wait for knowledge sync to complete
 
-This creates `.cpsagentkit/`, `.github/copilot-instructions.md`, and template files.
+This creates `.agent-workbench/`, `.github/copilot-instructions.md`, and template files.
 
 ### Step 5: Generate Spec + Architecture (Autonomous)
 
-1. Open Command Palette → **CPSAgentKit: Create Specification**
+1. Open Command Palette → **Agent Workbench: Create Specification**
 2. Select **"Generate from requirements docs"**
 3. Copilot Chat opens with a pre-filled runner instruction
 4. **Press Enter** — Copilot reads all three requirement docs and generates both `Requirements/spec.md` and `Requirements/architecture.md` in one pass
@@ -120,7 +120,7 @@ These steps cannot be automated — the CPS extension requires agents to be crea
 
 ### Step 7: Build Agent (Autonomous)
 
-1. Open Command Palette → **CPSAgentKit: Build Agent**
+1. Open Command Palette → **Agent Workbench: Build Agent**
 2. Select **"Full build"**
 3. Copilot Chat opens with a build prompt that includes the spec, architecture, all knowledge, and detected agent YAML
 4. **Press Enter** — Copilot generates instructions, topic descriptions, tool descriptions, and settings validation. If Dataverse MCP is connected, it will also create the `cr85a_it_support_tickets` table and seed it with 5 sample tickets from `sample-data/dataverse-seed-data.md`.
@@ -137,7 +137,7 @@ These steps cannot be automated — the CPS extension requires agents to be crea
    - "What's the status of my ticket?" → should look up tickets for the authenticated user
    - "Update my [ticket name]" → should find the ticket by name + user email, allow field updates
    - "Delete my [ticket name]" → should find the ticket, show details, require confirmation before deleting
-3. If anything misroutes, paste the test output back into **CPSAgentKit: Build Agent** → "Rebuild from test feedback"
+3. If anything misroutes, paste the test output back into **Agent Workbench: Build Agent** → "Rebuild from test feedback"
 
 ## Included Sample Data
 

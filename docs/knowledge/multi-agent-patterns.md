@@ -1,5 +1,15 @@
 # CPS Multi-Agent Patterns
 
+## Agent-to-Agent Invocation — Use Connected Agents, Not the Connector
+
+For in-CPS agent-to-agent calls, use a **connected agent** (`InvokeConnectedAgentTaskAction`) — never the `Microsoft Copilot Studio - Execute Agent` / `Execute Agent and wait` connector. Both `ExecuteCopilot` and `ExecuteCopilotAsyncV2` return only a `ConversationId`; the reply text is delivered out-of-band on the conversation, so the calling agent never sees it. The connector is intended for *external* Power Automate automation firing into a CPS agent, not orchestrator-driven agent composition.
+
+Connected-agent tradeoffs that still apply:
+
+- The orchestrator summarises connected-agent replies. For pipelines whose specialists emit strict templates and nothing else, prefer prompt tools (see Prompt Tools Over Child Agents below).
+- Connected agents must be published with sharing enabled before the parent can invoke them.
+- Connected-agent action YAML with `mode: Generated` requires at least one declared `outputs:` entry, otherwise runtime fails with `PluginActionNoOutputSetInEmitMode`. See `troubleshooting.md` → Connected Agent Returns PluginActionNoOutputSetInEmitMode.
+
 ## When to Use Multiple Agents
 
 Split into multiple agents when:
@@ -29,7 +39,7 @@ You can mix both. Connected agents can contain their own child agents.
 
 Use a two-path rule when building child agents:
 
-1. **Portal-first remains the fallback** when the child agent needs tools, connector bindings, MCP servers, knowledge sources, prompt tools, flows, autonomous triggers, custom auth, or any portal-only setting and no verified export/API pattern exists for the exact child-owned artifact. When CPSAgentKit has a validated reference build or known-good export/API pattern plus tenant-specific connection/auth values, scaffold the child-owned artifact provisionally, but keep it staged until the child exists in the cloud, then require Apply Changes, portal inspection, Get Changes, and runtime validation.
+1. **Portal-first remains the fallback** when the child agent needs tools, connector bindings, MCP servers, knowledge sources, prompt tools, flows, autonomous triggers, custom auth, or any portal-only setting and no verified export/API pattern exists for the exact child-owned artifact. When Agent Workbench has a validated reference build or known-good export/API pattern plus tenant-specific connection/auth values, scaffold the child-owned artifact provisionally, but keep it staged until the child exists in the cloud, then require Apply Changes, portal inspection, Get Changes, and runtime validation.
 2. **Guarded manual scaffold is required** for child-agent shells when an exported parent agent folder already exists, no portal-generated child folder exists yet, and a verified child-agent shape is available. Use this to create the child shell: routing description plus `settings.instructions`. Do not activate child-owned tools, knowledge, prompt tools, or settings in the same Apply Changes pass as a newly scaffolded child. Stage child-owned YAML as `.mcs.yml.staged` or defer API creation until Get Changes confirms the child cloud component exists. The maker must Apply Changes and verify portal acceptance before the child is marked fully accepted.
 
 Child-owned artifacts require a two-pass ParentId-safe build order. Active child-owned `.mcs.yml` files under `agents/<Child>/actions/` can make Apply Changes fail with `ParentId does not exist on cloud: <schema>.agent.<Child>` when the child has not been created in the cloud yet. First pass: create the child `agent.mcs.yml`, parent tools, root connection references, topics, and settings. Second pass: after Apply Changes succeeds and Get Changes confirms the child exists, rename staged child-owned files to `.mcs.yml` and apply them.

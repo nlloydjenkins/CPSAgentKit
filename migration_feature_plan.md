@@ -8,7 +8,7 @@
 
 ## 1. Problem
 
-Customers build complex Copilot Studio agents using CPSAgentKit — multi-agent architectures with hub-and-spoke patterns, prompt tools, knowledge sources, and Power Automate flows. Some of these customers hit CPS platform limitations that cannot be worked around:
+Customers build complex Copilot Studio agents using Agent Workbench — multi-agent architectures with hub-and-spoke patterns, prompt tools, knowledge sources, and Power Automate flows. Some of these customers hit CPS platform limitations that cannot be worked around:
 
 - Response summarisation stripping detail in parent–child handoffs
 - MCP tools not firing through parent orchestration
@@ -22,7 +22,7 @@ Microsoft Foundry (via the Agent Framework SDK) removes these constraints. The f
 
 ## 2. Users
 
-Same CPSAgentKit users: developers and power users building agents in VS Code. They have an existing CPS agent in the workspace (cloned via the CPS VS Code extension) and want to explore or commit to Foundry as the runtime. They may not be Python developers — the generated code should be production-ready and well-documented.
+Same Agent Workbench users: developers and power users building agents in VS Code. They have an existing CPS agent in the workspace (cloned via the CPS VS Code extension) and want to explore or commit to Foundry as the runtime. They may not be Python developers — the generated code should be production-ready and well-documented.
 
 ## 3. What It Does
 

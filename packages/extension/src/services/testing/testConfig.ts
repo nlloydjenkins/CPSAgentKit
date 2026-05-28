@@ -1,4 +1,4 @@
-// Read/write .cpsagentkit/test-config.json. Never prompts — missing values trigger the wizard.
+// Read/write .agent-workbench/test-config.json. Never prompts — missing values trigger the wizard.
 import { promises as fs } from "fs";
 import * as path from "path";
 
@@ -55,7 +55,7 @@ export const DEFAULT_RETRY: RetryConfig = {
 };
 
 export const TEST_CONFIG_RELATIVE = path.join(
-  ".cpsagentkit",
+  ".agent-workbench",
   "test-config.json",
 );
 
@@ -101,7 +101,7 @@ export function isComplete(
   return true;
 }
 
-/** Append .cpsagentkit/ entries to workspace .gitignore if not already present. */
+/** Append .agent-workbench/ entries to workspace .gitignore if not already present. */
 export async function ensureGitignore(workspaceRoot: string): Promise<void> {
   const file = path.join(workspaceRoot, ".gitignore");
   let current = "";
@@ -112,7 +112,7 @@ export async function ensureGitignore(workspaceRoot: string): Promise<void> {
       throw err;
     }
   }
-  const required = [".cpsagentkit/test-results/", ".cpsagentkit/cache/"];
+  const required = [".agent-workbench/test-results/", ".agent-workbench/cache/"];
   const lines = new Set(current.split(/\r?\n/).map((l) => l.trim()));
   const additions = required.filter((entry) => !lines.has(entry));
   if (additions.length === 0) {
@@ -121,7 +121,7 @@ export async function ensureGitignore(workspaceRoot: string): Promise<void> {
   const prefix = current.length > 0 && !current.endsWith("\n") ? "\n" : "";
   const block = [
     "",
-    "# CPSAgentKit local test artefacts (auto-added)",
+    "# Agent Workbench local test artefacts (auto-added)",
     ...additions,
     "",
   ].join("\n");

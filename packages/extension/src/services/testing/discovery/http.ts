@@ -1,5 +1,5 @@
 // HTTP wrapper for discovery calls. Throws DiscoveryError with a remediation hint.
-import type { TokenProvider } from "@cpsagentkit/core";
+import type { TokenProvider } from "@agent-workbench-for-copilot-studio/core";
 
 export interface ReconfigureHint {
   step:

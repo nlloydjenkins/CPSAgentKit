@@ -25,7 +25,7 @@ import {
   planKnowledgeDescriptions,
   safePath,
   type PromptSegment,
-} from "@cpsagentkit/core";
+} from "@agent-workbench-for-copilot-studio/core";
 
 import { MCP_SERVER_VERSION } from "./index.js";
 import { DOCS_QA_AGENT_SYSTEM_PROMPT } from "./prompts/docsQaAgent.js";
@@ -111,7 +111,11 @@ function topicNotFound(slug: string): {
 }
 
 function getAllowedPathRoots(): string[] {
-  const configuredRoots = process.env.CPSAGENTKIT_ALLOWED_ROOTS;
+  // Prefer the new `AGENT_WORKBENCH_ALLOWED_ROOTS` env var; fall back to the
+  // legacy `CPSAGENTKIT_ALLOWED_ROOTS` for one release.
+  const configuredRoots =
+    process.env.AGENT_WORKBENCH_ALLOWED_ROOTS ??
+    process.env.CPSAGENTKIT_ALLOWED_ROOTS;
   const roots = configuredRoots
     ? configuredRoots.split(path.delimiter).filter(Boolean)
     : [process.cwd()];
@@ -128,7 +132,8 @@ function isWithinRoot(candidate: string, root: string): boolean {
 
 /**
  * Validate that a user-supplied path is absolute and stays under an allowed
- * workspace root. Configure additional roots with CPSAGENTKIT_ALLOWED_ROOTS.
+ * workspace root. Configure additional roots with AGENT_WORKBENCH_ALLOWED_ROOTS
+ * (or the legacy CPSAGENTKIT_ALLOWED_ROOTS).
  */
 function validateAbsolutePath(p: string, paramName: string): string | null {
   if (p.includes("\0")) {
@@ -153,7 +158,7 @@ export async function createServer(): Promise<McpServer> {
   const store = await initKnowledgeStore();
 
   const server = new McpServer({
-    name: "cpsagentkit-mcp",
+    name: "agent-workbench-mcp",
     version: MCP_SERVER_VERSION,
   });
 
@@ -161,7 +166,7 @@ export async function createServer(): Promise<McpServer> {
   // zod's recursive types, which TypeScript can't instantiate (TS2589) when
   // multiple zod versions coexist in the graph. Registration is runtime-safe;
   // we preserve type safety inside each handler by annotating parameters.
-  const reg = server as unknown as {
+  const innerReg = server as unknown as {
     registerTool: (
       name: string,
       config: {
@@ -177,6 +182,48 @@ export async function createServer(): Promise<McpServer> {
       config: { title?: string; description?: string; mimeType?: string },
       handler: (uri: URL) => Promise<unknown> | unknown,
     ) => void;
+  };
+
+  // In hosted mode (MCP_HOSTED=1) the server runs on Azure and has no access
+  // to the client's local workspace. Tools that take an absolute filesystem
+  // path as input would always fail, so we hide them from the tool list to
+  // avoid confusing remote callers. The knowledge/validation/prompt-config
+  // tools are always safe to expose.
+  const HOSTED_SAFE_TOOLS = new Set<string>([
+    "cps_list_knowledge_topics",
+    "cps_get_knowledge",
+    "cps_get_best_practice",
+    "cps_validate_tool_description",
+    "cps_parse_prompt_config",
+    "cps_build_prompt_update",
+    "aw_list_knowledge_topics",
+    "aw_get_knowledge",
+    "aw_get_best_practice",
+    "aw_validate_tool_description",
+    "aw_parse_prompt_config",
+    "aw_build_prompt_update",
+  ]);
+  const hostedMode = process.env.MCP_HOSTED === "1";
+
+  const reg = {
+    registerTool: (
+      name: string,
+      config: Parameters<typeof innerReg.registerTool>[1],
+      handler: Parameters<typeof innerReg.registerTool>[2],
+    ): void => {
+      if (hostedMode && !HOSTED_SAFE_TOOLS.has(name)) return;
+      innerReg.registerTool(name, config, handler);
+      // Dual-register `cps_*` tools under the new `aw_*` prefix so clients
+      // can migrate without breaking existing integrations. Old names will
+      // be removed in a future release (tracked via CR007).
+      if (name.startsWith("cps_")) {
+        const aliasName = `aw_${name.slice("cps_".length)}`;
+        if (!hostedMode || HOSTED_SAFE_TOOLS.has(aliasName)) {
+          innerReg.registerTool(aliasName, config, handler);
+        }
+      }
+    },
+    registerResource: innerReg.registerResource.bind(innerReg),
   };
 
   // ── Tools ──────────────────────────────────────────────────
@@ -367,7 +414,7 @@ export async function createServer(): Promise<McpServer> {
     {
       title: "Detect CPS project state",
       description:
-        "Returns a structured snapshot of a workspace: whether CPSAgentKit is initialised, whether spec/architecture exist, whether knowledge is synced, whether best-practice docs are present, and the list of detected CPS agent folders. Use this to decide which phase (Define / Architect / Build / Test) the workspace is in before invoking other tools.",
+        "Returns a structured snapshot of a workspace: whether Agent Workbench is initialised, whether spec/architecture exist, whether knowledge is synced, whether best-practice docs are present, and the list of detected CPS agent folders. Use this to decide which phase (Define / Architect / Build / Test) the workspace is in before invoking other tools.",
       inputSchema: {
         workspaceRoot: z
           .string()
@@ -925,14 +972,14 @@ export async function createServer(): Promise<McpServer> {
 
   // ── Prompts ────────────────────────────────────────────────
   // Exposed via MCP `prompts` capability so any host can adopt the
-  // CPSAgentKit Docs Q&A Agent persona without copy/pasting markdown.
+  // Agent Workbench Docs Q&A Agent persona without copy/pasting markdown.
 
   server.registerPrompt(
     "cps_docs_qa_agent",
     {
-      title: "CPSAgentKit Docs Q&A Agent",
+      title: "Agent Workbench Docs Q&A Agent",
       description:
-        "System prompt for a standalone Q&A agent that answers questions about Microsoft Copilot Studio using the CPSAgentKit knowledge and best-practice docs. Pair with the cps_search_docs, cps_list_knowledge_topics, cps_get_knowledge, and cps_get_best_practice tools; do not enable the parse/assess tools.",
+        "System prompt for a standalone Q&A agent that answers questions about Microsoft Copilot Studio using the Agent Workbench knowledge and best-practice docs. Pair with the cps_search_docs, cps_list_knowledge_topics, cps_get_knowledge, and cps_get_best_practice tools; do not enable the parse/assess tools.",
     },
     () => ({
       messages: [
@@ -1012,27 +1059,37 @@ export async function createServer(): Promise<McpServer> {
   // resource UIs (Claude Desktop) can render them without calling a tool.
 
   for (const topic of store.list()) {
-    const uri = `cpsagentkit://${topic.category}/${topic.slug}`;
+    const uri = `agent-workbench://${topic.category}/${topic.slug}`;
+    const legacyUri = `cpsagentkit://${topic.category}/${topic.slug}`;
+    const resourceConfig = {
+      title: topic.title,
+      description: `Copilot Studio ${topic.category} document: ${topic.title}`,
+      mimeType: "text/markdown",
+    };
+    const resourceHandler = async () => {
+      const doc = store.get(topic.slug);
+      return {
+        contents: [
+          {
+            uri,
+            mimeType: "text/markdown",
+            text: doc?.content ?? "",
+          },
+        ],
+      };
+    };
     reg.registerResource(
       `${topic.category}-${topic.slug}`,
       uri,
-      {
-        title: topic.title,
-        description: `CPS ${topic.category} document: ${topic.title}`,
-        mimeType: "text/markdown",
-      },
-      async () => {
-        const doc = store.get(topic.slug);
-        return {
-          contents: [
-            {
-              uri,
-              mimeType: "text/markdown",
-              text: doc?.content ?? "",
-            },
-          ],
-        };
-      },
+      resourceConfig,
+      resourceHandler,
+    );
+    // Legacy `cpsagentkit://` scheme alias for one release.
+    reg.registerResource(
+      `legacy-${topic.category}-${topic.slug}`,
+      legacyUri,
+      resourceConfig,
+      resourceHandler,
     );
   }
 

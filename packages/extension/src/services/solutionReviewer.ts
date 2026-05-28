@@ -8,5 +8,5 @@ export {
   gatherSolutionSnapshot,
   isTemplateOnly,
   composeReviewPrompt,
-} from "@cpsagentkit/core";
-export type { AgentSnapshot } from "@cpsagentkit/core";
+} from "@agent-workbench-for-copilot-studio/core";
+export type { AgentSnapshot } from "@agent-workbench-for-copilot-studio/core";

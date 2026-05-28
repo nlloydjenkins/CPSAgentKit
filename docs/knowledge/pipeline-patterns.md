@@ -98,6 +98,31 @@ Rather than guessing or falsely marking such criteria as Met/Not Met, instruct s
 
 This prevents false confidence in scores derived from format-dependent criteria and makes the pipeline output honest about its limitations. Include a document metadata block (original format, page count, image count) so specialists know what the original source was.
 
+### Topic-Input Handoff Pattern
+
+When a parent agent or generative orchestrator hands off work to a receiving topic that writes to external systems (SharePoint, Dataverse, email), use topic inputs as the invocation contract rather than `Global.*` variables. The orchestrator binds typed arguments at invocation time; the receiving topic reads them as `Topic.<InputName>` (see `yaml-syntax.md` → Topic Inputs as the Orchestrator-to-Topic ABI and `anti-patterns.md` → Using Global Variables as an Invocation Contract).
+
+**Shape:**
+
+```
+Parent / orchestrator
+  └─ Invoke topic with typed inputs (Topic.CanonicalIdGuid, Topic.OverallScore, Topic.FinalReportText, ...)
+       │
+       ▼
+Receiving topic
+  ├─ Entry copy nodes (only if existing body still reads Global.*)
+  │     SetVariable Global.CanonicalId = Topic.CanonicalIdGuid
+  │     SetVariable Global.Score        = Value(Topic.OverallScore)
+  │     SetVariable Global.ReportText   = Topic.FinalReportText
+  ├─ Guards (require non-empty inputs)
+  ├─ Connector writes (SharePoint, Dataverse, ...)
+  └─ Final SendActivity including both write identifiers
+```
+
+**Copy-node migration bridge.** For existing topics whose bodies already read `Global.*`, do not rewrite the whole topic. Add deterministic `SetVariable` nodes at topic entry that copy `Topic.<InputName>` into the existing `Global.<Name>` variables, apply defaults, and perform string-to-number or label-to-choice-code conversion in Power Fx. This keeps the orchestration contract on topic inputs while leaving the proven topic body intact. For new topics, prefer reading `Topic.*` inputs directly unless the value must survive a later topic handoff.
+
+**Success gate based on observable write evidence.** A parent orchestrator must not infer publish success from its own plan completion. The receiving topic's final user-visible message must include the concrete write identifiers (for example, the SharePoint item URL and the Dataverse row ID), and the orchestrator's success criterion must require both identifiers to be present and non-empty before reporting success. Partial-success paths must name which write succeeded and which failed. See `troubleshooting.md` → Observable Write Evidence in Success Gates.
+
 ### Preprocessing uploaded files
 
 If the pipeline consumes uploaded documents, add a preprocessing prompt tool (code interpreter enabled) as the first stage that converts the file to text, HTML, or Markdown before passing to specialists. Do not assume downstream prompt tools can reason over raw binary file references.

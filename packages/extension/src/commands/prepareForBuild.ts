@@ -22,7 +22,7 @@ async function readRequiredFile(
       "Cancel",
     );
     if (action === "Create Plan") {
-      await vscode.commands.executeCommand("cpsAgentKit.createSpec");
+      await vscode.commands.executeCommand("agentWorkbench.createSpec");
     }
     return undefined;
   }
@@ -37,7 +37,7 @@ export async function prepareForBuildCommand(): Promise<void> {
 
   const spec = await readRequiredFile(
     path.join(root, "Requirements", "spec.md"),
-    "CPSAgentKit: Requirements/spec.md not found. Create plan first?",
+    "Agent Workbench: Requirements/spec.md not found. Create plan first?",
   );
   if (!spec) {
     return;
@@ -45,7 +45,7 @@ export async function prepareForBuildCommand(): Promise<void> {
 
   const architecture = await readRequiredFile(
     path.join(root, "Requirements", "architecture.md"),
-    "CPSAgentKit: Requirements/architecture.md not found. Create plan first?",
+    "Agent Workbench: Requirements/architecture.md not found. Create plan first?",
   );
   if (!architecture) {
     return;
@@ -203,7 +203,7 @@ function composePrepareForBuildPrompt(input: PreparePromptInput): string {
     "Prompt tools to create in the portal, placeholders to preserve, and post-build Dataverse update method. If no prompt tools are needed, say none.",
     "",
     "## Sync And Build Handoff",
-    "Tell the developer exactly when to run Copilot Studio Get Changes, when to run CPSAgentKit Build Agent, when to run Copilot Studio Apply Changes, and when prompt-tool Dataverse updates must happen.",
+    "Tell the developer exactly when to run Copilot Studio Get Changes, when to run Agent Workbench Build Agent, when to run Copilot Studio Apply Changes, and when prompt-tool Dataverse updates must happen.",
     "",
     "## Blockers",
     "List missing MCP configuration, missing portal permissions, missing source docs, unresolved architecture conflicts, or DLP/auth risks.",

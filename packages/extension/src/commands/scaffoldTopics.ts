@@ -28,12 +28,12 @@ export async function scaffoldTopicsCommand(): Promise<void> {
     await fs.access(archPath);
   } catch {
     const action = await vscode.window.showWarningMessage(
-      "CPSAgentKit: Requirements/architecture.md not found. Create specification first?",
+      "Agent Workbench: Requirements/architecture.md not found. Create specification first?",
       "Create Specification",
       "Cancel",
     );
     if (action === "Create Specification") {
-      await vscode.commands.executeCommand("cpsAgentKit.createSpec");
+      await vscode.commands.executeCommand("agentWorkbench.createSpec");
     }
     return;
   }
@@ -42,7 +42,7 @@ export async function scaffoldTopicsCommand(): Promise<void> {
 
   if (isTemplateOnly(architecture)) {
     vscode.window.showWarningMessage(
-      "CPSAgentKit: architecture.md is the empty template. No topics to scaffold.",
+      "Agent Workbench: architecture.md is the empty template. No topics to scaffold.",
     );
     return;
   }
@@ -51,7 +51,7 @@ export async function scaffoldTopicsCommand(): Promise<void> {
   const agentFolders = await findCpsAgentFolders(root);
   if (agentFolders.length === 0) {
     vscode.window.showWarningMessage(
-      "CPSAgentKit: No cloned CPS agent found in this workspace. " +
+      "Agent Workbench: No cloned CPS agent found in this workspace. " +
         "Create the agent in the portal and clone it locally first " +
         '(Copilot Studio: Get Changes or "pac copilot clone").',
     );
@@ -91,7 +91,7 @@ export async function scaffoldTopicsCommand(): Promise<void> {
 
   if (existing.length > 0) {
     const overwrite = await vscode.window.showWarningMessage(
-      `CPSAgentKit: ${existing.length} topic file(s) already exist: ${existing.join(", ")}. ` +
+      `Agent Workbench: ${existing.length} topic file(s) already exist: ${existing.join(", ")}. ` +
         "Overwrite them?",
       "Overwrite",
       "Skip Existing",
@@ -141,7 +141,7 @@ export async function scaffoldTopicsCommand(): Promise<void> {
     customisationResult.updatedTriggerFiles.length === 0
   ) {
     vscode.window.showInformationMessage(
-      "CPSAgentKit: No custom topics to scaffold and no matching system topics or triggers to update.",
+      "Agent Workbench: No custom topics to scaffold and no matching system topics or triggers to update.",
     );
     return;
   }
@@ -153,7 +153,7 @@ export async function scaffoldTopicsCommand(): Promise<void> {
     `updated ${customisationResult.updatedTriggerFiles.length} trigger file(s)`,
   ];
   const pushAction = await vscode.window.showInformationMessage(
-    `CPSAgentKit: ${summaryParts.join(", ")} for ${agentFolder}. ` +
+    `Agent Workbench: ${summaryParts.join(", ")} for ${agentFolder}. ` +
       (topicNames ? `Custom topics: ${topicNames}. ` : "") +
       'Push changes to CPS with "Copilot Studio: Push Changes" when ready.',
     "Open Topics Folder",

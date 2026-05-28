@@ -1,8 +1,8 @@
 {
-  "name": "cpsagentkit",
-  "displayName": "Copilot Studio Agent Kit",
-  "description": "Turns GitHub Copilot into a Copilot Studio expert — scaffolds CPS agent projects, syncs platform knowledge, and generates copilot-instructions.md for deep CPS awareness.",
-  "version": "0.15.18",
+  "name": "agent-workbench",
+  "displayName": "Agent Workbench for Copilot Studio",
+  "description": "Agent Workbench for Copilot Studio — turns GitHub Copilot into a disciplined Copilot Studio specialist. Scaffolds projects, syncs platform knowledge, and generates copilot-instructions.md for deep CPS awareness.",
+  "version": "1.0.0",
   "publisher": "nicklj",
   "license": "MIT",
   "engines": {
@@ -23,6 +23,7 @@
     "power-platform"
   ],
   "activationEvents": [
+    "workspaceContains:.agent-workbench",
     "workspaceContains:.cpsagentkit",
     "onStartupFinished"
   ],
@@ -31,16 +32,16 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "cpsAgentKit",
-          "title": "CPSAgentKit",
-          "icon": "media/cpsagentkit-icon.svg"
+          "id": "agentWorkbench",
+          "title": "Agent Workbench",
+          "icon": "media/agent-workbench-icon.svg"
         }
       ]
     },
     "views": {
-      "cpsAgentKit": [
+      "agentWorkbench": [
         {
-          "id": "cpsAgentKit.sidebar",
+          "id": "agentWorkbench.sidebar",
           "name": "Commands",
           "type": "tree"
         }
@@ -48,134 +49,134 @@
     },
     "viewsWelcome": [
       {
-        "view": "cpsAgentKit.sidebar",
-        "contents": "Welcome to CPSAgentKit!\n\nGet started by initialising a CPS project in this workspace.\n[Initialise Project](command:cpsAgentKit.init)",
-        "when": "!cpsAgentKit.isInitialised"
+        "view": "agentWorkbench.sidebar",
+        "contents": "Welcome to Agent Workbench for Copilot Studio!\n\nGet started by initialising an Agent Workbench project in this workspace.\n[Initialise Project](command:agentWorkbench.init)",
+        "when": "!agentWorkbench.isInitialised"
       }
     ],
     "commands": [
       {
-        "command": "cpsAgentKit.init",
-        "title": "Initialise CPS Project",
-        "category": "CPSAgentKit"
+        "command": "agentWorkbench.init",
+        "title": "Initialise Agent Workbench Project",
+        "category": "Agent Workbench"
       },
       {
-        "command": "cpsAgentKit.syncKnowledge",
+        "command": "agentWorkbench.syncKnowledge",
         "title": "Sync Knowledge",
-        "category": "CPSAgentKit"
+        "category": "Agent Workbench"
       },
       {
-        "command": "cpsAgentKit.createSpec",
+        "command": "agentWorkbench.createSpec",
         "title": "Create Plan",
-        "category": "CPSAgentKit"
+        "category": "Agent Workbench"
       },
       {
-        "command": "cpsAgentKit.preBuildAgent",
+        "command": "agentWorkbench.preBuildAgent",
         "title": "Pre-Build Agent",
-        "category": "CPSAgentKit"
+        "category": "Agent Workbench"
       },
       {
-        "command": "cpsAgentKit.prepareForBuild",
+        "command": "agentWorkbench.prepareForBuild",
         "title": "Prepare for Build",
-        "category": "CPSAgentKit"
+        "category": "Agent Workbench"
       },
       {
-        "command": "cpsAgentKit.buildChecklist",
+        "command": "agentWorkbench.buildChecklist",
         "title": "Build Checklist",
-        "category": "CPSAgentKit"
+        "category": "Agent Workbench"
       },
       {
-        "command": "cpsAgentKit.buildAgent",
+        "command": "agentWorkbench.buildAgent",
         "title": "Build Agent",
-        "category": "CPSAgentKit"
+        "category": "Agent Workbench"
       },
       {
-        "command": "cpsAgentKit.generateRepoInstructions",
+        "command": "agentWorkbench.generateRepoInstructions",
         "title": "Generate Repo Copilot Instructions",
-        "category": "CPSAgentKit"
+        "category": "Agent Workbench"
       },
       {
-        "command": "cpsAgentKit.reviewSolution",
+        "command": "agentWorkbench.reviewSolution",
         "title": "Run Agent Assessment",
-        "category": "CPSAgentKit"
+        "category": "Agent Workbench"
       },
       {
-        "command": "cpsAgentKit.reviewSolutionFile",
+        "command": "agentWorkbench.reviewSolutionFile",
         "title": "Run Solution Assessment",
-        "category": "CPSAgentKit"
+        "category": "Agent Workbench"
       },
       {
-        "command": "cpsAgentKit.buildDemo",
+        "command": "agentWorkbench.buildDemo",
         "title": "Build Demo",
-        "category": "CPSAgentKit"
+        "category": "Agent Workbench"
       },
       {
-        "command": "cpsAgentKit.runAgentTests",
+        "command": "agentWorkbench.runAgentTests",
         "title": "Run Agent Tests",
-        "category": "CPSAgentKit"
+        "category": "Agent Workbench"
       },
       {
-        "command": "cpsAgentKit.configureAgentTests",
+        "command": "agentWorkbench.configureAgentTests",
         "title": "Configure Agent Tests…",
-        "category": "CPSAgentKit"
+        "category": "Agent Workbench"
       },
       {
-        "command": "cpsAgentKit.connectAzureOpenAIJudge",
+        "command": "agentWorkbench.connectAzureOpenAIJudge",
         "title": "Connect Azure OpenAI Judge…",
-        "category": "CPSAgentKit"
+        "category": "Agent Workbench"
       },
       {
-        "command": "cpsAgentKit.changeAgentTestEnvironment",
+        "command": "agentWorkbench.changeAgentTestEnvironment",
         "title": "Change Power Platform Environment…",
-        "category": "CPSAgentKit"
+        "category": "Agent Workbench"
       },
       {
-        "command": "cpsAgentKit.resetDirectLineSignin",
+        "command": "agentWorkbench.resetDirectLineSignin",
         "title": "Reset Direct Line Sign-in",
-        "category": "CPSAgentKit"
+        "category": "Agent Workbench"
       },
       {
-        "command": "cpsAgentKit.refreshSidebar",
+        "command": "agentWorkbench.refreshSidebar",
         "title": "Refresh Sidebar",
-        "category": "CPSAgentKit",
+        "category": "Agent Workbench",
         "icon": "$(refresh)"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "cpsAgentKit.refreshSidebar",
-          "when": "view == cpsAgentKit.sidebar",
+          "command": "agentWorkbench.refreshSidebar",
+          "when": "view == agentWorkbench.sidebar",
           "group": "navigation"
         }
       ],
       "explorer/context": [
         {
-          "command": "cpsAgentKit.reviewSolution",
+          "command": "agentWorkbench.reviewSolution",
           "when": "explorerResourceIsFolder",
-          "group": "cpsAgentKit@1"
+          "group": "agentWorkbench@1"
         },
         {
-          "command": "cpsAgentKit.reviewSolutionFile",
+          "command": "agentWorkbench.reviewSolutionFile",
           "when": "resourceExtname == .yml || resourceExtname == .yaml",
-          "group": "cpsAgentKit@2"
+          "group": "agentWorkbench@2"
         }
       ]
     },
     "configuration": {
-      "title": "CPSAgentKit",
+      "title": "Agent Workbench",
       "properties": {
-        "cpsAgentKit.knowledgeRepoUrl": {
+        "agentWorkbench.knowledgeRepoUrl": {
           "type": "string",
           "default": "https://github.com/nlloydjenkins/CPSAgentKit",
           "description": "GitHub repo URL for the CPS knowledge base"
         },
-        "cpsAgentKit.syncOnOpen": {
+        "agentWorkbench.syncOnOpen": {
           "type": "boolean",
           "default": true,
           "description": "Sync knowledge automatically when the workspace opens"
         },
-        "cpsAgentKit.knowledgeRepoBranch": {
+        "agentWorkbench.knowledgeRepoBranch": {
           "type": "string",
           "default": "main",
           "description": "Branch to pull knowledge from"
@@ -192,8 +193,8 @@
     "package": "npm run bundle && vsce package --no-dependencies"
   },
   "dependencies": {
-    "@azure/msal-node": "^2.16.3",
-    "@cpsagentkit/core": "0.15.18"
+    "@azure/msal-node": "^5.2.2",
+    "@agent-workbench-for-copilot-studio/core": "1.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

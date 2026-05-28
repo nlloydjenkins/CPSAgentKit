@@ -17,10 +17,10 @@ This folder contains the use case requirements document plus the five knowledge 
 
 1. Copy this entire folder's contents into a fresh workspace's `Requirements/docs/` folder.
 2. Upload the five `knowledge/*.md` files **directly to Copilot Studio** as the agent's knowledge sources (do not stage them via SharePoint).
-3. Run **CPSAgentKit: Create Plan** — the knowledge documents will be listed in `spec.md` and `architecture.md` as grounding sources, each scoped to a specific pipeline stage.
-4. Run **CPSAgentKit: Build Agent** to generate the pipeline topic, prompt tool configurations, and Dataverse action scaffolding.
+3. Run **Agent Workbench: Create Plan** — the knowledge documents will be listed in `spec.md` and `architecture.md` as grounding sources, each scoped to a specific pipeline stage.
+4. Run **Agent Workbench: Build Agent** to generate the pipeline topic, prompt tool configurations, and Dataverse action scaffolding.
 
-The business requirements include sample firm names, Teams channel names, Dataverse prefixes, retention rules, and knowledge-source locations. Treat them as build-time configuration defaults. During Build, CPSAgentKit should ask the maker to confirm or replace tenant-specific values before finalising tenant-bound schema names, knowledge upload targets, or prompt instructions. Missing values should block only the specific action that needs them; Build should continue with safe planning, schema reconciliation, topic scaffolding, and portal-step generation that does not depend on those values.
+The business requirements include sample firm names, Teams channel names, Dataverse prefixes, retention rules, and knowledge-source locations. Treat them as build-time configuration defaults. During Build, Agent Workbench should ask the maker to confirm or replace tenant-specific values before finalising tenant-bound schema names, knowledge upload targets, or prompt instructions. Missing values should block only the specific action that needs them; Build should continue with safe planning, schema reconciliation, topic scaffolding, and portal-step generation that does not depend on those values.
 
 ## Knowledge document conventions
 

@@ -1,6 +1,6 @@
-# Application Intake Agent Demo — CPSAgentKit Walkthrough
+# Application Intake Agent Demo — Agent Workbench Walkthrough
 
-A self-contained demo that takes a set of requirement documents through the full CPSAgentKit pipeline with minimal manual intervention. The manual steps are creating agent shells and connections in the Copilot Studio portal — the extension generates all instructions, descriptions, tool configurations, and settings. This demo builds an **autonomous, trigger-driven multi-agent system** — unlike the IT Help Desk demo (interactive Teams chat), this agent runs without user interaction, processing inbound emails from a shared mailbox.
+A self-contained demo that takes a set of requirement documents through the full Agent Workbench pipeline with minimal manual intervention. The manual steps are creating agent shells and connections in the Copilot Studio portal — the extension generates all instructions, descriptions, tool configurations, and settings. This demo builds an **autonomous, trigger-driven multi-agent system** — unlike the IT Help Desk demo (interactive Teams chat), this agent runs without user interaction, processing inbound emails from a shared mailbox.
 
 ## What This Demo Builds
 
@@ -30,7 +30,7 @@ A **6-agent autonomous pipeline** for application intake at a fictional organisa
 
 ## Prerequisites
 
-- VS Code with the CPSAgentKit extension installed (build from source or install VSIX)
+- VS Code with the Agent Workbench extension installed (build from source or install VSIX)
 - GitHub Copilot Chat enabled
 - A Copilot Studio environment with:
   - Managed Dataverse environment
@@ -54,8 +54,8 @@ Copy the requirement docs and sample data into your workspace:
 
 ```bash
 mkdir -p Requirements/docs
-cp <path-to-CPSAgentKit>/demo/application-intake/Requirements/docs/*.md Requirements/docs/
-cp -r <path-to-CPSAgentKit>/demo/application-intake/sample-data sample-data
+cp <path-to-Agent Workbench>/demo/application-intake/Requirements/docs/*.md Requirements/docs/
+cp -r <path-to-Agent Workbench>/demo/application-intake/sample-data sample-data
 ```
 
 Your workspace should look like:
@@ -92,14 +92,14 @@ The orchestrator agent will post adaptive cards to this channel when cases need 
 
 ### Step 5: Initialise the Project
 
-1. Open Command Palette → **CPSAgentKit: Initialise CPS Project**
+1. Open Command Palette → **Agent Workbench: Initialise Agent Workbench Project**
 2. Wait for knowledge sync to complete
 
-This creates `.cpsagentkit/`, `.github/copilot-instructions.md`, and template files.
+This creates `.agent-workbench/`, `.github/copilot-instructions.md`, and template files.
 
 ### Step 6: Generate Spec + Architecture (Autonomous)
 
-1. Open Command Palette → **CPSAgentKit: Create Specification**
+1. Open Command Palette → **Agent Workbench: Create Specification**
 2. Select **"Generate from requirements docs"**
 3. Copilot Chat opens with a pre-filled runner instruction
 4. **Press Enter** — Copilot reads all three requirement docs and generates both `Requirements/spec.md` and `Requirements/architecture.md` in one pass
@@ -159,7 +159,7 @@ These steps cannot be automated — the CPS extension requires agents to be crea
 
 ### Step 8: Build Agent (Autonomous)
 
-1. Open Command Palette → **CPSAgentKit: Build Agent**
+1. Open Command Palette → **Agent Workbench: Build Agent**
 2. Select **"Full build"**
 3. Copilot Chat opens with a build prompt that includes the spec, architecture, all knowledge, and detected agent YAML
 4. **Press Enter** — Copilot generates:
@@ -200,7 +200,7 @@ Test the pipeline by sending emails to the shared mailbox. Use the scenarios fro
 - [ ] Compliance Evaluator invoked for every outbound email
 - [ ] Accessibility Presenter invoked after compliance pass
 
-If anything misroutes or stops early, paste the test output back into **CPSAgentKit: Build Agent** → "Rebuild from test feedback".
+If anything misroutes or stops early, paste the test output back into **Agent Workbench: Build Agent** → "Rebuild from test feedback".
 
 ## Included Sample Data
 

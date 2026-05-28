@@ -220,11 +220,11 @@ export async function readRequirementsDocs(workspaceRoot: string): Promise<{
   return { spec, architecture, docs };
 }
 
-/** Read best practice documents from .cpsagentkit/bestpractices/ */
+/** Read best practice documents from .agent-workbench/bestpractices/ */
 export async function readBestPracticesDocs(
   workspaceRoot: string,
 ): Promise<Array<{ filename: string; content: string }>> {
-  const bpDir = path.join(workspaceRoot, ".cpsagentkit", "bestpractices");
+  const bpDir = path.join(workspaceRoot, ".agent-workbench", "bestpractices");
   return readMarkdownFiles(bpDir);
 }
 

@@ -47,7 +47,7 @@ export async function reviewSolutionFileCommand(
     });
 
     const pick = await vscode.window.showQuickPick(items, {
-      title: "CPSAgentKit: Select an exported CPS solution",
+      title: "Agent Workbench: Select an exported CPS solution",
       placeHolder: `Found ${detected.length} solution folder(s) in the workspace`,
       ignoreFocusOut: true,
     });
@@ -100,7 +100,7 @@ export async function reviewSolutionFileCommand(
       },
     ],
     {
-      title: `CPSAgentKit: Assess Solution — ${metadata.displayName} v${metadata.version}`,
+      title: `Agent Workbench: Assess Solution — ${metadata.displayName} v${metadata.version}`,
       placeHolder: "What should the review focus on?",
       ignoreFocusOut: true,
     },
@@ -113,7 +113,7 @@ export async function reviewSolutionFileCommand(
   const result = await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: `CPSAgentKit: Parsing ${metadata.displayName}...`,
+      title: `Agent Workbench: Parsing ${metadata.displayName}...`,
       cancellable: false,
     },
     async () => {
@@ -135,7 +135,7 @@ export async function reviewSolutionFileCommand(
 
   if (agents.length === 0) {
     vscode.window.showWarningMessage(
-      "CPSAgentKit: No bots found in the exported solution.",
+      "Agent Workbench: No bots found in the exported solution.",
     );
     return;
   }
@@ -174,7 +174,7 @@ async function browseSolutionFolder(): Promise<string | undefined> {
     canSelectFolders: true,
     canSelectMany: false,
     openLabel: "Select Exported Solution Folder",
-    title: "CPSAgentKit: Select an exported (unmanaged) CPS solution folder",
+    title: "Agent Workbench: Select an exported (unmanaged) CPS solution folder",
   });
 
   if (!folderUris || folderUris.length === 0) {
@@ -185,7 +185,7 @@ async function browseSolutionFolder(): Promise<string | undefined> {
 
   if (!(await isSolutionFileFolder(picked))) {
     vscode.window.showWarningMessage(
-      "CPSAgentKit: The selected folder does not appear to be an exported CPS solution. " +
+      "Agent Workbench: The selected folder does not appear to be an exported CPS solution. " +
         "Expected solution.xml and a botcomponents/ directory.",
     );
     return undefined;

@@ -46,11 +46,11 @@ for (const pkgPath of workspacePackages) {
   }
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
   pkg.version = VERSION;
-  if (pkg.dependencies && pkg.dependencies["@cpsagentkit/core"]) {
-    pkg.dependencies["@cpsagentkit/core"] = VERSION;
+  if (pkg.dependencies && pkg.dependencies["@agent-workbench-for-copilot-studio/core"]) {
+    pkg.dependencies["@agent-workbench-for-copilot-studio/core"] = VERSION;
   }
-  if (pkg.devDependencies && pkg.devDependencies["@cpsagentkit/core"]) {
-    pkg.devDependencies["@cpsagentkit/core"] = VERSION;
+  if (pkg.devDependencies && pkg.devDependencies["@agent-workbench-for-copilot-studio/core"]) {
+    pkg.devDependencies["@agent-workbench-for-copilot-studio/core"] = VERSION;
   }
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf-8");
   console.log(`  updated ${path.relative(repoRoot, pkgPath)}`);
@@ -119,14 +119,14 @@ const releasesDir = path.join(repoRoot, "releases");
 if (!fs.existsSync(releasesDir)) {
   fs.mkdirSync(releasesDir, { recursive: true });
 }
-const vsixPath = path.join(releasesDir, `cpsagentkit-${VERSION}.vsix`);
+const vsixPath = path.join(releasesDir, `agent-workbench-${VERSION}.vsix`);
 run(`npx vsce package --no-dependencies -o "${vsixPath}"`, {
   cwd: path.join(repoRoot, "packages", "extension"),
 });
 
 const absVsixPath = path.resolve(vsixPath);
 console.log("");
-console.log(`Done: cpsagentkit-${VERSION} packaged`);
+console.log(`Done: agent-workbench-${VERSION} packaged`);
 console.log(`VSIX: ${absVsixPath}`);
 console.log("");
 console.log("To install, run:");

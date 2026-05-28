@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Build and install a release of CPSAgentKit
+# Build and install a release of Agent Workbench for Copilot Studio
 # Usage: scripts/build-release.sh patch|minor|major
 
 set -e
@@ -25,9 +25,9 @@ npm run compile
 
 # Package into releases/
 mkdir -p releases
-npx vsce package -o "releases/cpsagentkit-$VERSION.vsix"
+npx vsce package -o "releases/agent-workbench-$VERSION.vsix"
 
 # Install the extension
-code --install-extension "releases/cpsagentkit-$VERSION.vsix"
+code --install-extension "releases/agent-workbench-$VERSION.vsix"
 
-echo "Done: cpsagentkit-$VERSION installed"
+echo "Done: agent-workbench-$VERSION installed"

@@ -67,9 +67,9 @@ async function writeCreatePlanChecklist(root: string): Promise<void> {
     "# Build Checklist",
     "",
     "## Actions",
-    "- [ ] Run CPSAgentKit: Create Plan.",
+    "- [ ] Run Agent Workbench: Create Plan.",
     "- [ ] Review Requirements/spec.md and Requirements/architecture.md.",
-    "- [ ] Run CPSAgentKit: Build Agent again.",
+    "- [ ] Run Agent Workbench: Build Agent again.",
     "",
   ].join("\n");
 
@@ -83,11 +83,11 @@ async function writeCreatePlanChecklist(root: string): Promise<void> {
 async function createPlanChecklistAndNotify(root: string): Promise<void> {
   await writeCreatePlanChecklist(root);
   const action = await vscode.window.showInformationMessage(
-    "CPSAgentKit: Build checklist created. Create Plan, review the plan files, then run Build Agent again.",
+    "Agent Workbench: Build checklist created. Create Plan, review the plan files, then run Build Agent again.",
     "Create Plan",
   );
   if (action === "Create Plan") {
-    await vscode.commands.executeCommand("cpsAgentKit.createSpec");
+    await vscode.commands.executeCommand("agentWorkbench.createSpec");
   }
 }
 
@@ -133,16 +133,16 @@ export async function buildAgentCommand(): Promise<void> {
     "Requirements/docs",
   );
 
-  // List synced knowledge and best practices from .cpsagentkit/ without
+  // List synced knowledge and best practices from .agent-workbench/ without
   // inlining their content into the generated chat prompt.
   const cpsDir = configDirPath(root);
   const knowledgeFiles = await listMarkdownReferences(
     path.join(cpsDir, "knowledge"),
-    ".cpsagentkit/knowledge",
+    ".agent-workbench/knowledge",
   );
   const bestPracticesFiles = await listMarkdownReferences(
     path.join(cpsDir, "bestpractices"),
-    ".cpsagentkit/bestpractices",
+    ".agent-workbench/bestpractices",
   );
 
   // Detect existing CPS agent YAML files
@@ -192,7 +192,7 @@ export async function buildAgentCommand(): Promise<void> {
       },
     ],
     {
-      title: "CPSAgentKit: Build Agent",
+      title: "Agent Workbench: Build Agent",
       placeHolder: "What do you want to build?",
       ignoreFocusOut: true,
     },
@@ -240,8 +240,8 @@ export async function buildAgentCommand(): Promise<void> {
   await openPromptAndNotify(
     prompt,
     scope.detail === "full"
-      ? "CPSAgentKit: Build prompt loaded into GitHub Copilot Chat. Press Enter to start the staged build. Copilot will create everything it can locally or through configured APIs first, then checklist only true portal/admin blockers and acceptance gates."
-      : "CPSAgentKit: Build prompt loaded into GitHub Copilot Chat. Press Enter to continue.",
+      ? "Agent Workbench: Build prompt loaded into GitHub Copilot Chat. Press Enter to start the staged build. Copilot will create everything it can locally or through configured APIs first, then checklist only true portal/admin blockers and acceptance gates."
+      : "Agent Workbench: Build prompt loaded into GitHub Copilot Chat. Press Enter to continue.",
   );
 }
 
@@ -356,7 +356,7 @@ function composeBuildPrompt(
     "- If Requirements/spec.md or Requirements/architecture.md is missing or still the starter template, do not start a build. First generate both files from Requirements/docs/ so the developer can review and refine them before committing to build work. Build Agent may do this fallback planning step only for missing/template planning files; otherwise, treat reviewed spec and architecture as the build contract.",
     "- Build is action-first and creation-first. Before writing a build checklist or stopping, create every agent, topic, tool/action, knowledge source, schema, seed record, publishing setting, and build artifact that has a verified local YAML, MCP, Dataverse/CPS Web API, or reference-backed export path available in the current workspace. Exception: when the workspace has no cloned/synced Copilot Studio agent folder yet, the checklist is the first-pass bootstrap handoff because there is no local agent surface to edit.",
     "- Treat `Requirements/build-checklist.md` as a persistent build handoff. Create it on the first Build pass when essential portal/admin bootstrap work is required, and update the same file on every later Build pass by removing completed items and adding only newly discovered essential blockers. Do not append duplicate historical checklists.",
-    "- In a fresh workspace where the agent has not been cloned/synced into local YAML, checklist only the minimum portal seed needed for CPSAgentKit to take over: create the Copilot Studio agent shell, add exactly one representative required tool/connector/MCP action only if needed to generate tenant connection references or action shape, run Get Changes/clone/sync so the agent folder and generated files appear locally, then run Build Agent again. Do not list every planned tool, topic, child agent, or knowledge source when one seed tool is enough to expose the generated bindings.",
+    "- In a fresh workspace where the agent has not been cloned/synced into local YAML, checklist only the minimum portal seed needed for Agent Workbench to take over: create the Copilot Studio agent shell, add exactly one representative required tool/connector/MCP action only if needed to generate tenant connection references or action shape, run Get Changes/clone/sync so the agent folder and generated files appear locally, then run Build Agent again. Do not list every planned tool, topic, child agent, or knowledge source when one seed tool is enough to expose the generated bindings.",
     "- Do not use the staged build protocol as a reason to produce only a plan. A plan is useful, but it is not sufficient when safe actions are available.",
     "- Build Agent must do this work itself, not hand it back as manual setup, whenever the required tenant value/auth context and verified path exist. Manual checklist items are only for missing tenant values, missing auth/connection context, missing verified patterns, admin/policy gates, or the explicit Apply Changes/portal inspection/Get Changes/Activity Map acceptance gate.",
     "- Do not tell the developer to create agents, child-agent shells, topic shells, agent instructions, topic descriptions, tool descriptions, settings updates, Build State updates, or Dataverse schema manually when the workspace and configured tools let you create them. Those are Build Agent responsibilities.",
@@ -393,8 +393,8 @@ function composeBuildPrompt(
     "- Keep the checklist compact: target 3-8 items, and often fewer for a first pass.",
     "- For connection-reference blockers, write direct connection actions, for example: `- [ ] Update Dataverse connection.`, `- [ ] Update Office 365 Users connection.`, `- [ ] Update Teams connection.`, `- [ ] Update Outlook connection.`, `- [ ] Run Copilot Studio: Get Changes.`",
     "- For missing build-time configuration, write direct value actions, for example: `- [ ] Provide IT support shared mailbox.`, `- [ ] Provide Teams escalation channel.`, `- [ ] Confirm office location choices.`",
-    "- For first-pass bootstrap with no cloned/synced agent folder, the checklist should usually contain only: `- [ ] Create Copilot Studio agent shell.`, `- [ ] Add one required connector or MCP tool.`, `- [ ] Run Copilot Studio: Get Changes.`, `- [ ] Run CPSAgentKit: Build Agent again.`",
-    "- The final item should usually be `- [ ] Run CPSAgentKit: Build Agent again.` unless the remaining actions complete the build without another pass.",
+    "- For first-pass bootstrap with no cloned/synced agent folder, the checklist should usually contain only: `- [ ] Create Copilot Studio agent shell.`, `- [ ] Add one required connector or MCP tool.`, `- [ ] Run Copilot Studio: Get Changes.`, `- [ ] Run Agent Workbench: Build Agent again.`",
+    "- The final item should usually be `- [ ] Run Agent Workbench: Build Agent again.` unless the remaining actions complete the build without another pass.",
     "- Put diagnostic checks and validation guidance in troubleshooting notes or the final response only when something fails. Do not put routine 'verify/check/confirm' items in the checklist unless they are the actual required setup action.",
     "- Keep `Requirements/architecture.md` Build State aligned at a high level, but do not mirror every diagnostic gate into `Requirements/build-checklist.md`.",
     "",

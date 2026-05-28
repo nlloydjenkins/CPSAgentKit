@@ -3,5 +3,5 @@ export {
   findSolutionFolders,
   parseSolutionMetadata,
   parseSolutionFile,
-} from "@cpsagentkit/core";
-export type { SolutionMetadata } from "@cpsagentkit/core";
+} from "@agent-workbench-for-copilot-studio/core";
+export type { SolutionMetadata } from "@agent-workbench-for-copilot-studio/core";

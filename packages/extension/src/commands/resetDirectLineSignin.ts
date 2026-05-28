@@ -11,7 +11,7 @@ export async function resetDirectLineSigninCommand(
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
   if (!workspaceFolder) {
     void vscode.window.showErrorMessage(
-      "CPSAgentKit: open a workspace folder first.",
+      "Agent Workbench: open a workspace folder first.",
     );
     return;
   }
@@ -30,12 +30,12 @@ export async function resetDirectLineSigninCommand(
     );
     await context.secrets.delete(key);
     void vscode.window.showInformationMessage(
-      `CPSAgentKit: cleared Direct Line sign-in cache. Next run will prompt for sign-in.`,
+      `Agent Workbench: cleared Direct Line sign-in cache. Next run will prompt for sign-in.`,
     );
     return;
   }
 
   void vscode.window.showWarningMessage(
-    "CPSAgentKit: no Direct Line config found. Nothing to clear.",
+    "Agent Workbench: no Direct Line config found. Nothing to clear.",
   );
 }

@@ -33,7 +33,7 @@ export function composeReviewPrompt(
   sections.push(
     "# CPS Solution Review",
     "",
-    `**CPSAgentKit version**: ${CORE_VERSION}`,
+    `**Agent Workbench version**: ${CORE_VERSION}`,
     `**Generated**: ${timestamp}`,
     `**Review scope**: ${reviewScope}`,
     "",
@@ -42,7 +42,7 @@ export function composeReviewPrompt(
     "The report you generate MUST begin with this **Assessment Metadata** block as the very first thing in the output, before any other content:",
     "",
     "```",
-    `CPSAgentKit version: ${CORE_VERSION}`,
+    `Agent Workbench version: ${CORE_VERSION}`,
     `Generated: ${timestamp}`,
     `Review scope: ${reviewScope}`,
     "Model: [replace with your actual model name and version, e.g. GPT-4o 2025-03-26 or Claude Sonnet 4]",

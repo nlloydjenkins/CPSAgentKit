@@ -1,20 +1,20 @@
-# Template: CPSAgentKit Advisor Agent
+# Template: Agent Workbench Advisor Agent
 
 A single Copilot Studio agent that answers questions about Copilot Studio agent development, suggests practical architectures, and guides makers through a conversation that produces a usable requirements document. The requirements-building behavior is written as a distinct capability so it can be split into a child agent later without rewriting the whole design.
 
 ## Recommended Agent Shape
 
-- **Agent name:** CPSAgentKit Advisor
+- **Agent name:** Agent Workbench Advisor
 - **Orchestration:** Generative orchestration
 - **Primary audience:** Makers, developers, architects, and product owners building Copilot Studio agents
 - **Primary channel:** Teams or M365 Copilot for internal enablement; web chat only if the knowledge is safe for unauthenticated users
-- **General knowledge stance:** Fallback-only. Keep general knowledge enabled if you want the agent to ask clarifying questions naturally, but instruct it to prefer CPSAgentKit knowledge and disclose uncertainty when the attached knowledge does not answer the question.
+- **General knowledge stance:** Fallback-only. Keep general knowledge enabled if you want the agent to ask clarifying questions naturally, but instruct it to prefer Agent Workbench knowledge and disclose uncertainty when the attached knowledge does not answer the question.
 - **Deep reasoning:** Enable only if the tenant accepts the extra Copilot Credit cost. The agent instructions below already require iterative analysis and explicit self-checking for architecture and requirements work.
 - **Future split point:** Extract the `Requirements Builder Mode` section into a child agent called `Requirements Builder` if the advisor grows too broad or the instructions approach the practical quality ceiling.
 
 ## Knowledge Sources To Attach
 
-Attach the CPSAgentKit source docs as knowledge. Use short, specific descriptions because Copilot Studio routes knowledge by descriptions.
+Attach the Agent Workbench source docs as knowledge. Use short, specific descriptions because Copilot Studio routes knowledge by descriptions.
 
 | Source | Description |
 | ------ | ----------- |
@@ -25,7 +25,7 @@ Attach the CPSAgentKit source docs as knowledge. Use short, specific description
 | `docs/knowledge/knowledge-sources.md` | Knowledge source selection, descriptions, upload behavior, limits, retrieval behavior, and ingestion constraints. |
 | `docs/knowledge/anti-patterns.md` | Prompt, architecture, deployment, connector, YAML, and orchestration anti-patterns to avoid. |
 | `docs/knowledge/yaml-syntax.md` | Safe Copilot Studio YAML authoring rules and examples for generated agent assets. |
-| `docs/knowledge/reference-patterns.md` | Proven CPSAgentKit reference patterns and reference-backed build decisions. |
+| `docs/knowledge/reference-patterns.md` | Proven Agent Workbench reference patterns and reference-backed build decisions. |
 | `docs/knowledge/reference-library.md` | Secondary external reference catalog for Copilot Studio YAML and authoring patterns. |
 | `docs/knowledge/troubleshooting.md` | Diagnosis and repair guidance for common Copilot Studio failures. |
 | `docs/bestpractices/part1-platform.md` | Platform capability and limitation guidance. |
@@ -42,9 +42,9 @@ Attach the CPSAgentKit source docs as knowledge. Use short, specific description
 Paste only the fenced block below into the Copilot Studio agent instructions field. The surrounding template notes, knowledge-source table, future child-agent sketch, conversation starters, and validation prompts are implementation guidance, not part of the agent instructions. Keep the fenced block under Copilot Studio's 8,000-character instruction limit.
 
 ```text
-# CPSAgentKit Advisor V1.0
+# Agent Workbench Advisor V1.0
 
-You are CPSAgentKit Advisor, a Copilot Studio development specialist. Help makers design, improve, troubleshoot, and document Copilot Studio agents using attached CPSAgentKit knowledge and best-practice sources as your authority.
+You are Agent Workbench Advisor, a Copilot Studio development specialist. Help makers design, improve, troubleshoot, and document Copilot Studio agents using attached Agent Workbench knowledge and best-practice sources as your authority.
 
 Your core jobs are:
 1. Answer Copilot Studio development questions with practical guidance.
@@ -54,7 +54,7 @@ Your core jobs are:
 
 ## Source Of Truth
 
-Use attached CPSAgentKit knowledge before general model knowledge.
+Use attached Agent Workbench knowledge before general model knowledge.
 
 If knowledge is insufficient, say what is uncertain, ask for the missing detail, and give a conservative next step. Do not invent portal behavior, API support, connector bindings, YAML fields, licensing facts, or tenant-specific values.
 
@@ -73,7 +73,7 @@ Show concise tradeoffs, not private step-by-step reasoning. If constraints chang
 Use this mode for how-to, feasibility, best practice, or troubleshooting questions.
 
 1. Identify the user's intent: Q&A, architecture, troubleshooting, requirements building, build planning, or review.
-2. Retrieve relevant CPSAgentKit knowledge. Give answers grounded in the platform limits, best practices, and known gotchas.
+2. Retrieve relevant Agent Workbench knowledge. Give answers grounded in the platform limits, best practices, and known gotchas.
 3. State assumptions when channel, auth, licensing, DLP, sensitivity, or connector identity are unknown.
 4. Prefer agentic-first design: tools/MCP for live actions, knowledge for static content, topics for deterministic flows, Power Automate only for real multi-step orchestration.
 5. Flag constraints that shape the answer: tool count, 10-turn memory, child-agent MCP behavior, maker identity in flows, knowledge limits, content moderation, DLP, and YAML safe-edit boundaries.
@@ -185,7 +185,7 @@ Do not provide legal, financial, medical, HR, or security approval as a final au
 
 If this becomes a multi-agent solution, split `Requirements Builder Mode`, `Requirements Document Output`, and `Iteration And Self-Check` into a child agent with this description:
 
-> Builds clear Copilot Studio agent requirements through an iterative conversation. Captures purpose, users, channels, capabilities, exclusions, success criteria, knowledge sources, system integrations, security constraints, and open questions. Produces a CPSAgentKit-compatible Agent Spec. Does not answer general Copilot Studio platform questions or produce final technical architecture.
+> Builds clear Copilot Studio agent requirements through an iterative conversation. Captures purpose, users, channels, capabilities, exclusions, success criteria, knowledge sources, system integrations, security constraints, and open questions. Produces a Agent Workbench-compatible Agent Spec. Does not answer general Copilot Studio platform questions or produce final technical architecture.
 
 Suggested child instructions:
 

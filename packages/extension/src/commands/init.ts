@@ -46,13 +46,13 @@ export async function initCommand(extensionPath: string): Promise<void> {
   const state = await detectProjectState(root);
   if (state.isInitialised) {
     const action = await vscode.window.showInformationMessage(
-      "CPSAgentKit is already initialised in this workspace. Sync knowledge instead?",
+      "Agent Workbench is already initialised in this workspace. Sync knowledge instead?",
       "Sync Knowledge",
       "Re-initialise",
       "Cancel",
     );
     if (action === "Sync Knowledge") {
-      await vscode.commands.executeCommand("cpsAgentKit.syncKnowledge");
+      await vscode.commands.executeCommand("agentWorkbench.syncKnowledge");
       return;
     }
     if (action !== "Re-initialise") {
@@ -63,13 +63,13 @@ export async function initCommand(extensionPath: string): Promise<void> {
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: "CPSAgentKit: Initialising project...",
+      title: "Agent Workbench: Initialising project...",
       cancellable: false,
     },
     async (progress) => {
       // Create directory structure
       progress.report({ message: "Creating folder structure..." });
-      const knowledgeDir = path.join(root, ".cpsagentkit", "knowledge");
+      const knowledgeDir = path.join(root, ".agent-workbench", "knowledge");
       const githubDir = path.join(root, ".github");
       const requirementsDir = path.join(root, "Requirements");
       const requirementsDocsDir = path.join(root, "Requirements", "docs");
@@ -129,7 +129,7 @@ export async function initCommand(extensionPath: string): Promise<void> {
       ];
       if (allErrors.length > 0) {
         vscode.window.showWarningMessage(
-          `CPSAgentKit: Sync completed with errors: ${allErrors.join("; ")}`,
+          `Agent Workbench: Sync completed with errors: ${allErrors.join("; ")}`,
         );
       }
 
@@ -147,7 +147,7 @@ export async function initCommand(extensionPath: string): Promise<void> {
       const templateCount = templateResult.filesWritten.length;
       const bpCount = bestPracticesResult.filesWritten.length;
       vscode.window.showInformationMessage(
-        `CPSAgentKit: Project initialised. ${knowledgeCount} knowledge files, ${templateCount} template files, ${bpCount} best practice files synced.`,
+        `Agent Workbench: Project initialised. ${knowledgeCount} knowledge files, ${templateCount} template files, ${bpCount} best practice files synced.`,
       );
     },
   );

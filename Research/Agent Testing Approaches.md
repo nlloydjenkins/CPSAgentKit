@@ -1,15 +1,15 @@
-# Research: Testing Copilot Studio Agents via CPSAgentKit
+# Research: Testing Copilot Studio Agents via Agent Workbench
 
 **Status:** Draft research — technical + business evaluation
 **Date:** 2026-05-18
-**Owner:** CPSAgentKit
-**Goal:** Decide how CPSAgentKit should help makers *test and evaluate* a Copilot Studio (CPS) agent they've built. Two candidate approaches are on the table; this document compares them technically and commercially, and then makes a recommendation.
+**Owner:** Agent Workbench
+**Goal:** Decide how Agent Workbench should help makers *test and evaluate* a Copilot Studio (CPS) agent they've built. Two candidate approaches are on the table; this document compares them technically and commercially, and then makes a recommendation.
 
 ---
 
 ## 1. Problem Statement
 
-CPSAgentKit already helps makers **design, build, and review** CPS agents. The missing leg of the stool is **automated testing and evaluation**:
+Agent Workbench already helps makers **design, build, and review** CPS agents. The missing leg of the stool is **automated testing and evaluation**:
 
 - Send a curated suite of test utterances to a published agent.
 - Capture its responses (and, where possible, tool calls / topic transitions).
@@ -85,15 +85,15 @@ The evaluator lives **outside** the agent under test.
   - Activities contain text, suggested actions, citations, and (where enabled) trace events.
   - Judge step: Azure OpenAI chat completion with a structured-output rubric, OR a second CPS agent reached over Direct Line for an "LLM-as-judge" peer agent that itself is versioned with the harness.
 - Hard problems:
-  - **Auth UX** for first-time makers (mitigated by CPSAgentKit owning the App Registration steps; we already document them).
+  - **Auth UX** for first-time makers (mitigated by Agent Workbench owning the App Registration steps; we already document them).
   - **Agent must be published** before each test cycle — naturally enforced by `Apply Changes` flow.
   - **Trace richness depends on what the agent emits** — we can't see internal variables unless the agent chooses to surface them.
   - **Cost of judge calls** — controllable via model choice and batching.
 
-### 3.3 Fit with CPSAgentKit Today
+### 3.3 Fit with Agent Workbench Today
 
-- CPSAgentKit already encodes the Direct Line auth, conversation, and turn pattern in [docs/knowledge/direct-line-api.md](docs/knowledge/direct-line-api.md) and is referenced from build/troubleshooting flows.
-- CPSAgentKit already understands CPS solution YAML, prompt configs, and best-practice review — meaning the harness can be **generated** from the same metadata that the build flow uses (topics, expected tools, knowledge sources).
+- Agent Workbench already encodes the Direct Line auth, conversation, and turn pattern in [docs/knowledge/direct-line-api.md](docs/knowledge/direct-line-api.md) and is referenced from build/troubleshooting flows.
+- Agent Workbench already understands CPS solution YAML, prompt configs, and best-practice review — meaning the harness can be **generated** from the same metadata that the build flow uses (topics, expected tools, knowledge sources).
 - Multi-agent and evaluator patterns are already documented in [docs/knowledge/multi-agent-patterns.md](docs/knowledge/multi-agent-patterns.md) and [docs/bestpractices/part4-tools-multiagent.md](docs/bestpractices/part4-tools-multiagent.md). The "LLM-as-judge" pattern explicitly recommends a *separate* judge — pushing us toward Option B.
 - Foundry alignment: [docs/foundry/evaluation.md](docs/foundry/evaluation.md) describes batch + continuous eval using external datasets. Option B drops directly into that pipeline; Option A does not.
 
@@ -109,8 +109,8 @@ The evaluator lives **outside** the agent under test.
 
 | Cost driver | A — In-Agent | B — Direct Line + AOAI |
 |---|---|---|
-| Build effort in CPSAgentKit | Medium — generate eval topics/child agent | Medium — generate harness + report; auth already documented |
-| Maker onboarding effort | Low (CPS-only) | Medium (one-time App Registration; CPSAgentKit can automate) |
+| Build effort in Agent Workbench | Medium — generate eval topics/child agent | Medium — generate harness + report; auth already documented |
+| Maker onboarding effort | Low (CPS-only) | Medium (one-time App Registration; Agent Workbench can automate) |
 | Per-test runtime cost | 1× agent turn + 1× internal judge turn (inside CPS quota) | 1× agent turn (CPS) + 1× AOAI judge call (cheap if `gpt-4o-mini`-class) |
 | Quota / capacity risk | Consumes CPS message quota for both halves of every test | Splits load: agent quota for the run, AOAI tokens for the judge |
 | Recurring maintenance | High — eval logic ships with every agent release | Low — harness/rubric versioned separately from agent |
@@ -134,10 +134,10 @@ The evaluator lives **outside** the agent under test.
 
 ### 4.4 Strategic Fit
 
-CPSAgentKit's stated principle is to help makers reach a *complete working agent*, not just produce advice. A first-class external harness:
+Agent Workbench's stated principle is to help makers reach a *complete working agent*, not just produce advice. A first-class external harness:
 
 - Slots into Init → Build → **Test** → Review → Publish as a discrete phase.
-- Reuses CPSAgentKit's existing knowledge of topics, tools, and knowledge sources to **auto-generate** test cases.
+- Reuses Agent Workbench's existing knowledge of topics, tools, and knowledge sources to **auto-generate** test cases.
 - Aligns with the Foundry direction documented under `docs/foundry/` (batch + continuous eval, prompt optimizer feedback loops).
 
 ### 4.5 Business Verdict
@@ -148,11 +148,11 @@ Option B is the better business bet: lower long-term maintenance, lower release 
 
 ## 5. Recommended Approach
 
-**Adopt Option B as the primary testing path in CPSAgentKit**, with a narrow, optional role for Option A.
+**Adopt Option B as the primary testing path in Agent Workbench**, with a narrow, optional role for Option A.
 
 ### 5.1 Primary: External Direct Line Harness with AOAI Judge
 
-CPSAgentKit should ship a **Test Agent** capability that:
+Agent Workbench should ship a **Test Agent** capability that:
 
 1. **Generates a test suite** from the CPS solution it already parses — one scenario per topic / use case, plus brand/safety/refusal probes derived from `docs/bestpractices/part5-gotchas-bugs.md` and the active use case (e.g. `docs/use-cases/06-financial-advice-pack-review/`).
 2. **Runs the suite via Direct Line** using the documented auth pattern, one fresh conversation per scenario, in parallel where safe.
@@ -182,7 +182,7 @@ To recover the one genuine advantage of Option A — visibility into internal st
 
 ## 6. Open Questions
 
-- Should the judge be a single AOAI deployment owned by the maker, or should CPSAgentKit support both AOAI and "judge-as-CPS-agent" out of the box from day one?
+- Should the judge be a single AOAI deployment owned by the maker, or should Agent Workbench support both AOAI and "judge-as-CPS-agent" out of the box from day one?
 - For unattended CI, do we standardise on client-credentials flow (requires admin to grant app-only Power Platform access) or stick with device-code + cached refresh tokens?
 - How do we represent "expected tool call" in a test case when Direct Line trace events are not guaranteed to expose tool payloads on every channel?
-- Where does cost ownership land — maker's AOAI subscription, CPSAgentKit-provided sample deployment, or both supported?
+- Where does cost ownership land — maker's AOAI subscription, Agent Workbench-provided sample deployment, or both supported?

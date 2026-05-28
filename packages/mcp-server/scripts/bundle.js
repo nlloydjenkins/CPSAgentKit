@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Build a self-contained bundle of the MCP server for npm publishing.
 // Emits:
-//   dist/bin.js     — CLI entry point (cpsagentkit-mcp)
+//   dist/bin.js     — CLI entry point (agent-workbench-mcp; legacy alias cpsagentkit-mcp)
 //   dist/index.js   — library entry point
 // External deps (not bundled): @modelcontextprotocol/sdk, zod.
-// Internal @cpsagentkit/core is bundled in.
+// Internal @agent-workbench-for-copilot-studio/core is bundled in.
 
 const { build } = require("esbuild");
 const path = require("path");

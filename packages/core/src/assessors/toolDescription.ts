@@ -1,7 +1,7 @@
 /**
  * Rule-based validator for CPS tool / topic / action descriptions.
  *
- * Based on `.cpsagentkit/knowledge/tool-descriptions.md`:
+ * Based on `.agent-workbench/knowledge/tool-descriptions.md`:
  *  - Descriptions are the primary routing signal in generative orchestration
  *  - They should say WHAT the tool does, WHEN to call it, what inputs it
  *    expects, and what it does NOT do

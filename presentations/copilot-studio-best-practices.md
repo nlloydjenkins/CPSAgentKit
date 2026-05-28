@@ -393,8 +393,8 @@ When a response is blocked: no logging, no reason code, no detail. You cannot tu
 
 # Resources
 
-- [CPSAgentKit MCP Server](https://www.npmjs.com/package/@cpsagentkit/mcp-server): `npx @cpsagentkit/mcp-server` for AI-assisted CPS guidance
-- [CPSAgentKit VS Code Extension](https://github.com/nlloydjenkins/CPSAgentKit): scaffolding, assessment, and knowledge sync
+- [Agent Workbench MCP Server](https://www.npmjs.com/package/@cpsagentkit/mcp-server): `npx @cpsagentkit/mcp-server` for AI-assisted CPS guidance
+- [Agent Workbench VS Code Extension](https://github.com/nlloydjenkins/CPSAgentKit): scaffolding, assessment, and knowledge sync
 - [Microsoft Copilot Studio Documentation](https://learn.microsoft.com/en-us/microsoft-copilot-studio/)
 - [Power Platform Admin Center](https://admin.powerplatform.microsoft.com/)
 

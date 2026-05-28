@@ -1,10 +1,10 @@
-# CPSAgentKit
+# Agent Workbench for Copilot Studio
 
 Turn GitHub Copilot, or any compatible coding AI, into a disciplined Copilot Studio specialist.
 
-CPSAgentKit is not the agent your users run. It is the workspace constitution and tooling layer that guides a coding AI through Copilot Studio solution design, portal preparation, local YAML authoring, Dataverse provisioning, prompt-tool updates, and assessment.
+Agent Workbench is not the agent your users run. It is the workspace constitution and tooling layer that guides a coding AI through Copilot Studio solution design, portal preparation, local YAML authoring, Dataverse provisioning, prompt-tool updates, and assessment.
 
-CPSAgentKit ships as three packages sharing a common core:
+Agent Workbench ships as three packages sharing a common core:
 
 | Package                   | Surface           | Install                                                                     |
 | ------------------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -119,14 +119,14 @@ code --install-extension cpsagentkit-*.vsix
 
 ```bash
 git clone https://github.com/nlloydjenkins/CPSAgentKit.git
-cd CPSAgentKit && npm install && npm run compile
+cd Agent Workbench && npm install && npm run compile
 npm run package:extension && npm run install:vsix
 ```
 
 ### Usage
 
 1. Clone an agent using the CPS extension (agent YAML appears in the workspace).
-2. Run **Initialise CPS Project** — scaffolds folders, syncs knowledge, writes `copilot-instructions.md`.
+2. Run **Initialise Agent Workbench Project** — scaffolds folders, syncs knowledge, writes `copilot-instructions.md`.
 3. Add requirements to `Requirements/docs/`, then run **Create Plan** to generate `Requirements/spec.md` and `Requirements/architecture.md` for review.
 4. Review and refine the generated spec and architecture, then run **Build Agent**. If required setup is missing, Build Agent writes `Requirements/build-checklist.md` as a short action checklist.
 5. Run **Copilot Studio: Apply Changes** and **Copilot Studio: Get Changes** when Build Agent asks for a portal round trip, then run **Build Agent** again to continue.
@@ -142,7 +142,7 @@ npm run package:extension && npm run install:vsix
 | Push prompt tools  | Dataverse MCP or `scripts/prompt-sync.mjs` | Update prompt-tool instructions stored in `msdyn_aiconfigurations.msdyn_customconfiguration`.                                                  |
 | Assess             | **Assess Agent**                           | Review routing, descriptions, prompts, YAML safety, and platform constraints against best practices.                                           |
 
-Prompt-tool instructions are a special case: the action YAML only controls tool routing metadata. The executable prompt text lives in Dataverse, so Apply Changes is not enough to update it. CPSAgentKit provides MCP helpers to parse and rebuild `msdyn_customconfiguration` safely while preserving non-prompt JSON keys, segment shape, and placeholders.
+Prompt-tool instructions are a special case: the action YAML only controls tool routing metadata. The executable prompt text lives in Dataverse, so Apply Changes is not enough to update it. Agent Workbench provides MCP helpers to parse and rebuild `msdyn_customconfiguration` safely while preserving non-prompt JSON keys, segment shape, and placeholders.
 
 ### Sidebar
 

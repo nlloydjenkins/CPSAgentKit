@@ -111,7 +111,7 @@ export async function buildCommand(): Promise<void> {
       const doc = await vscode.workspace.openTextDocument(checklistPath);
       await vscode.window.showTextDocument(doc, { preview: true });
       vscode.window.showInformationMessage(
-        "CPSAgentKit: Opened build-checklist.md. Complete the checklist, then run Build Agent again.",
+        "Agent Workbench: Opened build-checklist.md. Complete the checklist, then run Build Agent again.",
       );
       return;
     } catch {
@@ -119,12 +119,12 @@ export async function buildCommand(): Promise<void> {
     }
 
     const action = await vscode.window.showWarningMessage(
-      "CPSAgentKit: Requirements/architecture.md not found. Create specification first?",
+      "Agent Workbench: Requirements/architecture.md not found. Create specification first?",
       "Create Plan",
       "Cancel",
     );
     if (action === "Create Plan") {
-      await vscode.commands.executeCommand("cpsAgentKit.createSpec");
+      await vscode.commands.executeCommand("agentWorkbench.createSpec");
     }
     return;
   }
@@ -133,7 +133,7 @@ export async function buildCommand(): Promise<void> {
   const items = await parseBuildState(archPath);
   if (items.length === 0) {
     vscode.window.showWarningMessage(
-      "CPSAgentKit: No build state checklist found in architecture.md.",
+      "Agent Workbench: No build state checklist found in architecture.md.",
     );
     return;
   }
@@ -146,7 +146,7 @@ export async function buildCommand(): Promise<void> {
   }));
 
   const selected = await vscode.window.showQuickPick(picks, {
-    title: "CPSAgentKit: Build Checklist",
+    title: "Agent Workbench: Build Checklist",
     placeHolder: "Select a step to mark complete or get guidance",
     ignoreFocusOut: true,
   });
@@ -168,7 +168,7 @@ export async function buildCommand(): Promise<void> {
     if (undo === "Mark as not done") {
       await updateBuildState(archPath, item.line, false);
       vscode.window.showInformationMessage(
-        `CPSAgentKit: "${item.label}" marked as not done.`,
+        `Agent Workbench: "${item.label}" marked as not done.`,
       );
     }
     return;
@@ -195,7 +195,7 @@ export async function buildCommand(): Promise<void> {
     case "mark":
       await updateBuildState(archPath, item.line, true);
       vscode.window.showInformationMessage(
-        `CPSAgentKit: "${item.label}" marked as done.`,
+        `Agent Workbench: "${item.label}" marked as done.`,
       );
       break;
     case "help": {
@@ -204,7 +204,7 @@ export async function buildCommand(): Promise<void> {
       const prompt = buildGuidancePrompt(item.label, spec, architecture);
       await openPromptInCopilotChat(prompt);
       vscode.window.showInformationMessage(
-        `CPSAgentKit: Guidance prompt for "${item.label}" loaded into GitHub Copilot Chat. Press Enter to submit.`,
+        `Agent Workbench: Guidance prompt for "${item.label}" loaded into GitHub Copilot Chat. Press Enter to submit.`,
       );
       break;
     }
@@ -225,7 +225,7 @@ function buildGuidancePrompt(
   const prompts: Record<string, string> = {
     [LABEL_PLATFORM_CONSTRAINT_VALIDATION]: [
       "Read architecture.md and review the Platform Constraint Validation section.",
-      "Check each constraint against the CPS platform constraints in .cpsagentkit/knowledge/constraints.md.",
+      "Check each constraint against the CPS platform constraints in .agent-workbench/knowledge/constraints.md.",
       "Verify: no triggers on child agents, no MCP tools on child agents without justification,",
       "content moderation flagged as portal-only if needed, general knowledge stance documented,",
       "per-agent tool count within 25-30 practical limit.",

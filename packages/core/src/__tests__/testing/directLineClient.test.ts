@@ -26,6 +26,28 @@ describe("DirectLineClient", () => {
     expect(calls[0]).toContain("/bots/cr_bot/conversations");
   });
 
+  it("sends an empty JSON object body on createConversation (service rejects empty bodies)", async () => {
+    const bodies: (BodyInit | null | undefined)[] = [];
+    const fetchImpl = (async (
+      _input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      bodies.push(init?.body);
+      return new Response(JSON.stringify({ conversationId: "c1" }), {
+        status: 200,
+      });
+    }) as unknown as typeof fetch;
+
+    const client = createDirectLineClient({
+      environmentHostname: "test.example.com",
+      botSchemaName: "cr_bot",
+      tokenProvider: async () => "t",
+      fetchImpl,
+    });
+    await client.createConversation();
+    expect(bodies[0]).toBe("{}");
+  });
+
   it("does not retry on 401", async () => {
     let attempts = 0;
     const fetchImpl = (async () => {

@@ -27,14 +27,14 @@ describe("detectProjectState", () => {
     expect(state.agentFolders).toEqual([]);
   });
 
-  it("detects .cpsagentkit directory as initialised", async () => {
-    await fs.mkdir(path.join(tmpDir, ".cpsagentkit"));
+  it("detects .agent-workbench directory as initialised", async () => {
+    await fs.mkdir(path.join(tmpDir, ".agent-workbench"));
     const state = await detectProjectState(tmpDir);
     expect(state.isInitialised).toBe(true);
   });
 
   it("detects knowledge directory", async () => {
-    await fs.mkdir(path.join(tmpDir, ".cpsagentkit", "knowledge"), {
+    await fs.mkdir(path.join(tmpDir, ".agent-workbench", "knowledge"), {
       recursive: true,
     });
     const state = await detectProjectState(tmpDir);
@@ -42,7 +42,7 @@ describe("detectProjectState", () => {
   });
 
   it("detects best practices directory", async () => {
-    await fs.mkdir(path.join(tmpDir, ".cpsagentkit", "bestpractices"), {
+    await fs.mkdir(path.join(tmpDir, ".agent-workbench", "bestpractices"), {
       recursive: true,
     });
     const state = await detectProjectState(tmpDir);

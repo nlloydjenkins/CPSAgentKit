@@ -117,7 +117,7 @@ msal
 requests
 ```
 
-## Relevance to CPSAgentKit
+## Relevance to Agent Workbench
 
 This API enables programmatic testing of CPS agents outside the portal test pane. Potential uses:
 

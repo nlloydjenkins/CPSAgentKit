@@ -18,7 +18,7 @@ import {
   type TokenCacheContext,
   type DeviceCodeRequest,
 } from "@azure/msal-node";
-import type { TokenProvider } from "@cpsagentkit/core";
+import type { TokenProvider } from "@agent-workbench-for-copilot-studio/core";
 import { logInfo, logError } from "./diagnostics.js";
 
 const DIRECT_LINE_SCOPE =
@@ -31,6 +31,11 @@ export interface MsalDirectLineOptions {
 }
 
 export function msalCacheKey(tenantId: string, clientId: string): string {
+  return `agentWorkbench.msal.cache.${tenantId}.${clientId}`;
+}
+
+/** Legacy pre-rename cache key. Kept so existing sign-in state survives the rename. */
+function legacyMsalCacheKey(tenantId: string, clientId: string): string {
   return `cpsagentkit.msal.cache.${tenantId}.${clientId}`;
 }
 
@@ -38,9 +43,18 @@ export function createMsalDirectLineTokenProvider(
   opts: MsalDirectLineOptions,
 ): TokenProvider {
   const cacheKey = msalCacheKey(opts.tenantId, opts.clientId);
+  const legacyKey = legacyMsalCacheKey(opts.tenantId, opts.clientId);
   const cachePlugin: ICachePlugin = {
     async beforeCacheAccess(ctx: TokenCacheContext): Promise<void> {
-      const blob = await opts.secrets.get(cacheKey);
+      let blob = await opts.secrets.get(cacheKey);
+      if (!blob) {
+        const legacyBlob = await opts.secrets.get(legacyKey);
+        if (legacyBlob) {
+          await opts.secrets.store(cacheKey, legacyBlob);
+          await opts.secrets.delete(legacyKey);
+          blob = legacyBlob;
+        }
+      }
       if (blob) {
         ctx.tokenCache.deserialize(blob);
       }
@@ -246,7 +260,7 @@ async function deviceCode(
         return;
       }
 
-      const dialogBody = `CPSAgentKit: sign in to Direct Line.\n\nCode (copied to clipboard): ${code}\n\nA browser tab has opened to ${url}. Paste the code there, sign in, then click OK below.`;
+      const dialogBody = `Agent Workbench: sign in to Direct Line.\n\nCode (copied to clipboard): ${code}\n\nA browser tab has opened to ${url}. Paste the code there, sign in, then click OK below.`;
 
       // Serialize prompts so the user only ever sees ONE dialog at a time.
       // We chain onto the existing activePrompt so concurrent callbacks queue.
@@ -294,6 +308,125 @@ async function deviceCode(
       )}`,
     );
     logError("MSAL device-code acquisition failed", err);
-    throw err;
+    throw classifyDirectLineSignInError(err);
   }
+}
+
+/**
+ * Marker added to errors that have already been classified with an actionable
+ * Direct Line sign-in hint, so the command layer can render them as-is.
+ */
+export const DIRECT_LINE_SIGNIN_ERROR = Symbol.for(
+  "agentWorkbench.directLineSignInError",
+);
+
+export interface DirectLineSignInError extends Error {
+  [DIRECT_LINE_SIGNIN_ERROR]: true;
+  /** Short error code suitable for log lines (e.g. "invalid_grant"). */
+  code: string;
+  /** Human-readable hint describing the most likely cause + remediation. */
+  hint: string;
+  /** Raw MSAL error string, preserved for the output channel. */
+  raw: string;
+}
+
+export function isDirectLineSignInError(
+  err: unknown,
+): err is DirectLineSignInError {
+  return (
+    !!err &&
+    typeof err === "object" &&
+    (err as Record<symbol, unknown>)[DIRECT_LINE_SIGNIN_ERROR] === true
+  );
+}
+
+function classifyDirectLineSignInError(err: unknown): Error {
+  const detail = (err ?? {}) as Record<string, unknown>;
+  const errorCode =
+    typeof detail.errorCode === "string" ? detail.errorCode : "";
+  const errorMessage =
+    typeof detail.errorMessage === "string" ? detail.errorMessage : "";
+  const message = typeof detail.message === "string" ? detail.message : "";
+  const subError = typeof detail.subError === "string" ? detail.subError : "";
+  const raw = [errorCode, subError, errorMessage, message]
+    .filter(Boolean)
+    .join(" | ");
+  const lower = raw.toLowerCase();
+
+  let code = "unknown_error";
+  let hint =
+    "Sign-in failed before a Direct Line token could be issued. See the 'Agent Workbench (Testing)' output channel for the full MSAL error.";
+
+  // The /devicecode endpoint itself failed (the first POST that returns the
+  // user_code, BEFORE any user interaction). This is what MSAL reports as
+  // `post_request_failed` with `invalid_grant` in the response body. Clearing
+  // the token cache will not help — the app registration is misconfigured.
+  const deviceCodePostFailed =
+    errorCode === "post_request_failed" && lower.includes("invalid_grant");
+
+  if (deviceCodePostFailed) {
+    code = "devicecode_post_failed";
+    hint =
+      "Microsoft Entra refused the device-code request before any sign-in could happen. This is almost always an app-registration problem, not a stale credential.\n\n" +
+      "Check, in this order:\n" +
+      "  1. App registration > Authentication > 'Allow public client flows' must be set to YES. (Device-code flow requires a public client.)\n" +
+      "  2. Confirm the clientId and tenantId in .agent-workbench/test-config.json match the app registration in the correct tenant.\n" +
+      "  3. App registration > API permissions: 'Power Platform API > CopilotStudio.Copilots.Invoke' (delegated) must be added AND admin consent granted.\n" +
+      "  4. App registration > Manifest: ensure 'signInAudience' permits the tenant you're signing in from (AzureADMyOrg or AzureADMultipleOrgs as appropriate).\n\n" +
+      "Only after fixing the above is 'Reset Direct Line Sign-in' useful (and only to clear any partial cache).";
+  } else if (
+    lower.includes("invalid_grant") ||
+    lower.includes("expired_token") ||
+    lower.includes("authorization_pending")
+  ) {
+    code = "invalid_grant";
+    hint =
+      "The device-code sign-in didn't complete in time, the cached refresh token was rejected, or the prompt was dismissed before you finished signing in.\n\n" +
+      "Try this:\n" +
+      "  1. Run 'Agent Workbench: Reset Direct Line Sign-in' to clear cached credentials.\n" +
+      "  2. Re-run 'Agent Workbench: Run Agent Tests' and complete the browser sign-in promptly (the code expires in ~15 minutes).\n" +
+      "  3. If it still fails, confirm your Entra app has the delegated permission 'Power Platform API > CopilotStudio.Copilots.Invoke' with admin consent granted.";
+  } else if (
+    lower.includes("aadsts65001") ||
+    lower.includes("consent_required") ||
+    lower.includes("interaction_required")
+  ) {
+    code = "consent_required";
+    hint =
+      "Your Entra app registration is missing admin consent for 'Power Platform API > CopilotStudio.Copilots.Invoke'. Ask a tenant admin to grant consent, then re-run 'Agent Workbench: Reset Direct Line Sign-in' before retrying.";
+  } else if (lower.includes("aadsts70011") || lower.includes("invalid_scope")) {
+    code = "invalid_scope";
+    hint =
+      "Entra rejected the requested scope. Verify the app registration has the delegated 'Power Platform API > CopilotStudio.Copilots.Invoke' permission added (not just application permission).";
+  } else if (
+    lower.includes("aadsts50020") ||
+    lower.includes("aadsts50057") ||
+    lower.includes("user_not_in_tenant")
+  ) {
+    code = "wrong_account";
+    hint =
+      "The account you signed in with isn't in the tenant configured for this workspace. Run 'Agent Workbench: Reset Direct Line Sign-in', then sign in again with an account that belongs to the configured tenant.";
+  } else if (
+    lower.includes("network") ||
+    lower.includes("enotfound") ||
+    lower.includes("etimedout") ||
+    lower.includes("econnreset")
+  ) {
+    code = "network_error";
+    hint =
+      "MSAL couldn't reach login.microsoftonline.com. Check your network / proxy and try again.";
+  }
+
+  const wrapped = new Error(
+    `Direct Line sign-in failed (${code}).\n\n${hint}\n\nRaw MSAL error: ${raw || "(no detail)"}`,
+  ) as DirectLineSignInError;
+  wrapped[DIRECT_LINE_SIGNIN_ERROR] = true;
+  wrapped.code = code;
+  wrapped.hint = hint;
+  wrapped.raw = raw;
+  // Preserve original stack for diagnostics.
+  if (err instanceof Error && err.stack) {
+    wrapped.stack = err.stack;
+  }
+  return wrapped;
 }

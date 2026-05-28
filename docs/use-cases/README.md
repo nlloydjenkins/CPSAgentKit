@@ -15,14 +15,14 @@ Six realistic agentic Copilot Studio use cases. Five are self-contained single f
 
 1. Copy the chosen file into a fresh workspace at `Requirements/docs/business-requirements.md` (or keep the original filename — the Create Plan command reads every file in `Requirements/docs/`).
    - For use case 6, copy the **entire folder contents** into `Requirements/docs/`. The `knowledge/*.md` files should be uploaded **directly to Copilot Studio** as the agent's knowledge sources (not staged via SharePoint).
-2. Run **CPSAgentKit: Initialise CPS Project** if not already initialised.
-3. Run **CPSAgentKit: Create Plan** to generate reviewable `Requirements/spec.md` and `Requirements/architecture.md` from the requirements documents.
+2. Run **Agent Workbench: Initialise Agent Workbench Project** if not already initialised.
+3. Run **Agent Workbench: Create Plan** to generate reviewable `Requirements/spec.md` and `Requirements/architecture.md` from the requirements documents.
 4. Review and refine `Requirements/spec.md` and `Requirements/architecture.md`.
-5. Run **CPSAgentKit: Build Agent** to generate agent instructions, tool descriptions, topic content, and settings.
+5. Run **Agent Workbench: Build Agent** to generate agent instructions, tool descriptions, topic content, and settings.
 6. Apply changes via the CPS extension, test in the portal, iterate.
 
 Across all six scenarios, agent **knowledge sources are uploaded directly to Copilot Studio** rather than indexed via SharePoint. SharePoint still appears as a connector data source where it is the system of record for structured lists or live operational documents (e.g. UC4 ApprovedCatalogue list, UC5 Account Plans search), but RAG knowledge for the agent is always uploaded-file knowledge.
 
-Each use case contains sample organisation names, email addresses, Teams channels, Dataverse prefixes, and service-account assumptions. Treat these as build-time configuration defaults, not fixed requirements. During Build, CPSAgentKit should ask the maker to confirm or replace tenant-specific values before finalising tenant-bound schema names, connector/tool setup instructions, knowledge upload targets, or prompt instructions. Missing values should block only the specific action that needs them; Build should continue with safe planning, schema reconciliation, topic scaffolding, and portal-step generation that does not depend on those values.
+Each use case contains sample organisation names, email addresses, Teams channels, Dataverse prefixes, and service-account assumptions. Treat these as build-time configuration defaults, not fixed requirements. During Build, Agent Workbench should ask the maker to confirm or replace tenant-specific values before finalising tenant-bound schema names, connector/tool setup instructions, knowledge upload targets, or prompt instructions. Missing values should block only the specific action that needs them; Build should continue with safe planning, schema reconciliation, topic scaffolding, and portal-step generation that does not depend on those values.
 
 All six scenarios use only first-party Microsoft services (Entra, Teams, Outlook, SharePoint, Dataverse, Power Automate) and are designed to stay within documented CPS platform constraints (tool count per agent, orchestration limits, MCP-on-parent rule, integer choice column values, N/A sentinel for optional flow inputs, pre-bound Dataverse actions per table). Each file includes a **Platform Considerations** section flagging the specific constraints that apply to that scenario — the Build phase should treat these as hard requirements.

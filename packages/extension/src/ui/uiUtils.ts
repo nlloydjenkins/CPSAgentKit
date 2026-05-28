@@ -10,7 +10,7 @@ export function requireWorkspaceRoot(): string | undefined {
   const folder = vscode.workspace.workspaceFolders?.[0];
   if (!folder) {
     vscode.window.showErrorMessage(
-      "CPSAgentKit: Open a workspace folder first.",
+      "Agent Workbench: Open a workspace folder first.",
     );
     return undefined;
   }
@@ -57,7 +57,7 @@ export async function openPromptInCopilotChat(
   if (imageFiles && imageFiles.length > 0) {
     const fileList = imageFiles.join(", ");
     vscode.window.showInformationMessage(
-      `CPSAgentKit: Found ${imageFiles.length} image(s) in your docs folder: ${fileList}. ` +
+      `Agent Workbench: Found ${imageFiles.length} image(s) in your docs folder: ${fileList}. ` +
         `Attach these to GitHub Copilot Chat alongside the loaded prompt so they can be analysed ` +
         `(architecture diagrams, network topology, etc.).`,
     );
@@ -199,7 +199,7 @@ export async function writeAssessmentPrompt(
   });
 
   vscode.window.showInformationMessage(
-    `CPSAgentKit: ${summary} ` +
+    `Agent Workbench: ${summary} ` +
       `Assessment prompt saved to ${relativePath}. ` +
       `Runner instruction loaded into Copilot Chat` +
       (imageFiles && imageFiles.length > 0
@@ -294,7 +294,7 @@ export async function writePromptAndOpenChat(
   });
 
   vscode.window.showInformationMessage(
-    `CPSAgentKit: ${summary} ` +
+    `Agent Workbench: ${summary} ` +
       `Prompt saved to ${relativePath}. ` +
       `Runner instruction loaded into Copilot Chat` +
       (imageFiles && imageFiles.length > 0

@@ -588,3 +588,100 @@ describe("path validation", () => {
     expect(result.content[0].text).toContain("allowed workspace root");
   });
 });
+
+// ── Phase 2d: aw_* alias parity ──────────────────────────────
+
+describe("aw_* tool aliases", () => {
+  const cpsToolNames = [
+    "cps_list_knowledge_topics",
+    "cps_get_knowledge",
+    "cps_get_best_practice",
+    "cps_search_docs",
+    "cps_detect_project_state",
+    "cps_list_agents",
+    "cps_parse_agent",
+    "cps_parse_solution",
+    "cps_find_solution_folders",
+    "cps_validate_tool_description",
+    "cps_compose_review_prompt",
+    "cps_generate_topic_scaffolds",
+    "cps_detect_dataverse_mcp",
+    "cps_parse_prompt_config",
+    "cps_build_prompt_update",
+  ];
+
+  for (const cpsName of cpsToolNames) {
+    const awName = `aw_${cpsName.slice("cps_".length)}`;
+    it(`${awName} is registered alongside ${cpsName}`, () => {
+      expect(handlers.has(cpsName)).toBe(true);
+      expect(handlers.has(awName)).toBe(true);
+    });
+  }
+
+  it("aw_list_knowledge_topics returns the same result as cps_list_knowledge_topics", async () => {
+    const cps = handlers.get("cps_list_knowledge_topics");
+    const aw = handlers.get("aw_list_knowledge_topics");
+    if (!cps || !aw) return;
+    const cpsResult = (await cps({})) as {
+      content: Array<{ type: string; text: string }>;
+    };
+    const awResult = (await aw({})) as {
+      content: Array<{ type: string; text: string }>;
+    };
+    expect(awResult.content[0].text).toBe(cpsResult.content[0].text);
+  });
+
+  it("aw_get_knowledge returns the same result as cps_get_knowledge", async () => {
+    const cps = handlers.get("cps_get_knowledge");
+    const aw = handlers.get("aw_get_knowledge");
+    if (!cps || !aw) return;
+    // Pick a slug that exists by listing first.
+    const list = handlers.get("cps_list_knowledge_topics");
+    if (!list) return;
+    const listResult = (await list({ category: "knowledge" })) as {
+      content: Array<{ type: string; text: string }>;
+    };
+    const topics = JSON.parse(listResult.content[0].text) as Array<{
+      slug: string;
+    }>;
+    if (topics.length === 0) return;
+    const slug = topics[0].slug;
+    const cpsResult = (await cps({ slug })) as {
+      content: Array<{ type: string; text: string }>;
+    };
+    const awResult = (await aw({ slug })) as {
+      content: Array<{ type: string; text: string }>;
+    };
+    expect(awResult.content[0].text).toBe(cpsResult.content[0].text);
+  });
+});
+
+describe("AGENT_WORKBENCH_ALLOWED_ROOTS env var", () => {
+  it("is honored when set", async () => {
+    const handler = handlers.get("cps_detect_project_state");
+    if (!handler) return;
+    const previous = process.env.AGENT_WORKBENCH_ALLOWED_ROOTS;
+    const previousLegacy = process.env.CPSAGENTKIT_ALLOWED_ROOTS;
+    delete process.env.CPSAGENTKIT_ALLOWED_ROOTS;
+    process.env.AGENT_WORKBENCH_ALLOWED_ROOTS = tmpDir;
+    try {
+      const result = (await handler({ workspaceRoot: tmpDir })) as {
+        content: Array<{ type: string; text: string }>;
+        isError?: boolean;
+      };
+      // Either succeeds, or fails for a reason other than "allowed root".
+      if (result.isError) {
+        expect(result.content[0].text).not.toContain("allowed workspace root");
+      }
+    } finally {
+      if (previous === undefined) {
+        delete process.env.AGENT_WORKBENCH_ALLOWED_ROOTS;
+      } else {
+        process.env.AGENT_WORKBENCH_ALLOWED_ROOTS = previous;
+      }
+      if (previousLegacy !== undefined) {
+        process.env.CPSAGENTKIT_ALLOWED_ROOTS = previousLegacy;
+      }
+    }
+  });
+});

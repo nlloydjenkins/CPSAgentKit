@@ -1,20 +1,21 @@
+import path from "node:path";
 import { describe, it, expect } from "vitest";
 import { safePath } from "../../fs/fileUtils.js";
 
 describe("safePath", () => {
   it("resolves a valid relative path", () => {
     const result = safePath("/base/dir", "child/file.txt");
-    expect(result).toBe("/base/dir/child/file.txt");
+    expect(result).toBe(path.resolve("/base/dir", "child/file.txt"));
   });
 
   it("resolves current directory reference", () => {
     const result = safePath("/base/dir", "./file.txt");
-    expect(result).toBe("/base/dir/file.txt");
+    expect(result).toBe(path.resolve("/base/dir", "file.txt"));
   });
 
   it("allows nested subdirectories", () => {
     const result = safePath("/base", "a/b/c/d.txt");
-    expect(result).toBe("/base/a/b/c/d.txt");
+    expect(result).toBe(path.resolve("/base", "a/b/c/d.txt"));
   });
 
   it("blocks simple parent traversal", () => {
@@ -44,7 +45,7 @@ describe("safePath", () => {
   it("allows the base directory itself", () => {
     // path.resolve("/base/dir", ".") === "/base/dir"
     const result = safePath("/base/dir", ".");
-    expect(result).toBe("/base/dir");
+    expect(result).toBe(path.resolve("/base/dir"));
   });
 
   it("blocks path that is a prefix but not a child", () => {

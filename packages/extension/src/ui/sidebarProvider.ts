@@ -112,7 +112,7 @@ async function parseBuildChecklist(
   return { exists: true, items };
 }
 
-/** Provides the sidebar tree view for CPSAgentKit commands */
+/** Provides the sidebar tree view for Agent Workbench commands */
 export class SidebarProvider
   implements vscode.TreeDataProvider<TreeNode>, vscode.Disposable
 {
@@ -141,7 +141,7 @@ export class SidebarProvider
 
     // Watch for workspace file changes that might affect state
     this.watcher = vscode.workspace.createFileSystemWatcher(
-      "**/{.cpsagentkit,Requirements}/**",
+      "**/{.agent-workbench,Requirements}/**",
     );
     this.watcher.onDidCreate(() => this.refreshState());
     this.watcher.onDidDelete(() => this.refreshState());
@@ -161,7 +161,7 @@ export class SidebarProvider
     }
     vscode.commands.executeCommand(
       "setContext",
-      "cpsAgentKit.isInitialised",
+      "agentWorkbench.isInitialised",
       this.state.isInitialised,
     );
     this._onDidChangeTreeData.fire();
@@ -185,60 +185,38 @@ export class SidebarProvider
       return [];
     }
 
-    // Root level — return section headers
-    return [
-      new SectionHeader("Setup"),
-      new SectionHeader("Plan"),
-      new SectionHeader("Build"),
-      new SectionHeader("Assess"),
-      new SectionHeader("Demos"),
-    ];
+    // Root level — keep the user-facing path compact and sequential.
+    return [new SectionHeader("Workflow"), new SectionHeader("Utilities")];
   }
 
   private getCommandsForSection(section: string): CommandTreeItem[] {
     const init = this.state.isInitialised;
-    const hasSpec = this.state.hasSpec;
     const hasArch = this.state.hasArchitecture;
     const hasAgent = this.state.hasCpsExtensionAgent;
     const hasDocs = this.state.hasRequirementsDocs;
 
     switch (section) {
-      case "Setup":
+      case "Workflow":
         return [
           new CommandTreeItem(
-            "Initialise Project",
-            "cpsAgentKit.init",
+            "1. Initialise Project",
+            "agentWorkbench.init",
             "folder-opened",
             true,
             init ? "✓ done" : undefined,
           ),
           new CommandTreeItem(
-            "Sync Knowledge",
-            "cpsAgentKit.syncKnowledge",
-            "cloud-download",
-            init,
-          ),
-        ];
-
-      case "Plan":
-        return [
-          new CommandTreeItem(
-            "Add Requirements",
-            undefined,
-            "file-add",
-            init,
-            hasDocs
-              ? "✓ docs found"
-              : init
-                ? "add files to Requirements/docs/"
-                : undefined,
-          ),
-          new CommandTreeItem(
-            "Create Plan",
-            "cpsAgentKit.createSpec",
+            "2. Create Plan",
+            "agentWorkbench.createSpec",
             "notebook",
             init && (hasDocs || hasAgent),
-            hasArch ? "✓ customised" : undefined,
+            hasArch
+              ? "✓ plan ready"
+              : hasDocs
+                ? "docs found"
+                : hasAgent
+                  ? "synced agent found"
+                  : undefined,
             !init
               ? undefined
               : !(hasDocs || hasAgent)
@@ -247,7 +225,7 @@ export class SidebarProvider
           ),
           new CommandTreeItem(
             "Pre-Build Agent",
-            "cpsAgentKit.preBuildAgent",
+            "agentWorkbench.preBuildAgent",
             "wand",
             init && hasDocs,
             hasArch ? "review plan" : undefined,
@@ -257,50 +235,52 @@ export class SidebarProvider
                 ? "add requirements docs first"
                 : undefined,
           ),
-        ];
-
-      case "Build":
-        return [
           new CommandTreeItem(
             "Prepare for Build",
-            "cpsAgentKit.prepareForBuild",
+            "agentWorkbench.prepareForBuild",
             "checklist",
             init && hasArch,
             undefined,
             !hasArch ? "create plan first" : undefined,
           ),
           new CommandTreeItem(
-            "Build Checklist",
-            "cpsAgentKit.buildChecklist",
-            "checklist",
-            init && hasArch,
-            this.buildChecklist.exists ? "✓ done" : undefined,
-            !hasArch ? "create plan first" : undefined,
-            this.buildChecklist.items.length > 0 ? "buildChecklist" : undefined,
-          ),
-          new CommandTreeItem(
-            "Build Agent",
-            "cpsAgentKit.buildAgent",
+            "3. Build Agent",
+            "agentWorkbench.buildAgent",
             "rocket",
             init && hasArch,
-            undefined,
+            this.buildChecklist.exists ? "checklist open" : undefined,
             !hasArch ? "create plan first" : undefined,
           ),
-        ];
-
-      case "Assess":
-        return [
           new CommandTreeItem(
-            "Run Agent Assessment",
-            "cpsAgentKit.reviewSolution",
+            "4. Assess Agent",
+            "agentWorkbench.reviewSolution",
             "beaker",
             init && hasAgent,
             undefined,
             !hasAgent ? "sync a CPS agent first" : undefined,
           ),
+        ];
+
+      case "Utilities":
+        return [
+          new CommandTreeItem(
+            "Sync Knowledge",
+            "agentWorkbench.syncKnowledge",
+            "cloud-download",
+            init,
+          ),
+          new CommandTreeItem(
+            "Open Build Checklist",
+            "agentWorkbench.buildChecklist",
+            "checklist",
+            init && (hasArch || this.buildChecklist.exists),
+            this.buildChecklist.exists ? "✓ available" : undefined,
+            !hasArch ? "create plan first" : undefined,
+            this.buildChecklist.items.length > 0 ? "buildChecklist" : undefined,
+          ),
           new CommandTreeItem(
             "Run Solution Assessment",
-            "cpsAgentKit.reviewSolutionFile",
+            "agentWorkbench.reviewSolutionFile",
             "file-symlink-file",
             init && hasAgent,
             undefined,
@@ -308,7 +288,7 @@ export class SidebarProvider
           ),
           new CommandTreeItem(
             "Configure Agent Tests…",
-            "cpsAgentKit.configureAgentTests",
+            "agentWorkbench.configureAgentTests",
             "gear",
             init && hasAgent,
             undefined,
@@ -316,7 +296,7 @@ export class SidebarProvider
           ),
           new CommandTreeItem(
             "Run Agent Tests",
-            "cpsAgentKit.runAgentTests",
+            "agentWorkbench.runAgentTests",
             "play",
             init && hasAgent,
             undefined,
@@ -324,19 +304,15 @@ export class SidebarProvider
           ),
           new CommandTreeItem(
             "Connect Azure OpenAI Judge…",
-            "cpsAgentKit.connectAzureOpenAIJudge",
+            "agentWorkbench.connectAzureOpenAIJudge",
             "key",
             init && hasAgent,
             undefined,
             !hasAgent ? "sync a CPS agent first" : undefined,
           ),
-        ];
-
-      case "Demos":
-        return [
           new CommandTreeItem(
             "Build Demo",
-            "cpsAgentKit.buildDemo",
+            "agentWorkbench.buildDemo",
             "play-circle",
             init,
           ),
