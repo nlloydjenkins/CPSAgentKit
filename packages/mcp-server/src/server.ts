@@ -16,6 +16,7 @@ import {
   validateToolDescription,
   composeReviewPrompt,
   gatherSolutionSnapshot,
+  bundleInMemorySolution,
   detectDataverseMcp,
   readRequirements,
   generateTopicScaffolds,
@@ -28,6 +29,11 @@ import {
 
 import { MCP_SERVER_VERSION } from "./index.js";
 import { DOCS_QA_AGENT_SYSTEM_PROMPT } from "./prompts/docsQaAgent.js";
+import { SPEC_PLANNER_SYSTEM_PROMPT } from "./prompts/specPlanner.js";
+import {
+  buildSolutionReviewerSystemPrompt,
+  type SolutionReviewerScope,
+} from "./prompts/solutionReviewer.js";
 
 /**
  * Resolve the directory where bundled knowledge markdown lives.
@@ -604,6 +610,88 @@ export async function createServer(): Promise<McpServer> {
     },
   );
 
+  reg.registerTool(
+    "cps_bundle_solution",
+    {
+      title: "Bundle an in-memory CPS solution for review",
+      description:
+        "Takes an already-unzipped CPS solution as an in-memory list of `{ path, content }` entries and returns the same markdown bundle that `cps_compose_review_prompt` derives from a workspace on disk — with the same classification rules (settings / agent config / connection references / topics / actions / knowledge), the same settings-noise stripping, and per-file plus total byte caps. Use this in hosted chat scenarios where the user uploads a ZIP: the host unzips, decodes each entry to text, calls this tool, then sends the returned `markdown` as a user message alongside the `cps_solution_reviewer` prompt persona. Files that are not recognised cloned-agent artefacts (solution.xml/botcomponents from a full solution export, binaries, ZIP metadata) are dropped — fall back to `cps_parse_solution` on disk for full solution exports.",
+      inputSchema: {
+        files: z
+          .array(
+            z.object({
+              path: z
+                .string()
+                .min(1)
+                .describe(
+                  "Archive-relative path of the file (forward slashes). Leading wrapper folders are tolerated.",
+                ),
+              content: z
+                .string()
+                .describe(
+                  "Decoded UTF-8 text content of the file. Filter out binaries before calling.",
+                ),
+            }),
+          )
+          .min(1)
+          .describe(
+            "Every file extracted from the user's CPS solution archive. Order does not matter; the tool sorts by path.",
+          ),
+        perFileMaxBytes: z
+          .number()
+          .int()
+          .min(1024)
+          .max(2_000_000)
+          .optional()
+          .describe(
+            "Maximum bytes kept per file before truncation. Defaults to 200,000.",
+          ),
+        totalMaxBytes: z
+          .number()
+          .int()
+          .min(10_000)
+          .max(10_000_000)
+          .optional()
+          .describe(
+            "Maximum total bytes across all included file contents. Defaults to 1,500,000.",
+          ),
+        header: z
+          .string()
+          .optional()
+          .describe(
+            "Section header for the bundle. Defaults to '## Solution Under Review'.",
+          ),
+      },
+    },
+    async ({
+      files,
+      perFileMaxBytes,
+      totalMaxBytes,
+      header,
+    }: {
+      files: Array<{ path: string; content: string }>;
+      perFileMaxBytes?: number;
+      totalMaxBytes?: number;
+      header?: string;
+    }) => {
+      const result = bundleInMemorySolution(files, {
+        perFileMaxBytes,
+        totalMaxBytes,
+        header,
+      });
+      return jsonContent({
+        markdown: result.markdown,
+        agents: result.agents.map((a) => ({
+          name: a.name,
+          topicCount: a.topics.length,
+          actionCount: a.actions.length,
+          knowledgeCount: a.knowledge.length,
+        })),
+        stats: result.stats,
+      });
+    },
+  );
+
   // ── Build-context tools ────────────────────────────────────
 
   reg.registerTool(
@@ -857,6 +945,66 @@ export async function createServer(): Promise<McpServer> {
         },
       ],
     }),
+  );
+
+  server.registerPrompt(
+    "cps_spec_planner",
+    {
+      title: "CPS Spec & Architecture Planner",
+      description:
+        "Paste-mode system prompt for an assistant that turns a developer's plain-language requirements into `Requirements/spec.md` and `Requirements/architecture.md` content, grounded in the CPSAgentKit knowledge base. Pair with `cps_search_docs`, `cps_get_knowledge`, and `cps_get_best_practice` so the model can cite platform constraints. The persona is workspace-agnostic: the user pastes requirements into chat.",
+    },
+    () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: SPEC_PLANNER_SYSTEM_PROMPT,
+          },
+        },
+      ],
+    }),
+  );
+
+  server.registerPrompt(
+    "cps_solution_reviewer",
+    {
+      title: "CPS Solution Reviewer (paste mode)",
+      description:
+        "Paste-mode system prompt for the CPSAgentKit solution reviewer persona. The prompt deliberately does not embed a solution bundle — hosted chat clients call `cps_bundle_solution` separately and send the resulting markdown as a user message. Optional `scope` argument narrows the review focus (full / prompts / descriptions / architecture) to match the existing filesystem workflow.",
+      argsSchema: {
+        scope: z
+          .string()
+          .optional()
+          .describe(
+            "Review scope: one of 'full', 'prompts', 'descriptions', 'architecture'. Defaults to 'full'.",
+          ),
+      },
+    },
+    (args: { scope?: string }) => {
+      const allowed: SolutionReviewerScope[] = [
+        "full",
+        "prompts",
+        "descriptions",
+        "architecture",
+      ];
+      const raw = (args?.scope ?? "full").toLowerCase();
+      const scope = (allowed as string[]).includes(raw)
+        ? (raw as SolutionReviewerScope)
+        : "full";
+      return {
+        messages: [
+          {
+            role: "user",
+            content: {
+              type: "text",
+              text: buildSolutionReviewerSystemPrompt(scope),
+            },
+          },
+        ],
+      };
+    },
   );
 
   // ── Resources ──────────────────────────────────────────────

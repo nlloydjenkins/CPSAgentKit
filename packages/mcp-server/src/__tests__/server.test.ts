@@ -74,6 +74,7 @@ describe("createServer", () => {
       "cps_find_solution_folders",
       "cps_validate_tool_description",
       "cps_compose_review_prompt",
+      "cps_bundle_solution",
       "cps_generate_topic_scaffolds",
       "cps_detect_dataverse_mcp",
       "cps_parse_prompt_config",
@@ -464,6 +465,39 @@ describe("cps_compose_review_prompt", () => {
       content: Array<{ type: string; text: string }>;
     };
     expect(result.content[0].text).toContain("CPS Solution Review");
+  });
+});
+
+describe("cps_bundle_solution", () => {
+  it("bundles an in-memory cloned-agent folder", async () => {
+    const handler = handlers.get("cps_bundle_solution");
+    if (!handler) return;
+    const result = (await handler({
+      files: [
+        { path: "HelpDesk/settings.yaml", content: "name: HelpDesk" },
+        {
+          path: "HelpDesk/topics/Greeting.yml",
+          content: "kind: TopicDialog",
+        },
+      ],
+    })) as { content: Array<{ type: string; text: string }> };
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.markdown).toContain("## Solution Under Review");
+    expect(parsed.agents).toHaveLength(1);
+    expect(parsed.agents[0].topicCount).toBe(1);
+    expect(parsed.stats.filesIncluded).toBe(2);
+  });
+});
+
+describe("registered prompts", () => {
+  it("registers cps_spec_planner and cps_solution_reviewer", () => {
+    const reg = server as unknown as {
+      _registeredPrompts: Record<string, unknown>;
+    };
+    if (!reg._registeredPrompts) return;
+    expect(reg._registeredPrompts["cps_spec_planner"]).toBeDefined();
+    expect(reg._registeredPrompts["cps_solution_reviewer"]).toBeDefined();
+    expect(reg._registeredPrompts["cps_docs_qa_agent"]).toBeDefined();
   });
 });
 
