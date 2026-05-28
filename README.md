@@ -6,15 +6,15 @@ Agent Workbench is not the agent your users run. It is the workspace constitutio
 
 Agent Workbench ships as three packages sharing a common core:
 
-| Package                   | Surface           | Install                                                                     |
-| ------------------------- | ----------------- | --------------------------------------------------------------------------- |
-| `@cpsagentkit/core`       | Shared library    | Internal dependency                                                         |
-| `cpsagentkit`             | VS Code extension | [VSIX from Releases](https://github.com/nlloydjenkins/CPSAgentKit/releases) |
-| `@cpsagentkit/mcp-server` | MCP server        | `npx @cpsagentkit/mcp-server`                                               |
+| Package                                          | Surface           | Install                                                                     |
+| ------------------------------------------------ | ----------------- | --------------------------------------------------------------------------- |
+| `@agent-workbench-for-copilot-studio/core`       | Shared library    | Internal dependency                                                         |
+| `agent-workbench`                                | VS Code extension | [VSIX from Releases](https://github.com/nlloydjenkins/CPSAgentKit/releases) |
+| `@agent-workbench-for-copilot-studio/mcp-server` | MCP server        | `npx @agent-workbench-for-copilot-studio/mcp-server`                        |
 
 ```
 ┌──────────────────────────────────────────────┐
-│              @cpsagentkit/core               │
+│   @agent-workbench-for-copilot-studio/core   │
 │  knowledge · parsing · assessment · build    │
 ├──────────────┬───────────────────────────────┤
 │  VS Code     │  MCP Server                   │
@@ -37,7 +37,7 @@ Works with Claude Desktop, Cursor, Claude Code, VS Code, or any MCP-aware client
 **npx (no install):**
 
 ```bash
-npx @cpsagentkit/mcp-server --transport=stdio
+npx @agent-workbench-for-copilot-studio/mcp-server --transport=stdio
 ```
 
 **Claude Desktop** — add to `claude_desktop_config.json`:
@@ -45,9 +45,13 @@ npx @cpsagentkit/mcp-server --transport=stdio
 ```json
 {
   "mcpServers": {
-    "cpsagentkit": {
+    "agent-workbench": {
       "command": "npx",
-      "args": ["-y", "@cpsagentkit/mcp-server", "--transport=stdio"]
+      "args": [
+        "-y",
+        "@agent-workbench-for-copilot-studio/mcp-server",
+        "--transport=stdio"
+      ]
     }
   }
 }
@@ -56,7 +60,7 @@ npx @cpsagentkit/mcp-server --transport=stdio
 **Claude Code:**
 
 ```bash
-claude mcp add cpsagentkit -- npx -y @cpsagentkit/mcp-server --transport=stdio
+claude mcp add agent-workbench -- npx -y @agent-workbench-for-copilot-studio/mcp-server --transport=stdio
 ```
 
 **VS Code** — add to `.vscode/mcp.json`:
@@ -64,9 +68,13 @@ claude mcp add cpsagentkit -- npx -y @cpsagentkit/mcp-server --transport=stdio
 ```json
 {
   "servers": {
-    "cpsagentkit": {
+    "agent-workbench": {
       "command": "npx",
-      "args": ["-y", "@cpsagentkit/mcp-server", "--transport=stdio"]
+      "args": [
+        "-y",
+        "@agent-workbench-for-copilot-studio/mcp-server",
+        "--transport=stdio"
+      ]
     }
   }
 }
@@ -75,7 +83,7 @@ claude mcp add cpsagentkit -- npx -y @cpsagentkit/mcp-server --transport=stdio
 **HTTP transport** (for remote clients):
 
 ```bash
-npx @cpsagentkit/mcp-server --transport=http --port=3333
+npx @agent-workbench-for-copilot-studio/mcp-server --transport=http --port=3333
 ```
 
 Endpoint: `POST http://127.0.0.1:3333/mcp`
@@ -90,7 +98,7 @@ Endpoint: `POST http://127.0.0.1:3333/mcp`
 | **Build**        | `cps_generate_topic_scaffolds`, `cps_detect_dataverse_mcp`                                                          |
 | **Prompt tools** | `cps_parse_prompt_config`, `cps_build_prompt_update`                                                                |
 
-All knowledge and best-practice documents are also exposed as MCP resources (`cpsagentkit://<category>/<slug>`).
+All knowledge and best-practice documents are also exposed as MCP resources (`agent-workbench://<category>/<slug>`). The legacy `cpsagentkit://` scheme is kept as an alias for one release.
 
 ### Deploy to Azure
 
@@ -112,14 +120,14 @@ Provisions an App Service and outputs the endpoint URL. Point any MCP client at 
 **Install from release:**
 
 ```bash
-code --install-extension cpsagentkit-*.vsix
+code --install-extension agent-workbench-*.vsix
 ```
 
 **Build from source:**
 
 ```bash
 git clone https://github.com/nlloydjenkins/CPSAgentKit.git
-cd Agent Workbench && npm install && npm run compile
+cd CPSAgentKit && npm install && npm run compile
 npm run package:extension && npm run install:vsix
 ```
 
@@ -134,30 +142,30 @@ npm run package:extension && npm run install:vsix
 
 ### Build Lifecycle
 
-| Phase              | Command or action                              | Purpose                                                                                                                                        |
-| ------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Define / Architect | **Create Plan**                            | Generate `Requirements/spec.md` and `Requirements/architecture.md` from requirements docs or an existing cloned agent for review before Build. |
-| Build              | **Build Agent**                            | Create safe artifacts, execute schema work through Dataverse MCP when configured, edit local YAML, and write `Requirements/build-checklist.md` only as a short action checklist. |
-| Round trip         | **Copilot Studio: Apply Changes/Get Changes** | Push local CPS YAML changes into Copilot Studio and sync portal-generated changes back when Build Agent asks for it.                           |
-| Push prompt tools  | Dataverse MCP or `scripts/prompt-sync.mjs` | Update prompt-tool instructions stored in `msdyn_aiconfigurations.msdyn_customconfiguration`.                                                  |
-| Assess             | **Assess Agent**                           | Review routing, descriptions, prompts, YAML safety, and platform constraints against best practices.                                           |
+| Phase              | Command or action                             | Purpose                                                                                                                                                                          |
+| ------------------ | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Define / Architect | **Create Plan**                               | Generate `Requirements/spec.md` and `Requirements/architecture.md` from requirements docs or an existing cloned agent for review before Build.                                   |
+| Build              | **Build Agent**                               | Create safe artifacts, execute schema work through Dataverse MCP when configured, edit local YAML, and write `Requirements/build-checklist.md` only as a short action checklist. |
+| Round trip         | **Copilot Studio: Apply Changes/Get Changes** | Push local CPS YAML changes into Copilot Studio and sync portal-generated changes back when Build Agent asks for it.                                                             |
+| Push prompt tools  | Dataverse MCP or `scripts/prompt-sync.mjs`    | Update prompt-tool instructions stored in `msdyn_aiconfigurations.msdyn_customconfiguration`.                                                                                    |
+| Assess             | **Assess Agent**                              | Review routing, descriptions, prompts, YAML safety, and platform constraints against best practices.                                                                             |
 
 Prompt-tool instructions are a special case: the action YAML only controls tool routing metadata. The executable prompt text lives in Dataverse, so Apply Changes is not enough to update it. Agent Workbench provides MCP helpers to parse and rebuild `msdyn_customconfiguration` safely while preserving non-prompt JSON keys, segment shape, and placeholders.
 
 ### Sidebar
 
-| Section       | Commands                                                                 |
-| ------------- | ------------------------------------------------------------------------ |
-| **Workflow**  | Initialise Project, Create Plan, Build Agent, Assess Agent              |
-| **Utilities** | Sync Knowledge, Open Build Checklist, Build Demo                         |
+| Section       | Commands                                                   |
+| ------------- | ---------------------------------------------------------- |
+| **Workflow**  | Initialise Project, Create Plan, Build Agent, Assess Agent |
+| **Utilities** | Sync Knowledge, Open Build Checklist, Build Demo           |
 
 ### Settings
 
-| Setting                           | Default                                        | Description                 |
-| --------------------------------- | ---------------------------------------------- | --------------------------- |
-| `cpsAgentKit.knowledgeRepoUrl`    | `https://github.com/nlloydjenkins/CPSAgentKit` | Knowledge repo URL          |
-| `cpsAgentKit.knowledgeRepoBranch` | `main`                                         | Branch to pull from         |
-| `cpsAgentKit.syncOnOpen`          | `true`                                         | Auto-sync on workspace open |
+| Setting                              | Default                                        | Description                 |
+| ------------------------------------ | ---------------------------------------------- | --------------------------- |
+| `agentWorkbench.knowledgeRepoUrl`    | `https://github.com/nlloydjenkins/CPSAgentKit` | Knowledge repo URL          |
+| `agentWorkbench.knowledgeRepoBranch` | `main`                                         | Branch to pull from         |
+| `agentWorkbench.syncOnOpen`          | `true`                                         | Auto-sync on workspace open |
 
 ---
 
