@@ -213,12 +213,14 @@ export async function createServer(): Promise<McpServer> {
     "cps_validate_tool_description",
     "cps_parse_prompt_config",
     "cps_build_prompt_update",
+    "cps_bundle_solution",
     "aw_list_knowledge_topics",
     "aw_get_knowledge",
     "aw_get_best_practice",
     "aw_validate_tool_description",
     "aw_parse_prompt_config",
     "aw_build_prompt_update",
+    "aw_bundle_solution",
   ]);
   const hostedMode = process.env.MCP_HOSTED === "1";
 
