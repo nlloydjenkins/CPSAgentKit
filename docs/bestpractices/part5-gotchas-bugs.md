@@ -91,9 +91,13 @@ Environments with Customer Managed Keys (CMK) enabled may restrict delegated cre
 
 ## Content Filtering Issues
 
+- **Default moderation is High.** The selectable levels are **Low / Medium / High** (underlying scale Lowest → Highest). The default is **High**. The UI label "Medium" is the middle band, not "Moderate". Drop to Medium for most internal business agents when High over-filters legitimate content; keep High for public / sensitive / rubric / compliance agents.
+- **Topic-level moderation overrides agent-level.** Content moderation can be set at agent level (Generative AI settings), topic level (generative answers node) and prompt level (prompt tool). Topic-level setting takes precedence at runtime — an agent-level "Low" can be silently overridden by an "High" on a specific node.
+- **"Allow general knowledge" is the literal toggle label.** The actual UI label is **"Allow the AI to use its own general knowledge"** (Settings → Generative AI). "Ungrounded responses" is community shorthand — makers will see the literal label. Turning it OFF does **not** guarantee the model never uses general knowledge; it blocks responses for turns where no source/tool was used, but combined retrieval + general knowledge is still possible.
 - **Zero transparency on ContentFiltered responses.** When an agent response is blocked by content filtering, Microsoft provides no logging, no reason code, and no detail explaining what triggered the filter. The response simply doesn't appear or shows a generic error.
 - **Empty payloads are a moderation symptom.** Field-observed: even with `contentModeration: Low` on the parent agent, jailbreak-style and out-of-corpus prompts to a connected agent returned **empty text payloads** — no error, no diagnostic, just nothing. If a small, semantically clustered set of prompt types consistently produces empty replies while everything else works, parent-side moderation suppression is the first hypothesis. Test harnesses should retry once and mark the result `INCONCLUSIVE` rather than `FAIL` when the reply is empty.
 - **No way to tune or override content moderation.** The built-in responsible AI filtering cannot be adjusted. If your legitimate business use case triggers the filter (e.g. medical terminology, legal language, discussion of security vulnerabilities), you have no recourse except filing a support ticket.
+- **SharePoint-grounded responses may not appear in transcripts.** When troubleshooting a SharePoint knowledge-grounded answer (including ContentFiltered cases), do not rely on conversation transcripts alone. Use test reproduction, source isolation and telemetry.
 - **Word, Excel, PowerPoint DLP messaging unclear.** When Purview DLP blocks a Copilot interaction in Office apps, the user messaging may not clearly state that it was blocked by an organisational policy. The interaction is still blocked, but the user may not understand why.
 
 ---
@@ -103,6 +107,7 @@ Environments with Customer Managed Keys (CMK) enabled may restrict delegated cre
 - **Child agents cannot invoke MCP servers.** Tool invocation fails when the MCP server is attached to a child agent. All MCP calls must proxy through the parent agent. This fundamentally limits the specialisation model for multi-agent architectures.
 - **No visibility into tenant runtime version.** MCP support, multi-agent behaviour, and orchestration features are tied to the runtime version. There's no clear way to check which version your tenant is running or when it was last updated. Troubleshooting becomes guesswork.
 - **Tool execution failures are opaque.** Conversation logs show text flow but don't reveal whether a child agent attempted to call an MCP server, whether the call succeeded, or why it failed. There are no structured logs or developer mode for tool invocation tracing.
+- **Citations from knowledge sources cannot be passed as inputs to tools or actions.** If a downstream tool needs the citation URL, title or source metadata, you cannot read it from the generative-answer output and forward it. Plan retrieval and tool chaining around this limit.
 
 ---
 

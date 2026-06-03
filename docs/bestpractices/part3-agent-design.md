@@ -174,6 +174,22 @@ Agent (Instructions + Orchestration Mode)
 
 ## Knowledge Source Design
 
+### Knowledge Source Roles
+
+Knowledge in Copilot Studio is not one thing. A source can play any of these roles, and each has different settings, citation requirements and tests:
+
+| Role | Used for | Should cite? | Main risk |
+|---|---|---|---|
+| `sme_grounding` | Answering factual / domain questions | Yes | Incorrect or unsupported answer |
+| `persona_grounding` | Tone, biography, style, decision framing | Sometimes | Impersonation or invented views |
+| `rubric_grounding` | Assessment, scoring, compliance | Yes | Inconsistent or unsupported scoring |
+| `policy_constraint` | Rules the agent must obey | Yes for explanations | Ignoring constraints |
+| `examples` | Style and output calibration | Usually no | Overfitting to examples |
+| `reference_only` | Optional background | Optional | Low-relevance noise |
+| `fallback` | Secondary reference when primary fails | Yes | Source contamination |
+
+Establish the role before recommending a source type or settings. SME, digital-twin and rubric patterns each have a different recommended architecture, instruction template and test plan — see `../knowledge/knowledge-configuration.md` for the full per-role guide.
+
 ### Choosing the Right Source Type
 
 | Source                            | Best For                              | Sync Frequency            | Key Limitation                                                  |

@@ -235,4 +235,38 @@ For uploaded files the `mcs.metadata.description` is a platform placeholder. Edi
 
 ---
 
+## Knowledge: Recommended Settings by Agent Type
+
+| Agent type | General knowledge | Web search | Selected sources | Citations | Main test |
+|---|---|---|---|---|---|
+| Controlled SME / policy | OFF | OFF | ON where possible | Required | Source isolation |
+| Digital twin / tone | Usually ON | Usually OFF | ON for persona topics | Optional for style, required for facts | Authority boundary |
+| Rubric / compliance | OFF | OFF | ON | Required | Golden sample / missing evidence |
+| Public web assistant | ON | ON | Optional | Strongly recommended | Freshness / source quality |
+| Internal helpdesk | Usually OFF or limited | OFF | ON for support domains | Required | Permissions |
+| Creative drafting | ON | Optional | Optional | Not always | Safety and tone |
+
+"General knowledge" = literal UI toggle **"Allow the AI to use its own general knowledge"** (Settings → Generative AI). Content moderation default is **High**; topic-level moderation overrides agent-level.
+
+## Knowledge: Source-Type Decision
+
+```text
+Static curated prose                 → Uploaded files
+Permission-sensitive internal docs   → SharePoint + Work IQ where available
+Simple tabular operational data      → SharePoint Lists or Dataverse
+Structured/relational/analytical     → Dataverse / SQL / API / Power Automate
+Approved public documentation        → Public website knowledge
+Open current public information      → Web Search
+Confluence/Salesforce/ServiceNow/Zendesk articles
+                                     → Knowledge-base connectors (published only)
+Live source-system data with auth    → Real-time Power Platform connector or MCP
+Metadata / ranking / deterministic   → Custom knowledge / Azure AI Search
+Whole-corpus assessment              → Batch architecture + stored results
+.md / .json / .yaml knowledge packs  → Uploaded files (NEVER SharePoint library)
+```
+
+See `knowledge-configuration.md` for the full per-role guide.
+
+---
+
 _Last updated: March 2026. The platform changes fast — validate against your environment._

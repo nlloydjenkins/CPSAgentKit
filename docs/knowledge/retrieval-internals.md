@@ -4,6 +4,43 @@
 
 This page consolidates what is known about Copilot Studio's internal retrieval mechanics. Many of these properties are not exposed to makers but affect output quality directly. Understanding what cannot be changed helps avoid wasted optimisation effort and points to what can actually be influenced.
 
+> **Orchestration mode is the primary retrieval variable.** Generative orchestration is now the **default** for new agents, and selection of which knowledge source to search is driven primarily by **source descriptions**. Most legacy retrieval advice ("bind a topic to a source", "Search only selected sources") assumes classic orchestration; under generative orchestration the equivalent control lever is description quality + narrow source scoping. Always establish the orchestration mode before giving retrieval advice. See `knowledge-configuration.md → Orchestration mode is the primary variable` for the full treatment.
+
+## Source-count behaviour (by mode)
+
+There is **no single "five source types at a time" rule**. Limits differ by source type and orchestration mode.
+
+- Generative orchestration: public websites and SharePoint support up to **25 inputs**.
+- Uploaded documents are searched as documents and are **not** part of the 25-source filter limit.
+- Dataverse and enterprise connector knowledge are listed as unlimited.
+- If >25 knowledge sources are present, an internal GPT filters by description.
+- Classic orchestration applies stricter per-source limits.
+- **Max 500 knowledge objects per agent** still applies across files, folders, articles, websites and other knowledge objects (separate from the 25-source filter limit).
+
+## Default model and governance
+
+The current default generative model is **GPT-4.1** (GPT-4o was retired for generative orchestration in late October 2025). GPT-5 models are available in preview.
+
+**Model governance gotcha:** do not recommend preview or experimental models for production knowledge agents without explicit risk acceptance. Preview models can have variability in answer quality, latency, timeout behaviour, message consumption and data residency / cross-geo implications. Model choice does not affect which sources are eligible for retrieval.
+
+## Work IQ / semantic index (SharePoint quality)
+
+**Work IQ** (toggle: "Turn on Work IQ" on the Generative AI settings page) makes the agent use the **semantic index for Copilot** instead of lexical-only matching. Previously branded **"Enhanced search results."** For SharePoint-grounded agents this can be the difference between mediocre and good retrieval.
+
+Prerequisites:
+
+- Generative orchestration.
+- The agent must share a tenant with a Microsoft 365 Copilot license, with the license assigned to at least one user, and a configured semantic index.
+- Agent user authentication must be **"Authenticate with Microsoft"** — Work IQ cannot be enabled under other auth methods.
+- Work IQ is **separate from Dataverse search** (which governs Dataverse-backed sources).
+- In Copilot Studio, Work IQ improves grounding over SharePoint, files and URLs. It does **not** read Outlook mail, Teams chats or calendar — that is the broader Microsoft 365 Work IQ layer / Work IQ MCP server.
+
+**File-size note:** Microsoft documentation has referenced both a **200 MB Work IQ threshold** and **512 MB support for PDF/PPTX/DOCX** in some scenarios. Avoid promising a universal file-size limit — validate large files directly in the target tenant.
+
+If SharePoint retrieval quality is weak, check Work IQ prerequisites **before** blaming document structure.
+
+---
+
 ### Hard constraints (not configurable by makers)
 
 | Property | Status | Notes |

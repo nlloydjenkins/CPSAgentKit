@@ -90,6 +90,7 @@ Read these files when you need detailed platform knowledge for design, build, or
 - `docs/knowledge/dataverse-mcp-setup.md`
 - `docs/knowledge/declarative-agents.md`
 - `docs/knowledge/direct-line-api.md`
+- `docs/knowledge/knowledge-configuration.md`
 - `docs/knowledge/knowledge-sources.md`
 - `docs/knowledge/multi-agent-patterns.md`
 - `docs/knowledge/pipeline-patterns.md`

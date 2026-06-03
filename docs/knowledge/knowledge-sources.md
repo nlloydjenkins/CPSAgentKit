@@ -76,6 +76,60 @@ This pattern ensures agents always have the latest authoritative content when av
 
 **Websites:** Bing-powered. Must confirm org ownership. Only works with generative orchestration web search setting.
 
+## Additional Source Types
+
+### Knowledge-Base Connectors (Confluence, Salesforce, ServiceNow, Zendesk)
+
+Added at **collection level** — you cannot pick individual articles or files. Only **published** articles are used; drafts and archived content are not. Permission-aware: the agent validates end-user permissions before answering.
+
+**Gotcha:** the maker connection is used to create/configure the source, but those credentials are not reused for end users after publishing. Users must sign in with their own credentials.
+
+Use when the source is an existing article collection and published articles are the source of truth. Avoid when you need draft/archived content or individual-article selection.
+
+### Real-Time Power Platform Connectors
+
+**Preview** capability. Copilot Studio indexes **metadata** such as table and column names, but data remains in the source system and is queried at runtime using the user's token. Expect different latency, troubleshooting and security behaviour from indexed knowledge.
+
+Use when data must remain in the source system, runtime freshness matters, and the source can be queried with the user's token. Avoid when preview features are not acceptable, low latency is critical, or the source cannot handle runtime query load.
+
+### MCP Servers as Knowledge
+
+MCP is an **extension mechanism**, not just another static knowledge source. An MCP server can expose resources, tools and prompts. Resources behave like readable context; tools behave like callable functions. **Requires generative orchestration.**
+
+Use when the agent needs runtime access to a system, when the external system can expose resources/tools cleanly, when the source should not be indexed into Microsoft 365, or when live data/actions are needed.
+
+Avoid when static indexed Q&A is enough, when runtime dependency risk is unacceptable, when authentication / latency / availability cannot be governed, or when the MCP server may expose prompt-injection-prone content without controls. **Treat MCP sources as runtime dependencies with latency, availability, authentication and prompt-injection risks.**
+
+See the "MCP Servers as Live Knowledge Sources" section above for the live-fetch-plus-static-fallback orchestration pattern.
+
+### File Groups (locally uploaded files only)
+
+When multiple locally uploaded files belong to one logical knowledge set, group them into a **file group**. Each file group has its own name, description and instructions.
+
+```text
+- File groups support locally uploaded files only.
+- OneDrive and SharePoint files are NOT supported in file groups.
+- Use the group instructions to tell the agent how to choose between files in the group.
+- File groups reduce source-selection ambiguity by turning several files into
+  one logical knowledge source.
+```
+
+Good uses: region-specific policy packs, role-specific guidance, product-family documentation, persona examples grouped by audience, rubric packs (criteria + examples + scoring guidance).
+
+## Critical Gotcha: Markdown / JSON / TXT in SharePoint Libraries
+
+Markdown, JSON, YAML and plain text are supported on the **uploaded-files** path (stored and indexed in Dataverse). They are **not** reliably retrieved or citable when the same files live in a **SharePoint** document library and are added as SharePoint knowledge.
+
+SharePoint knowledge **only generates answers from DOC/DOCX, PPT/PPTX and PDF** on **modern** pages. Classic ASPX content and SPFx-component pages are not used. Markdown, JSON, TXT and other non-Office formats in a SharePoint library are effectively invisible to SharePoint knowledge.
+
+**Ship `.md` / `.json` / `.yaml` knowledge packs through the uploaded-files path, not SharePoint.** If the pack must live in SharePoint for governance reasons, convert to PDF or DOCX first.
+
+## Citation Clickability Gotcha (Uploaded Files)
+
+Files embedded directly into an agent (uploaded during build) are stored as internal content and used for answering, but they are **not hosted** — their citation links can be **non-clickable** after publishing. SharePoint, Dataverse and connector-backed sources produce resolvable citation links; locally uploaded `.md` / `.json` may not.
+
+If clickable provenance is a requirement, host the content in SharePoint / Dataverse / a connector rather than as locally uploaded files. Also note: citations returned from a knowledge source **cannot currently be passed as inputs to other tools or actions**.
+
 ## SharePoint Source Paths — Two Distinct Behaviours
 
 Copilot Studio exposes two different SharePoint knowledge paths with fundamentally different runtime behaviour. Confusing them is a common cause of inconsistent retrieval quality.

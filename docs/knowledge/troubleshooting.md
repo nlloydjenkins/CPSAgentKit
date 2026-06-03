@@ -525,3 +525,155 @@ The Copilot Studio MCP client record doesn't exist in your environment's allowed
 **Finding your publisher prefix:** The Unique Name must start with your environment's publisher prefix or the save will fail with "Export key attribute uniquename for component allowedmcpclient must start with a valid customization prefix." Find it in Power Apps → Settings (gear) → Publishers → check the prefix on your default publisher (e.g. `cr86a_`, `new_`).
 
 **After saving:** Return to Copilot Studio and re-add the Dataverse MCP Server tool. The 403 should be resolved.
+
+---
+
+## Knowledge Bad-Answer Taxonomy
+
+When a knowledge-grounded agent gives a bad answer, classify the failure before troubleshooting. See `knowledge-configuration.md → Bad-answer taxonomy` for the full list. Quick reference:
+
+| Code | Symptom |
+|---|---|
+| A | No answer — agent says it cannot help |
+| B | Generic answer — not grounded in any source |
+| C | Wrong source — cites/uses an irrelevant source |
+| D | Right source, wrong content — finds doc, misses section |
+| E | Right answer, no citation — correct but not auditable |
+| F | Citation lost after formatting — variable / adaptive card dropped it |
+| G | ContentFiltered — Responsible AI blocked input or output |
+| H | Web contamination — used public web / general AI when it shouldn't |
+| I | Permission failure — works for maker, fails for users |
+| J | Channel failure — works in test pane, fails in Teams / other |
+| K | Corpus-wide task failure — asked to reason over all documents |
+| L | Stale answer — source changed, sync/index not caught up |
+| M | Duplicate answer — overlapping sources selected |
+| N | Quota / capacity failure — looks like retrieval, isn't |
+| O | Deployment / ALM failure — worked in dev, broken after import |
+
+## Knowledge Retrieval Decision Tree
+
+When the agent did not use the expected knowledge source:
+
+1. **What orchestration mode?** Generative = description-driven; Classic = topic/trigger-driven. Apply the right lever (descriptions vs topic binding).
+2. Is the source enabled in the relevant topic/node?
+3. Is topic-level config overriding agent-level knowledge?
+4. Is "Search only selected sources" needed?
+5. Is the source description useful, with "use for" + "do not use for" guidance?
+6. Are there too many competing sources?
+7. Is the source in Ready state — and did it briefly flip back to In Progress during processing?
+8. User authenticated? Has source permission? Graph scopes consented? Runtime sign-in required?
+9. SharePoint indexed? Work IQ enabled and prerequisites met?
+10. File supported and below size limits?
+11. Answer in metadata, images, headers, footers, tables, scanned content?
+12. Moderation blocking the answer? General knowledge masking a retrieval failure? Web search contaminating?
+13. Is this actually a quota / capacity / runtime-dependency failure?
+14. Is this only happening after deployment / import?
+
+## Card: ContentFiltered (Responsible AI)
+
+**Likely causes:**
+- User input triggered safety filter.
+- Retrieved content triggered safety filter.
+- Generated answer triggered output filter.
+- Prompt injection or jailbreak-like content detected.
+- Attempt to reveal hidden prompts or reproduce copyrighted content.
+
+**Diagnosis:**
+- Check Application Insights for `ContentFiltered` events.
+- Review the conversation transcript.
+- Identify whether the trigger is user input, retrieved content or generated answer.
+- Lower moderation level only if appropriate for the risk profile (default is **High**).
+- Rewrite knowledge content to avoid unnecessary unsafe examples.
+- Add safer response instructions.
+
+Example KQL:
+
+```kusto
+customEvents
+| where customDimensions contains "ContentFiltered"
+| project timestamp, name, itemType, customDimensions, session_Id, user_Id, cloud_RoleInstance
+```
+
+**SharePoint transcript gotcha:** SharePoint-grounded responses may **not** appear in conversation transcripts. If the issue involves SharePoint knowledge, use test reproduction, source isolation and telemetry rather than relying only on transcripts.
+
+## Card: Updated the file but agent still gives the old answer (sync delay)
+
+**Likely causes:**
+- SharePoint/OneDrive upload-source sync has not completed.
+- Status briefly showed Ready before processing moved back to In Progress and back to Ready.
+- The source needs refresh/reindexing.
+- The old document still ranks higher than the updated one.
+- Duplicate old versions still exist.
+
+**Fixes:**
+- Wait for the documented sync window (5–30 min uploaded; 4–6 hr SharePoint files).
+- Check whether status moved Ready → In Progress → Ready.
+- Re-test with exact wording from the updated document.
+- Remove or archive old conflicting versions.
+- Confirm the final channel is using the latest published version.
+
+## Card: Agent suddenly stops answering / becomes unavailable
+
+**Likely causes:**
+- Generative AI message quota reached.
+- Trial / developer environment limits.
+- Pay-as-you-go or prepaid capacity not configured as expected.
+- High-volume testing consumed environment quota.
+- Timeout / latency from multiple tools, connectors or MCP servers.
+
+**Fixes:**
+- Check environment-level Copilot Studio quotas and billing/capacity plan.
+- Check whether failures correlate with load or testing.
+- Check connector / MCP / runtime dependency health.
+- **Do not misdiagnose quota failures as knowledge retrieval failures.**
+
+## Card: Duplicate or overlapping answers
+
+**Likely causes (under generative orchestration):**
+- Multiple topics / tools / knowledge sources selected for the same intent.
+- Source descriptions overlap.
+- A topic and a knowledge source both answer the same intent.
+- Conversational boosting + topic both fire.
+- Global fallback overlaps with a more specific source.
+
+**Fixes:**
+- Make source and topic descriptions **mutually exclusive**.
+- Add "do not use this source for…" wording.
+- Consolidate overlapping knowledge.
+- Move controlled retrieval into a specific generative answers node.
+- Disable or narrow redundant fallback paths.
+
+## Card: Imported agent has broken knowledge (ALM)
+
+**Likely causes:**
+- OneDrive or Upload-SharePoint unstructured sources were **not** processed after import.
+- Target environment doesn't have the same connections, permissions or auth config.
+- Work IQ / semantic index prerequisites differ between tenants/environments.
+- Source URLs or connector connections differ.
+
+**Fixes:**
+- Run a post-deployment knowledge validation task: confirm knowledge sources are processed and Ready in the target environment.
+- Re-run the minimum knowledge test plan in the target channel.
+- Test as a normal end user, not only the maker.
+
+**ALM gotcha:** for OneDrive and Upload-SharePoint unstructured knowledge sources, ALM does **not** automatically process the knowledge after import.
+
+## Card: Instruction-only fixes do not work
+
+**Symptom:** the maker adds instructions such as "search the policy library", but the agent still does not use the source.
+
+**Likely cause:** the source or tool is **not configured**, or **not eligible** under the current orchestration mode (e.g. Custom Data / Bing Custom Search / Azure OpenAI under generative orchestration without embedding in a generative answers node).
+
+**Fix:** configure the source/tool explicitly, check eligibility, add or improve descriptions, use a topic / generative-answers node when source binding is required. Do not try to fix missing knowledge configuration with instructions.
+
+## Card: Works for maker, not for users (runtime sign-in)
+
+**Likely causes:**
+- User lacks SharePoint access.
+- Authentication not configured correctly.
+- Missing Microsoft Graph scopes / consent not granted.
+- Channel authentication differs from test chat.
+- User is a guest / external user.
+- End user has not signed in to an unstructured data source or connector.
+
+**Unstructured-data auth gotcha:** all unstructured data sources require user-level authentication. At runtime, users must sign in **before** the agent can query those sources. Single-credential sign-in is not currently supported. **Do not assume the maker's connection is reused for end users.**

@@ -261,3 +261,31 @@ If you edit the YAML to satisfy the stale error, you can introduce a real bug on
 4. Prefer editing the flow in VS Code and using Apply Changes to push to the portal — this preserves the exact structure.
 
 **Recovery:** If portal editing has damaged the flow, restore from the local workflow.json backup. The local file can be the correct version — but Power Automate is the source of truth for flows, so you must re-apply the fix either through Apply Changes or by manually recreating the correct structure in the PA designer.
+
+## Knowledge Configuration Anti-Patterns
+
+**Putting `.md` / `.json` / `.txt` knowledge packs in a SharePoint library.** SharePoint knowledge only retrieves DOC/DOCX, PPT/PPTX, PDF — the other files are silently never used. Ship those packs through the uploaded-files path (Dataverse), or convert to PDF/DOCX first. See `knowledge-sources.md → Critical Gotcha: Markdown / JSON / TXT in SharePoint Libraries`.
+
+**Giving retrieval advice without checking orchestration mode.** Generative orchestration is the default, and selection is description-driven; classic-style "bind a topic to a source" fixes do not apply. Always establish the mode first. See `knowledge-configuration.md → Orchestration mode is the primary variable`.
+
+**SharePoint-grounded agent with Work IQ prerequisites unmet.** Without an M365 Copilot license + assigned user + semantic index + Microsoft Entra auth, SharePoint retrieval falls back to weaker search and large files may not be usable. Mistaking this for a document-structure problem wastes hours. See `retrieval-internals.md → Work IQ / semantic index`.
+
+**Fixing missing tools or sources with instructions.** Instructions like "search the policy library" don't help when the source/tool is not configured or not eligible under the orchestration mode. Configure the source explicitly.
+
+**Overlapping source descriptions under generative orchestration.** Generative orchestration may select multiple sources/topics/tools for the same intent and produce duplicate or confused answers. Make descriptions mutually exclusive and add "do not use this source for…" wording.
+
+**Deploying unstructured knowledge without post-deployment validation.** ALM does not automatically process OneDrive / Upload-SharePoint knowledge sources after import. The imported agent looks valid but knowledge was not processed in the target environment. Always include a post-deployment knowledge validation task.
+
+**Using preview / experimental models in production knowledge agents without explicit risk acceptance.** Preview models can vary in quality, latency, message consumption and data residency / cross-geo behaviour.
+
+**Treating knowledge "Ready" as "working".** "Ready" means available for testing, not working. Unstructured sources may flip Ready → In Progress → Ready during processing; sensitivity-labelled or oversized files show Ready but never answer. Always run a positive retrieval test.
+
+**Designing a SharePoint knowledge agent that depends on document-library metadata.** Metadata columns are not reliably retrieved as body content. Move important metadata into the document body, or use SharePoint Lists / Dataverse / Azure AI Search with indexed metadata fields.
+
+**Uploading CSV / Excel and expecting BI-style answers.** Knowledge retrieval is not a query engine. Use Dataverse / SQL / API / Power Automate / custom tools for calculations, totals, comparisons or ranking.
+
+**Asking an agent to "review every policy" / "score the whole library".** Knowledge retrieval is query-driven, not batch document processing. If the use case says "all documents", recommend a batch architecture with results stored in Dataverse / SQL / SharePoint List, then let the agent query the results.
+
+**Capturing the generated answer in a variable and rendering it manually.** Citations are typically dropped when the answer is reformatted through adaptive cards or custom output. Use default generative-answer rendering, or explicitly include citations when customising.
+
+**Testing only as the maker.** Permissions and channel auth fail differently for normal users. Always test as a regular end user in the final channel, not only the test pane.
