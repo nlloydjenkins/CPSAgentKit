@@ -15,7 +15,7 @@ export interface CpsConfig {
 
 const CONFIG_DIR = ".agent-workbench";
 const CONFIG_FILE = "config.json";
-export const CURRENT_VERSION = "1.0.0";
+export const CURRENT_VERSION = "0.15.0";
 
 /** Default config values for a fresh project */
 function defaults(): CpsConfig {

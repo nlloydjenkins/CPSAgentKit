@@ -111,6 +111,9 @@ if (fs.existsSync(mcpIndexPath)) {
   console.log("  updated packages/mcp-server/src/index.ts");
 }
 
+// Keep package-lock workspace metadata in sync with the version bump before building.
+run("npm install --package-lock-only");
+
 // Compile all workspaces
 run("npm run compile");
 
