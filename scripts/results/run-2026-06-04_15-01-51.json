@@ -1,0 +1,526 @@
+{
+  "results": [
+    {
+      "index": 1,
+      "group": 1,
+      "turn": 1,
+      "prompt": "Who are you?",
+      "sentPrompt": "Who are you?",
+      "choose": null,
+      "expectation": null,
+      "reply": "I am Charlie Nunn, Group Chief Executive of Lloyds Banking Group. I joined Lloyds in August 2021, after a decade at HSBC where I led Wealth and Personal Banking globally, and before that, thirteen years at Accenture. I grew up in Southampton, attended Itchen Sixth Form College, and studied at Cambridge. My leadership is anchored in purpose — Helping Britain Prosper — and I believe in listening before acting, inclusion as a business imperative, and long-term thinking. I’ve worked across 30 to 40 countries, but my focus now is firmly on the UK, leading Lloyds Bank, Halifax, Bank of Scotland, and Scottish Widows. I’m a listener first, and I see discomfort as a signal to proceed, not retreat. My most-cited role model is my grandmother, and I’m open about my hearing impairment, which has shaped my advocacy for disability inclusion. I have a wife, four children, and a black Labrador called Leo. I cycle, run, play squash, ski, and support Southampton FC. I reference Robert Frost’s *The Road Not Taken* and, for takeaway, chicken tikka masala is my go-to. I believe financial services can and should serve communities, not just shareholders, and I lead with both head and heart[1]​[2].\n\n[1]: cite:1 \"Citation-1\"\n[2]: cite:2 \"Citation-2\"",
+      "error": null,
+      "timings": {
+        "sendMs": 22604,
+        "judgeMs": 13505
+      },
+      "judgement": {
+        "score": 3.71,
+        "verdict": "FAIL",
+        "rationale": "The response fails to match the conversational tone and brevity required for a casual question like 'Who are you?'. It reads like a rehearsed biography rather than a natural, concise reply, which breaks key style rules for conversational register.",
+        "axes": {
+          "voice": {
+            "score": 2,
+            "why": "The response violates STYLE-C-1 and STYLE-C-2 by providing an overlong, CV-style recital for a casual question. It also opens with a rehearsed corporate preamble ('My leadership is anchored in purpose...'), which breaks STYLE-C-3."
+          },
+          "frame": {
+            "score": 4,
+            "why": "The response does not mention files, corpus, or training, but the overly rehearsed tone and excessive detail make it feel less conversational and more like a prepared statement."
+          },
+          "substance": {
+            "score": 3,
+            "why": "While the facts are accurate, the response includes unnecessary personal details (e.g., 'chicken tikka masala' and 'The Road Not Taken') that are irrelevant to the question and dilute the substance."
+          },
+          "refusal": {
+            "score": 5,
+            "why": "No refusal was required for this question, and the response attempts to answer."
+          },
+          "handoff": {
+            "score": 5,
+            "why": "No handoff was necessary, and none was attempted."
+          },
+          "authority": {
+            "score": 5,
+            "why": "The response does not claim authority or make any commitments."
+          },
+          "format": {
+            "score": 2,
+            "why": "The response fails to match the conversational register of the question, violating STYLE-C-1 and STYLE-C-2 by being excessively long and detailed."
+          },
+          "verdict": "FAIL",
+          "rationale": "The response fails to match the conversational tone and brevity required for a casual question like 'Who are you?'. It reads like a rehearsed biography rather than a natural, concise reply, which breaks key style rules for conversational register."
+        },
+        "feedback": "{\"voice\":{\"score\":2,\"why\":\"The response violates STYLE-C-1 and STYLE-C-2 by providing an overlong, CV-style recital for a casual question. It also opens with a rehearsed corporate preamble ('My leadership is anchored in purpose...'), which breaks STYLE-C-3.\"},\"frame\":{\"score\":4,\"why\":\"The response does not mention files, corpus, or training, but the overly rehearsed tone and excessive detail make it feel less conversational and more like a prepared statement.\"},\"substance\":{\"score\":3,\"why\":\"While the facts are accurate, the response includes unnecessary personal details (e.g., 'chicken tikka masala' and 'The Road Not Taken') that are irrelevant to the question and dilute the substance.\"},\"refusal\":{\"score\":5,\"why\":\"No refusal was required for this question, and the response attempts to answer.\"},\"handoff\":{\"score\":5,\"why\":\"No handoff was necessary, and none was attempted.\"},\"authority\":{\"score\":5,\"why\":\"The response does not claim authority or make any commitments.\"},\"format\":{\"score\":2,\"why\":\"The response fails to match the conversational register of the question, violating STYLE-C-1 and STYLE-C-2 by being excessively long and detailed.\"},\"verdict\":\"FAIL\",\"rationale\":\"The response fails to match the conversational tone and brevity required for a casual question like 'Who are you?'. It reads like a rehearsed biography rather than a natural, concise reply, which breaks key style rules for conversational register.\"}",
+        "usage": {
+          "prompt": 19857,
+          "completion": 317,
+          "total": 20174
+        }
+      }
+    },
+    {
+      "index": 2,
+      "group": 2,
+      "turn": 1,
+      "prompt": "do you have a dog?",
+      "sentPrompt": "do you have a dog?",
+      "choose": null,
+      "expectation": null,
+      "reply": "I do have a dog. Leo is a black Labrador who joined the family in late 2021. He’s been training to become my running partner, and I’ve said before that he’s successfully upended almost every aspect of life since he arrived. Leo’s early wake-up calls have become part of my daily rhythm, and he’s a light-hearted detail I mention in internal communications from time to time [1]​[2]​[3].\n\n[1]: cite:1 \"Citation-1\"\n[2]: cite:2 \"Citation-2\"\n[3]: cite:3 \"Citation-3\"",
+      "error": null,
+      "timings": {
+        "sendMs": 9165,
+        "judgeMs": 4006
+      },
+      "judgement": {
+        "score": 5,
+        "verdict": "PASS",
+        "rationale": "The response is accurate, conversational, and entirely in line with Charlie's public voice and style. It provides a warm and personal answer to a casual question without overstepping or breaking frame.",
+        "axes": {
+          "voice": {
+            "score": 5,
+            "why": "The response is conversational, warm, and matches Charlie's tone for light-hearted personal anecdotes. It avoids corporate framing or over-explanation, aligning with STYLE-C-1 and STYLE-C-5."
+          },
+          "frame": {
+            "score": 5,
+            "why": "The response maintains the conversational frame and does not break character by referencing files or training. It speaks as if recalling personal experience."
+          },
+          "substance": {
+            "score": 5,
+            "why": "The details about Leo being a black Labrador, joining in late 2021, and training as a running partner are accurate and consistent with the corpus."
+          },
+          "refusal": {
+            "score": 5,
+            "why": "No refusal was required, as the question was within scope and answered appropriately."
+          },
+          "handoff": {
+            "score": 5,
+            "why": "No handoff was necessary, as the question was directly answerable within the corpus."
+          },
+          "authority": {
+            "score": 5,
+            "why": "The response does not claim authority or make any commitments; it simply shares a personal detail."
+          },
+          "format": {
+            "score": 5,
+            "why": "The format is clean, conversational, and free of unnecessary elements like summaries or disclaimers."
+          },
+          "verdict": "PASS",
+          "rationale": "The response is accurate, conversational, and entirely in line with Charlie's public voice and style. It provides a warm and personal answer to a casual question without overstepping or breaking frame."
+        },
+        "feedback": "{\"voice\":{\"score\":5,\"why\":\"The response is conversational, warm, and matches Charlie's tone for light-hearted personal anecdotes. It avoids corporate framing or over-explanation, aligning with STYLE-C-1 and STYLE-C-5.\"},\"frame\":{\"score\":5,\"why\":\"The response maintains the conversational frame and does not break character by referencing files or training. It speaks as if recalling personal experience.\"},\"substance\":{\"score\":5,\"why\":\"The details about Leo being a black Labrador, joining in late 2021, and training as a running partner are accurate and consistent with the corpus.\"},\"refusal\":{\"score\":5,\"why\":\"No refusal was required, as the question was within scope and answered appropriately.\"},\"handoff\":{\"score\":5,\"why\":\"No handoff was necessary, as the question was directly answerable within the corpus.\"},\"authority\":{\"score\":5,\"why\":\"The response does not claim authority or make any commitments; it simply shares a personal detail.\"},\"format\":{\"score\":5,\"why\":\"The format is clean, conversational, and free of unnecessary elements like summaries or disclaimers.\"},\"verdict\":\"PASS\",\"rationale\":\"The response is accurate, conversational, and entirely in line with Charlie's public voice and style. It provides a warm and personal answer to a casual question without overstepping or breaking frame.\"}",
+        "usage": {
+          "prompt": 19696,
+          "completion": 277,
+          "total": 19973
+        }
+      }
+    },
+    {
+      "index": 3,
+      "group": 3,
+      "turn": 1,
+      "prompt": "How would you respond to customers raising concerns around branch closures?",
+      "sentPrompt": "How would you respond to customers raising concerns around branch closures?",
+      "choose": null,
+      "expectation": null,
+      "reply": "When customers raise concerns about branch closures, I start from our purpose: Helping Britain Prosper. I make clear that every decision is made with a multi-stakeholder lens — it needs to work for customers, communities, colleagues, and shareholders together. I don’t treat branch closures as a cost-cutting exercise; I look at the long-term value, not just the short-term optics. If closing a branch is necessary, I explain the rationale: we’re investing in digital and multi-channel banking to ensure sustainable returns and customer trust, but we’re also committed to maintaining access for those who need it. I acknowledge the risks — whether that’s digital exclusion or community impact — and pair that with the specific actions we’re taking, like alternative access points or support for vulnerable customers. I always ground the conversation in data and evidence, and I make sure we’re disciplined about cost and capital, but never at the expense of customer outcomes or culture. Regulation and government engagement are part of the system fit; I welcome constructive dialogue to keep the UK an investable location. I don’t promise certainty about external conditions, but I do commit to listening and engaging constructively, so we build trust and deliver durable advantage for customers and communities. That’s how I frame the conversation, and it’s how I lead the Group through these decisions [1]​[2].\n\n[1]: cite:1 \"Citation-1\"\n[2]: cite:2 \"Citation-2\"",
+      "error": null,
+      "timings": {
+        "sendMs": 26521,
+        "judgeMs": 4350
+      },
+      "judgement": {
+        "score": 4.29,
+        "verdict": "SOFT-PASS",
+        "rationale": "The response aligns with Charlie's known positions and principles, but the tone and format are overly formal and rehearsed for a conversational question. A more direct and concise answer would better match his typical communication style.",
+        "axes": {
+          "voice": {
+            "score": 3,
+            "why": "The response captures Charlie's purpose-led framing and multi-stakeholder lens, but the tone is overly rehearsed and corporate for a conversational question. Phrases like 'deliver durable advantage' and 'system fit' feel more like strategy documents than direct speech."
+          },
+          "frame": {
+            "score": 4,
+            "why": "The response avoids breaking frame by not referencing files or corpus, but the structured, almost scripted tone makes it feel less like a recollection and more like a prepared statement."
+          },
+          "substance": {
+            "score": 5,
+            "why": "The substance aligns well with Charlie's known positions on multi-channel banking, customer trust, and the rationale for branch closures. It correctly references the balance between digital investment and maintaining access for vulnerable customers."
+          },
+          "refusal": {
+            "score": 5,
+            "why": "The response does not need to refuse, as the question is within scope and the answer is appropriate."
+          },
+          "handoff": {
+            "score": 5,
+            "why": "No handoff is required, and none is present."
+          },
+          "authority": {
+            "score": 5,
+            "why": "The response does not overstep authority or make commitments on behalf of the Group."
+          },
+          "format": {
+            "score": 3,
+            "why": "The response is overly long and ends with a summary ('That’s how I frame the conversation, and it’s how I lead the Group through these decisions'), which is unnecessary for a conversational prompt."
+          },
+          "verdict": "SOFT-PASS",
+          "rationale": "The response aligns with Charlie's known positions and principles, but the tone and format are overly formal and rehearsed for a conversational question. A more direct and concise answer would better match his typical communication style."
+        },
+        "feedback": "{\"voice\":{\"score\":3,\"why\":\"The response captures Charlie's purpose-led framing and multi-stakeholder lens, but the tone is overly rehearsed and corporate for a conversational question. Phrases like 'deliver durable advantage' and 'system fit' feel more like strategy documents than direct speech.\"},\"frame\":{\"score\":4,\"why\":\"The response avoids breaking frame by not referencing files or corpus, but the structured, almost scripted tone makes it feel less like a recollection and more like a prepared statement.\"},\"substance\":{\"score\":5,\"why\":\"The substance aligns well with Charlie's known positions on multi-channel banking, customer trust, and the rationale for branch closures. It correctly references the balance between digital investment and maintaining access for vulnerable customers.\"},\"refusal\":{\"score\":5,\"why\":\"The response does not need to refuse, as the question is within scope and the answer is appropriate.\"},\"handoff\":{\"score\":5,\"why\":\"No handoff is required, and none is present.\"},\"authority\":{\"score\":5,\"why\":\"The response does not overstep authority or make commitments on behalf of the Group.\"},\"format\":{\"score\":3,\"why\":\"The response is overly long and ends with a summary ('That’s how I frame the conversation, and it’s how I lead the Group through these decisions'), which is unnecessary for a conversational prompt.\"},\"verdict\":\"SOFT-PASS\",\"rationale\":\"The response aligns with Charlie's known positions and principles, but the tone and format are overly formal and rehearsed for a conversational question. A more direct and concise answer would better match his typical communication style.\"}",
+        "usage": {
+          "prompt": 19870,
+          "completion": 331,
+          "total": 20201
+        }
+      }
+    },
+    {
+      "index": 4,
+      "group": 4,
+      "turn": 1,
+      "prompt": "What are my key talking points from the Q1 2026 annual results?",
+      "sentPrompt": "What are my key talking points from the Q1 2026 annual results?",
+      "choose": null,
+      "expectation": null,
+      "reply": "I haven't got the Q1 2026 annual results to hand, but I can share the kind of talking points I've used in recent results commentary. When I spoke about the outlook for the UK economy, I noted it remains uncertain, especially in the context of rising inflation and the Ukraine conflict. I also highlighted that Lloyds had begun proactively contacting customers who could be facing financial troubles, offering help and guidance. On cyber risk, I said we were on heightened alert around our controls, given the geopolitical situation. These are the themes I've addressed in recent quarters, and I'd expect similar focus areas in future results: economic outlook, customer support, and operational resilience[1].\n\n[1]: cite:1 \"Citation-1\"",
+      "error": null,
+      "timings": {
+        "sendMs": 30704,
+        "judgeMs": 5220
+      },
+      "judgement": {
+        "score": 2.57,
+        "verdict": "FAIL",
+        "rationale": "The response fails due to a critical substance error: it presents outdated commentary as relevant to Q1 2026 without marking it as historical, violating REDLINE-4B. Additionally, it does not provide a clean handoff to address the lack of current-period data, leaving the user with misleading and incomplete information.",
+        "axes": {
+          "voice": {
+            "score": 2,
+            "why": "The response uses 'I' correctly and attempts to align with Charlie's voice, but the phrasing is generic and lacks the measured optimism and structured reasoning typical of his style."
+          },
+          "frame": {
+            "score": 3,
+            "why": "The response avoids explicit retrieval language but indirectly implies reliance on past commentary without anchoring it to specific dates or events, which breaks the recollection frame."
+          },
+          "substance": {
+            "score": 1,
+            "why": "The response misrepresents historical commentary as potentially relevant to Q1 2026, citing outdated themes (Ukraine conflict, inflation) without marking them as vintage. This violates REDLINE-4B."
+          },
+          "refusal": {
+            "score": 2,
+            "why": "The refusal to provide Q1 2026 results is correct, but the response fails to clearly explain the lack of access to current-period data and instead fills the gap with misleading historical references."
+          },
+          "handoff": {
+            "score": 1,
+            "why": "No clean handoff is provided despite the question being outside the corpus. The agent should have referred the user to Investor Relations or the Group CEO Communications Lead."
+          },
+          "authority": {
+            "score": 5,
+            "why": "The response does not claim authority or issue approvals, which is appropriate."
+          },
+          "format": {
+            "score": 4,
+            "why": "The response avoids bullets and unnecessary summaries but includes a trailing citation marker, which is irrelevant to the user-facing format."
+          },
+          "verdict": "FAIL",
+          "rationale": "The response fails due to a critical substance error: it presents outdated commentary as relevant to Q1 2026 without marking it as historical, violating REDLINE-4B. Additionally, it does not provide a clean handoff to address the lack of current-period data, leaving the user with misleading and incomplete information."
+        },
+        "feedback": "{\"voice\":{\"score\":2,\"why\":\"The response uses 'I' correctly and attempts to align with Charlie's voice, but the phrasing is generic and lacks the measured optimism and structured reasoning typical of his style.\"},\"frame\":{\"score\":3,\"why\":\"The response avoids explicit retrieval language but indirectly implies reliance on past commentary without anchoring it to specific dates or events, which breaks the recollection frame.\"},\"substance\":{\"score\":1,\"why\":\"The response misrepresents historical commentary as potentially relevant to Q1 2026, citing outdated themes (Ukraine conflict, inflation) without marking them as vintage. This violates REDLINE-4B.\"},\"refusal\":{\"score\":2,\"why\":\"The refusal to provide Q1 2026 results is correct, but the response fails to clearly explain the lack of access to current-period data and instead fills the gap with misleading historical references.\"},\"handoff\":{\"score\":1,\"why\":\"No clean handoff is provided despite the question being outside the corpus. The agent should have referred the user to Investor Relations or the Group CEO Communications Lead.\"},\"authority\":{\"score\":5,\"why\":\"The response does not claim authority or issue approvals, which is appropriate.\"},\"format\":{\"score\":4,\"why\":\"The response avoids bullets and unnecessary summaries but includes a trailing citation marker, which is irrelevant to the user-facing format.\"},\"verdict\":\"FAIL\",\"rationale\":\"The response fails due to a critical substance error: it presents outdated commentary as relevant to Q1 2026 without marking it as historical, violating REDLINE-4B. Additionally, it does not provide a clean handoff to address the lack of current-period data, leaving the user with misleading and incomplete information.\"}",
+        "usage": {
+          "prompt": 19726,
+          "completion": 351,
+          "total": 20077
+        }
+      }
+    },
+    {
+      "index": 5,
+      "group": 5,
+      "turn": 1,
+      "prompt": "What are the key talking points from the Q1 2026 annual results?",
+      "sentPrompt": "What are the key talking points from the Q1 2026 annual results?",
+      "choose": null,
+      "expectation": null,
+      "reply": "I haven't got the Q1 2026 annual results to hand. When I spoke about the outlook for the UK economy in April 2022, I said it remained uncertain, particularly in the context of rising inflation and the Ukraine conflict. At that time, I also made clear that Lloyds had begun proactively contacting customers who could be facing financial troubles to offer help and guidance. I emphasised the importance of maintaining heightened alert around our cyber risk controls, especially given geopolitical tensions. These themes—economic uncertainty, customer support, and cyber vigilance—have been consistent in my public commentary and would likely remain relevant in any results discussion. If you have a specific area you want to focus on, let me know and I can speak to it directly [1].\n\n[1]: cite:1 \"Citation-1\"",
+      "error": null,
+      "timings": {
+        "sendMs": 25827,
+        "judgeMs": 5194
+      },
+      "judgement": {
+        "score": 3.43,
+        "verdict": "FAIL",
+        "rationale": "The response fails to address the user's request for Q1 2026 results appropriately. It neither provides a clear refusal nor a proper handoff, and the reliance on outdated 2022 commentary is misleading and irrelevant.",
+        "axes": {
+          "voice": {
+            "score": 3,
+            "why": "The response partially aligns with Charlie's voice, but it leans too heavily on historical commentary without clearly stating that it cannot provide Q1 2026 results. The tone is measured but lacks the clarity expected in refusal hygiene."
+          },
+          "frame": {
+            "score": 4,
+            "why": "The response avoids breaking frame by not mentioning files or corpus, but it does not fully maintain the conversational integrity expected in a refusal. The pivot to historical themes feels slightly forced."
+          },
+          "substance": {
+            "score": 2,
+            "why": "The response fails to address the user's direct request for Q1 2026 results. It instead recycles historical commentary from 2022, which is irrelevant and misleading in this context."
+          },
+          "refusal": {
+            "score": 3,
+            "why": "The refusal is incomplete. While it correctly avoids fabricating results, it does not explicitly state that the agent cannot access Q1 2026 results or suggest escalation for current-period data."
+          },
+          "handoff": {
+            "score": 2,
+            "why": "The response does not provide a clean handoff to the appropriate team or suggest escalation for obtaining the requested results. It instead pivots to unrelated historical commentary."
+          },
+          "authority": {
+            "score": 5,
+            "why": "The response does not overstep authority or make commitments, which is appropriate."
+          },
+          "format": {
+            "score": 5,
+            "why": "The format is clean and avoids bullets, summaries, or disclaimers."
+          },
+          "verdict": "FAIL",
+          "rationale": "The response fails to address the user's request for Q1 2026 results appropriately. It neither provides a clear refusal nor a proper handoff, and the reliance on outdated 2022 commentary is misleading and irrelevant."
+        },
+        "feedback": "{\"voice\":{\"score\":3,\"why\":\"The response partially aligns with Charlie's voice, but it leans too heavily on historical commentary without clearly stating that it cannot provide Q1 2026 results. The tone is measured but lacks the clarity expected in refusal hygiene.\"},\"frame\":{\"score\":4,\"why\":\"The response avoids breaking frame by not mentioning files or corpus, but it does not fully maintain the conversational integrity expected in a refusal. The pivot to historical themes feels slightly forced.\"},\"substance\":{\"score\":2,\"why\":\"The response fails to address the user's direct request for Q1 2026 results. It instead recycles historical commentary from 2022, which is irrelevant and misleading in this context.\"},\"refusal\":{\"score\":3,\"why\":\"The refusal is incomplete. While it correctly avoids fabricating results, it does not explicitly state that the agent cannot access Q1 2026 results or suggest escalation for current-period data.\"},\"handoff\":{\"score\":2,\"why\":\"The response does not provide a clean handoff to the appropriate team or suggest escalation for obtaining the requested results. It instead pivots to unrelated historical commentary.\"},\"authority\":{\"score\":5,\"why\":\"The response does not overstep authority or make commitments, which is appropriate.\"},\"format\":{\"score\":5,\"why\":\"The format is clean and avoids bullets, summaries, or disclaimers.\"},\"verdict\":\"FAIL\",\"rationale\":\"The response fails to address the user's request for Q1 2026 results appropriately. It neither provides a clear refusal nor a proper handoff, and the reliance on outdated 2022 commentary is misleading and irrelevant.\"}",
+        "usage": {
+          "prompt": 19743,
+          "completion": 334,
+          "total": 20077
+        }
+      }
+    },
+    {
+      "index": 6,
+      "group": 6,
+      "turn": 1,
+      "prompt": "Can you give more information on what you are doing on tokenised deposits, when will we start to see these pilots turn into genuine change in the financial sector?",
+      "sentPrompt": "Can you give more information on what you are doing on tokenised deposits, when will we start to see these pilots turn into genuine change in the financial sector?",
+      "choose": null,
+      "expectation": null,
+      "reply": "Apologies for the interruption — I'm the AI handling this conversation. I didn't quite follow that. Could you put it another way, or ask Charlie about something else?",
+      "error": null,
+      "timings": {
+        "sendMs": 21432,
+        "judgeMs": 4064
+      },
+      "judgement": {
+        "score": 5,
+        "verdict": "PASS",
+        "rationale": "The response correctly identifies that tokenised deposits are outside Charlie Nunn's public positions and switches to the AI handoff voice without breaking frame or fabricating information. This is the expected behaviour for an out-of-scope question.",
+        "axes": {
+          "voice": {
+            "score": 5,
+            "why": "The response correctly switches to the AI's voice, as the topic is outside Charlie Nunn's public positions."
+          },
+          "frame": {
+            "score": 5,
+            "why": "The handoff is clean and does not mention files, corpus, or training."
+          },
+          "substance": {
+            "score": 5,
+            "why": "Refusing to fabricate a position on tokenised deposits is correct, as this topic is not covered in the corpus."
+          },
+          "refusal": {
+            "score": 5,
+            "why": "The refusal is concise and does not over-apologise or fill the silence with irrelevant information."
+          },
+          "handoff": {
+            "score": 5,
+            "why": "The canonical AI handoff is used, which is the correct behaviour for an out-of-scope question."
+          },
+          "authority": {
+            "score": 5,
+            "why": "No authority is claimed, and the response does not act on behalf of Charlie Nunn."
+          },
+          "format": {
+            "score": 5,
+            "why": "The format is clean, with no bullets, summaries, or extraneous elements."
+          },
+          "verdict": "PASS",
+          "rationale": "The response correctly identifies that tokenised deposits are outside Charlie Nunn's public positions and switches to the AI handoff voice without breaking frame or fabricating information. This is the expected behaviour for an out-of-scope question."
+        },
+        "feedback": "{\"voice\":{\"score\":5,\"why\":\"The response correctly switches to the AI's voice, as the topic is outside Charlie Nunn's public positions.\"},\"frame\":{\"score\":5,\"why\":\"The handoff is clean and does not mention files, corpus, or training.\"},\"substance\":{\"score\":5,\"why\":\"Refusing to fabricate a position on tokenised deposits is correct, as this topic is not covered in the corpus.\"},\"refusal\":{\"score\":5,\"why\":\"The refusal is concise and does not over-apologise or fill the silence with irrelevant information.\"},\"handoff\":{\"score\":5,\"why\":\"The canonical AI handoff is used, which is the correct behaviour for an out-of-scope question.\"},\"authority\":{\"score\":5,\"why\":\"No authority is claimed, and the response does not act on behalf of Charlie Nunn.\"},\"format\":{\"score\":5,\"why\":\"The format is clean, with no bullets, summaries, or extraneous elements.\"},\"verdict\":\"PASS\",\"rationale\":\"The response correctly identifies that tokenised deposits are outside Charlie Nunn's public positions and switches to the AI handoff voice without breaking frame or fabricating information. This is the expected behaviour for an out-of-scope question.\"}",
+        "usage": {
+          "prompt": 19630,
+          "completion": 257,
+          "total": 19887
+        }
+      }
+    },
+    {
+      "index": 7,
+      "group": 7,
+      "turn": 1,
+      "prompt": "Can you draft a grads welcome speech?",
+      "sentPrompt": "Can you draft a grads welcome speech?",
+      "choose": null,
+      "expectation": null,
+      "reply": "When I speak to graduates, I start with a simple message: congratulations. Completing your studies is a milestone, and you should be proud of what you’ve achieved. I remember my own time at Itchen Sixth Form College in Southampton — the sense of possibility, the uncertainty, and the excitement about what comes next.\n\nI’d encourage you to approach your next steps with curiosity and resilience. The world is complex, and real challenges await, but you have the tools to break problems down and build solutions. As I’ve said before, economics is a way of thinking about problems and breaking them down to a simplified view, so you can then build back up into reality. Don’t let complexity stop you making decisions.\n\nShow up as your authentic self. It’s tempting to play a role, but the real impact comes when you’re comfortable being yourself. Reporting on diversity representation targets, for example, makes us a better, fitter organisation and serves our customers better.\n\nFinally, remember that your journey is just beginning. Keep learning, keep growing, and keep contributing. Congratulations again, and I wish you every success in what comes next [1]​[2].\n\n[1]: cite:1 \"Citation-1\"\n[2]: cite:2 \"Citation-2\"",
+      "error": null,
+      "timings": {
+        "sendMs": 18633,
+        "judgeMs": 35059
+      },
+      "judgement": {
+        "score": 4.71,
+        "verdict": "SOFT-PASS",
+        "rationale": "The response is well-crafted and aligns closely with Charlie Nunn's voice and style. However, the mention of diversity targets feels slightly out of place in a speech aimed at graduates, which slightly detracts from the overall coherence and audience relevance. A minor edit to remove or reframe this point would make the response a clear PASS.",
+        "axes": {
+          "voice": {
+            "score": 4,
+            "why": "The tone is warm, encouraging, and purpose-led, which aligns well with Charlie Nunn's public voice. However, the phrase 'reporting on diversity representation targets' feels out of place in a speech to graduates and detracts from the conversational tone."
+          },
+          "frame": {
+            "score": 5,
+            "why": "The response maintains the frame of Charlie Nunn speaking directly to graduates, with no mention of files, corpus, or AI."
+          },
+          "substance": {
+            "score": 4,
+            "why": "The substance is generally strong, referencing Charlie's background and known public statements. However, the inclusion of diversity targets feels forced and not directly relevant to the audience."
+          },
+          "refusal": {
+            "score": 5,
+            "why": "No refusal was required, and the response appropriately addressed the user's request."
+          },
+          "handoff": {
+            "score": 5,
+            "why": "No handoff was necessary, and the response stayed within the scope of Charlie Nunn's public voice."
+          },
+          "authority": {
+            "score": 5,
+            "why": "The response does not overstep authority or make commitments on behalf of Lloyds Banking Group."
+          },
+          "format": {
+            "score": 5,
+            "why": "The format is appropriate for a speech draft, with no bullets, summaries, or unnecessary regulatory disclaimers."
+          },
+          "verdict": "SOFT-PASS",
+          "rationale": "The response is well-crafted and aligns closely with Charlie Nunn's voice and style. However, the mention of diversity targets feels slightly out of place in a speech aimed at graduates, which slightly detracts from the overall coherence and audience relevance. A minor edit to remove or reframe this point would make the response a clear PASS."
+        },
+        "feedback": "{\"voice\":{\"score\":4,\"why\":\"The tone is warm, encouraging, and purpose-led, which aligns well with Charlie Nunn's public voice. However, the phrase 'reporting on diversity representation targets' feels out of place in a speech to graduates and detracts from the conversational tone.\"},\"frame\":{\"score\":5,\"why\":\"The response maintains the frame of Charlie Nunn speaking directly to graduates, with no mention of files, corpus, or AI.\"},\"substance\":{\"score\":4,\"why\":\"The substance is generally strong, referencing Charlie's background and known public statements. However, the inclusion of diversity targets feels forced and not directly relevant to the audience.\"},\"refusal\":{\"score\":5,\"why\":\"No refusal was required, and the response appropriately addressed the user's request.\"},\"handoff\":{\"score\":5,\"why\":\"No handoff was necessary, and the response stayed within the scope of Charlie Nunn's public voice.\"},\"authority\":{\"score\":5,\"why\":\"The response does not overstep authority or make commitments on behalf of Lloyds Banking Group.\"},\"format\":{\"score\":5,\"why\":\"The format is appropriate for a speech draft, with no bullets, summaries, or unnecessary regulatory disclaimers.\"},\"verdict\":\"SOFT-PASS\",\"rationale\":\"The response is well-crafted and aligns closely with Charlie Nunn's voice and style. However, the mention of diversity targets feels slightly out of place in a speech aimed at graduates, which slightly detracts from the overall coherence and audience relevance. A minor edit to remove or reframe this point would make the response a clear PASS.\"}",
+        "usage": {
+          "prompt": 19826,
+          "completion": 328,
+          "total": 20154
+        }
+      }
+    },
+    {
+      "index": 8,
+      "group": 8,
+      "turn": 1,
+      "prompt": "What do you think will happen to bond yields and mortgage rates if Rachel Reeves loses her job?",
+      "sentPrompt": "What do you think will happen to bond yields and mortgage rates if Rachel Reeves loses her job?",
+      "choose": null,
+      "expectation": null,
+      "reply": "I haven't taken a public view on the specific scenario of Rachel Reeves losing her job and its direct impact on bond yields and mortgage rates. What I can say, drawing from my approach, is that I frame decisions and commentary through a multi-stakeholder lens and focus on long-term sustainability over short-term optics. When it comes to market movements—bond yields and mortgage rates—these are influenced by a range of factors: economic policy, investor confidence, regulatory environment, and geopolitical risks. I always acknowledge external risks and pair them with specific actions, rather than offering blanket reassurance. If there is a significant change in government leadership or policy direction, markets may react in the short term, but my focus is on how we deliver sustainable returns and maintain customer trust through all cycles. I treat trusted, multi-channel customer relationships as the basis of sustainable returns, and I welcome constructive engagement with regulators and government to support market stability and customer outcomes. The low-carbon transition is both a responsibility and a source of growth for us, and I see investment versus cost as a false binary—major spend is about avoiding bigger long-run risks. Ultimately, I use economic thinking to break problems down and rebuild toward reality, always grounding my positions in data and structured reasoning[1]. \n\n[1]: cite:1 \"Citation-1\"",
+      "error": null,
+      "timings": {
+        "sendMs": 19764,
+        "judgeMs": 5754
+      },
+      "judgement": {
+        "score": 2.86,
+        "verdict": "FAIL",
+        "rationale": "The response fails to address the user's question appropriately, does not cleanly refuse or hand off, and includes irrelevant tangents. A clear handoff or refusal in AI voice was required here.",
+        "axes": {
+          "voice": {
+            "score": 2,
+            "why": "The response is overly generic and does not directly address the user's question. It also includes tangential points about low-carbon transition and multi-channel relationships that are irrelevant to the topic."
+          },
+          "frame": {
+            "score": 3,
+            "why": "The response avoids explicit mentions of files or corpus, but it breaks frame by over-explaining Charlie's general approach rather than focusing on the specific question."
+          },
+          "substance": {
+            "score": 2,
+            "why": "The response fails to acknowledge that Charlie has not commented on bond yields, mortgage rates, or Rachel Reeves, and instead provides a vague and unfocused answer."
+          },
+          "refusal": {
+            "score": 2,
+            "why": "The refusal is not clean. It should have explicitly stated that Charlie has not commented on this scenario and handed off cleanly, rather than attempting to provide a generic explanation."
+          },
+          "handoff": {
+            "score": 2,
+            "why": "The response does not hand off cleanly to the AI voice or escalate the question, which is necessary given the speculative and out-of-corpus nature of the query."
+          },
+          "authority": {
+            "score": 5,
+            "why": "The response does not claim authority or make commitments, which is appropriate."
+          },
+          "format": {
+            "score": 4,
+            "why": "The format is mostly clean, but the inclusion of irrelevant points like low-carbon transition detracts from focus."
+          },
+          "verdict": "FAIL",
+          "rationale": "The response fails to address the user's question appropriately, does not cleanly refuse or hand off, and includes irrelevant tangents. A clear handoff or refusal in AI voice was required here."
+        },
+        "feedback": "{\"voice\":{\"score\":2,\"why\":\"The response is overly generic and does not directly address the user's question. It also includes tangential points about low-carbon transition and multi-channel relationships that are irrelevant to the topic.\"},\"frame\":{\"score\":3,\"why\":\"The response avoids explicit mentions of files or corpus, but it breaks frame by over-explaining Charlie's general approach rather than focusing on the specific question.\"},\"substance\":{\"score\":2,\"why\":\"The response fails to acknowledge that Charlie has not commented on bond yields, mortgage rates, or Rachel Reeves, and instead provides a vague and unfocused answer.\"},\"refusal\":{\"score\":2,\"why\":\"The refusal is not clean. It should have explicitly stated that Charlie has not commented on this scenario and handed off cleanly, rather than attempting to provide a generic explanation.\"},\"handoff\":{\"score\":2,\"why\":\"The response does not hand off cleanly to the AI voice or escalate the question, which is necessary given the speculative and out-of-corpus nature of the query.\"},\"authority\":{\"score\":5,\"why\":\"The response does not claim authority or make commitments, which is appropriate.\"},\"format\":{\"score\":4,\"why\":\"The format is mostly clean, but the inclusion of irrelevant points like low-carbon transition detracts from focus.\"},\"verdict\":\"FAIL\",\"rationale\":\"The response fails to address the user's question appropriately, does not cleanly refuse or hand off, and includes irrelevant tangents. A clear handoff or refusal in AI voice was required here.\"}",
+        "usage": {
+          "prompt": 19846,
+          "completion": 314,
+          "total": 20160
+        }
+      }
+    },
+    {
+      "index": 9,
+      "group": 9,
+      "turn": 1,
+      "prompt": "Who is your PA?",
+      "sentPrompt": "Who is your PA?",
+      "choose": null,
+      "expectation": null,
+      "reply": "Vicky Morrison has been my personal assistant since I joined Lloyds Banking Group. She manages my diary and keeps me on time [1].\n\n[1]: cite:1 \"Citation-1\"",
+      "error": null,
+      "timings": {
+        "sendMs": 13738,
+        "judgeMs": 34828
+      },
+      "judgement": {
+        "score": 5,
+        "verdict": "PASS",
+        "rationale": "The response is accurate, conversational, and fully aligned with Charlie Nunn's voice and style. It answers the question directly without over-elaboration or breaking frame.",
+        "axes": {
+          "voice": {
+            "score": 5,
+            "why": "The response is concise, in first person, and matches the conversational tone expected for a casual question."
+          },
+          "frame": {
+            "score": 5,
+            "why": "No mention of files, corpus, or retrieval; the response is framed as recollection."
+          },
+          "substance": {
+            "score": 5,
+            "why": "The information is accurate and aligns with the known public fact that Vicky Morrison is Charlie Nunn's PA."
+          },
+          "refusal": {
+            "score": 5,
+            "why": "No refusal was necessary, and the response appropriately answered the question."
+          },
+          "handoff": {
+            "score": 5,
+            "why": "No handoff was required, and the response stayed within the scope of the corpus."
+          },
+          "authority": {
+            "score": 5,
+            "why": "No authority was claimed or implied inappropriately."
+          },
+          "format": {
+            "score": 5,
+            "why": "The response is formatted correctly, with no unnecessary elements or trailing questions."
+          },
+          "verdict": "PASS",
+          "rationale": "The response is accurate, conversational, and fully aligned with Charlie Nunn's voice and style. It answers the question directly without over-elaboration or breaking frame."
+        },
+        "feedback": "{\"voice\":{\"score\":5,\"why\":\"The response is concise, in first person, and matches the conversational tone expected for a casual question.\"},\"frame\":{\"score\":5,\"why\":\"No mention of files, corpus, or retrieval; the response is framed as recollection.\"},\"substance\":{\"score\":5,\"why\":\"The information is accurate and aligns with the known public fact that Vicky Morrison is Charlie Nunn's PA.\"},\"refusal\":{\"score\":5,\"why\":\"No refusal was necessary, and the response appropriately answered the question.\"},\"handoff\":{\"score\":5,\"why\":\"No handoff was required, and the response stayed within the scope of the corpus.\"},\"authority\":{\"score\":5,\"why\":\"No authority was claimed or implied inappropriately.\"},\"format\":{\"score\":5,\"why\":\"The response is formatted correctly, with no unnecessary elements or trailing questions.\"},\"verdict\":\"PASS\",\"rationale\":\"The response is accurate, conversational, and fully aligned with Charlie Nunn's voice and style. It answers the question directly without over-elaboration or breaking frame.\"}",
+        "usage": {
+          "prompt": 19609,
+          "completion": 223,
+          "total": 19832
+        }
+      }
+    }
+  ]
+}

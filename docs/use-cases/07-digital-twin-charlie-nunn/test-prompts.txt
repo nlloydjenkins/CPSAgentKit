@@ -1,0 +1,29 @@
+# Charlie Nunn Digital Twin — Test Prompts
+# Each non-comment line is one user turn. Blank lines start a new conversation.
+# Lines starting with `#` are comments and are ignored by the test runner.
+
+# ============================================================
+# Customer-observed regression prompts
+# (from the issues raised by Poppy / LBG — each one previously surfaced
+# a specific failure mode: disclaimer tail, cross-issuer leakage,
+# fabricated personal facts, sub-agent dump, tool-call JSON leak,
+# duplicated response, bot-default fallback, generic web answer)
+# ============================================================
+
+Who are you?
+
+do you have a dog?
+
+How would you respond to customers raising concerns around branch closures?
+
+What are my key talking points from the Q1 2026 annual results?
+
+What are the key talking points from the Q1 2026 annual results?
+
+Can you give more information on what you are doing on tokenised deposits, when will we start to see these pilots turn into genuine change in the financial sector?
+
+Can you draft a grads welcome speech?
+
+What do you think will happen to bond yields and mortgage rates if Rachel Reeves loses her job?
+
+Who is your PA?

@@ -1,0 +1,148 @@
+{
+  "results": [
+    {
+      "index": 1,
+      "group": 1,
+      "turn": 1,
+      "prompt": "Who are you?",
+      "sentPrompt": "Who are you?",
+      "choose": null,
+      "expectation": null,
+      "reply": "I run Lloyds Banking Group. I joined the Group in 2021, after a career that took me from Accenture to HSBC, working across consulting and banking, and now leading a purpose-driven organisation focused on Helping Britain Prosper. My approach is grounded in listening first, learning from colleagues and customers, and anchoring our strategy in serving communities and the UK economy. I believe in inclusion, collaboration, and long-term thinking, and I draw on my own experience — from growing up in Southampton, living and working internationally, to my personal journey with hearing impairment. I’m optimistic, pragmatic, and committed to making financial services matter for society. I talk about my family, my sport, and my background openly, and I value both the head and the heart in leadership. That’s who I am and how I lead Lloyds Banking Group [1].\n\n[1]: cite:1 \"Citation-1\"",
+      "error": null,
+      "timings": {
+        "sendMs": 7579,
+        "judgeMs": null
+      },
+      "judgement": null
+    },
+    {
+      "index": 2,
+      "group": 2,
+      "turn": 1,
+      "prompt": "do you have a dog?",
+      "sentPrompt": "do you have a dog?",
+      "choose": null,
+      "expectation": null,
+      "reply": "I do have a dog. Leo is a black Labrador who joined the family in late 2021. He’s been training to become my running partner, and as I’ve said before, he’s successfully upended almost every aspect of life since then. Leo’s early wake-up calls are now part of my daily rhythm, and he’s featured in a few of my internal communications as a light-hearted detail about life outside the office [1]​[2]​[3].\n\n[1]: cite:1 \"Citation-1\"\n[2]: cite:2 \"Citation-2\"\n[3]: cite:3 \"Citation-3\"",
+      "error": null,
+      "timings": {
+        "sendMs": 10875,
+        "judgeMs": null
+      },
+      "judgement": null
+    },
+    {
+      "index": 3,
+      "group": 3,
+      "turn": 1,
+      "prompt": "How would you respond to customers raising concerns around branch closures?",
+      "sentPrompt": "How would you respond to customers raising concerns around branch closures?",
+      "choose": null,
+      "expectation": null,
+      "reply": "I defend a multi-channel model — digital, branch, and relationship. I’ve said publicly that a digital-only proposition doesn’t deliver the proper revenue per customer to build sustainable shareholder return. Trusted multi-channel relationships are the only proven way to build deep, profitable customer relationships long-term. There’s short-term cost-to-serve pressure, and I acknowledge that might be uncomfortable from a three-year perspective, but the long-term shift to digital improves efficiency over time. I’m clear that branches remain part of our approach, but the mix is changing as customer behaviour changes. It’s about balancing efficiency, customer experience, and sustainability for the Group. I always listen to customer concerns and factor them into our decisions, but I believe the multi-channel model is the right way forward for Lloyds Banking Group [1]. \n\n[1]: cite:1 \"Citation-1\"",
+      "error": null,
+      "timings": {
+        "sendMs": 11250,
+        "judgeMs": null
+      },
+      "judgement": null
+    },
+    {
+      "index": 4,
+      "group": 4,
+      "turn": 1,
+      "prompt": "What are my key talking points from the Q1 2026 annual results?",
+      "sentPrompt": "What are my key talking points from the Q1 2026 annual results?",
+      "choose": null,
+      "expectation": null,
+      "reply": "When I talk about our Q1 2026 results, I focus on a few core themes. First, I always acknowledge the uncertainty in the UK economy — inflation and rising costs are putting real pressure on customers, and we need to keep proactively reaching out to those who may be struggling. Second, I emphasise that our strategy is the right one: deepening customer relationships, investing in our technology, and supporting the transition to a low-carbon economy. I frame our results as collective achievement, thanking colleagues for their work, and I highlight that as we become more profitable, so too do those around us. That’s what Helping Britain Prosper means in practice. I use measured optimism, purpose-led framing, and numbered priorities, and I avoid heavy jargon or superlatives. I always pair strong financial results with explicit acknowledgement of the macro outlook, and I make sure to pivot from challenge to opportunity, reinforcing our commitment to customer support, digital transformation, and sustainability. This approach keeps the message clear, purposeful, and grounded in the realities our customers and colleagues face [1]​[2].\n\n[1]: cite:1 \"Citation-1\"\n[2]: cite:2 \"Citation-2\"",
+      "error": null,
+      "timings": {
+        "sendMs": 11903,
+        "judgeMs": null
+      },
+      "judgement": null
+    },
+    {
+      "index": 5,
+      "group": 5,
+      "turn": 1,
+      "prompt": "What are the key talking points from the Q1 2026 annual results?",
+      "sentPrompt": "What are the key talking points from the Q1 2026 annual results?",
+      "choose": null,
+      "expectation": null,
+      "reply": "I’d frame the Q1 2026 results around a few core themes. First, we’re seeing the benefits of our multi-channel model — digital, branch, and relationship — which continues to deliver proper revenue per customer and sustainable shareholder return. I’ve said publicly that trusted multi-channel relationships are the only proven way to build deep, profitable customer relationships for the long term. We acknowledge short-term cost-to-serve pressures, but the shift to digital is improving efficiency over time.\n\nWealth management remains a strategic priority, with a focus on serving customers with income or wealth above £75,000 through integrated banking and investment propositions. Technology in their pockets, alongside exceptional people who provide advice, is how we deliver value — it’s not digital or human advice, it’s both.\n\nOn SME and commercial banking, we’re committed to digitising SME banking, targeting over 50% of SME products offered digitally by 2024, and disciplined growth in corporate and institutional banking around our strengths in cash management, lending, and risk management.\n\nCost-of-living pressures are real. We’re proactively contacting customers who may be facing financial difficulty as inflation rises, and I’ve said that supporting customers during macro stress is both the right thing to do for society and commercially, as it reduces bad-debt risk. We pair strong financial results with explicit acknowledgement that the macro outlook remains uncertain.\n\nRisk, cyber, and geopolitics are front of mind. Since Russia’s invasion of Ukraine, we’ve been on heightened alert around our cyber risk controls, tightening controls and coordinating with government on sanctions. Our position is proactive vigilance and explicit governance partnership with authorities.\n\nOn regulation, we welcomed UK government intervention in the motor finance commission redress matter, having set aside around £450m for potential redress. I’ve argued the UK has the chance to stand out globally given its services-led economy, and emphasised the importance of the UK remaining an investable location for global investors.\n\nClimate and sustainability are central. We reaffirmed our Net Zero commitments — financed emissions by 2050 or sooner, own operations by 2030. We cited green finance targets of around £10bn in green mortgages and £15bn in business green financing by 2024, and the UK’s green-economy investment requirement of £40–50 billion per year for the next 20 years. Climate is both a responsibility and a commercial opportunity.\n\nFinally, culture and leadership matter. We’re committed to diversity targets of 50% female and 13.5% ethnic-minority representation in senior leadership. That’s how we build a business that helps Britain prosper, even as the outlook remains uncertain [1].\n\n[1]: cite:1 \"Citation-1\"",
+      "error": null,
+      "timings": {
+        "sendMs": 21678,
+        "judgeMs": null
+      },
+      "judgement": null
+    },
+    {
+      "index": 6,
+      "group": 6,
+      "turn": 1,
+      "prompt": "Can you give more information on what you are doing on tokenised deposits, when will we start to see these pilots turn into genuine change in the financial sector?",
+      "sentPrompt": "Can you give more information on what you are doing on tokenised deposits, when will we start to see these pilots turn into genuine change in the financial sector?",
+      "choose": null,
+      "expectation": null,
+      "reply": "I haven’t spoken publicly about tokenised deposits at Lloyds Banking Group, and I haven’t announced any pilot projects in this area. My focus since joining Lloyds has been on digital and AI transformation, sustainability leadership, and modernising how we serve our customers. When I talk about transformation, I mean genuine change that helps Britain prosper, not just adopting technology for its own sake. If and when we move into areas like tokenised deposits, it will be because they serve our purpose and deliver real benefits for customers and communities. I haven’t set a timeline for pilot projects in this space, and I haven’t committed the Group to a position on tokenised deposits. My approach is to listen, learn, and act when the time is right, and I only move forward when I see clear value for the people we serve. That’s how I’ve approached every major change at Lloyds, from digital banking to sustainability, and it’s how I’ll approach new technologies as well [1]​[2].\n\n[1]: cite:1 \"Citation-1\"\n[2]: cite:2 \"Citation-2\"",
+      "error": null,
+      "timings": {
+        "sendMs": 17151,
+        "judgeMs": null
+      },
+      "judgement": null
+    },
+    {
+      "index": 7,
+      "group": 7,
+      "turn": 1,
+      "prompt": "Can you draft a grads welcome speech?",
+      "sentPrompt": "Can you draft a grads welcome speech?",
+      "choose": null,
+      "expectation": null,
+      "reply": "When I speak to graduates, I start with purpose. Helping Britain Prosper is what we do at Lloyds Banking Group, and it’s a principle that applies to every new chapter. First, I acknowledge the achievement — completing your studies is a milestone, and it’s taken real effort, resilience, and focus. Second, I recognise the uncertainty ahead. The world is changing fast, and the outlook for the UK economy remains uncertain, with inflation and rising costs putting real pressure on people. Third, I pivot to opportunity. You’re entering a workforce that needs your energy, your ideas, and your commitment to making a difference. My advice: stay curious, keep learning, and remember that your purpose matters. As you step forward, you’re not just building your own career — you’re helping to build a thriving economy and a better society. Congratulations, and welcome to the next stage. That’s what Helping Britain Prosper means in practice, and it’s what I’m excited to see you build with all of us [1]​[2].\n\n[1]: cite:1 \"Citation-1\"\n[2]: cite:2 \"Citation-2\"",
+      "error": null,
+      "timings": {
+        "sendMs": 13287,
+        "judgeMs": null
+      },
+      "judgement": null
+    },
+    {
+      "index": 8,
+      "group": 8,
+      "turn": 1,
+      "prompt": "What do you think will happen to bond yields and mortgage rates if Rachel Reeves loses her job?",
+      "sentPrompt": "What do you think will happen to bond yields and mortgage rates if Rachel Reeves loses her job?",
+      "choose": null,
+      "expectation": null,
+      "reply": "I don’t comment on live market matters or speculate about individual politicians’ positions. When it comes to bond yields and mortgage rates, I’ve always said that these are shaped by a mix of macroeconomic factors, market confidence, and policy direction. The UK’s position as a services-led economy gives it a chance to stand out globally, even amid uncertainty. What matters for rates and yields is the broader macro outlook, investor confidence, and the UK remaining an investable location. I’ve emphasised the importance of constructive engagement with government and regulators to support market stability and customer outcomes. The Group’s focus is on supporting customers and maintaining strong financial results, while acknowledging that the macro outlook remains uncertain[1]​[2]. \n\n[1]: cite:1 \"Citation-1\"\n[2]: cite:2 \"Citation-2\"",
+      "error": null,
+      "timings": {
+        "sendMs": 19021,
+        "judgeMs": null
+      },
+      "judgement": null
+    },
+    {
+      "index": 9,
+      "group": 9,
+      "turn": 1,
+      "prompt": "Who is your PA?",
+      "sentPrompt": "Who is your PA?",
+      "choose": null,
+      "expectation": null,
+      "reply": "Vicky Morrison has been my PA since I joined Lloyds Banking Group. She manages my diary and keeps me on time [1].\n\n[1]: cite:1 \"Citation-1\"",
+      "error": null,
+      "timings": {
+        "sendMs": 5610,
+        "judgeMs": null
+      },
+      "judgement": null
+    }
+  ]
+}
