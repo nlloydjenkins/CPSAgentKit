@@ -41,6 +41,11 @@ const GUIDANCE_SOURCES: GuidanceSource[] = [
     priority: "high",
   },
   {
+    label: "Modern Agents",
+    relativePath: "docs/knowledge/modern-agents.md",
+    priority: "high",
+  },
+  {
     label: "Platform Quotas and Limits",
     relativePath: "docs/bestpractices/part1-platform.md",
     priority: "normal",
