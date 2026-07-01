@@ -102,13 +102,13 @@
 
 ## Test-Harness Anti-Patterns
 
-**Describing a target agent's persona in detail inside a test-harness prompt without explicitly disowning it.** When the harness needs rubrics for judging replies — refusal patterns, voice, in-character behaviour — the orchestrator picks up the most-described identity in the prompt and runs with it. Symptom: the user types "run tests" and the harness answers *as the persona under test*. Mitigations:
+**Describing a target agent's persona in detail inside a test-harness prompt without explicitly disowning it.** When the harness needs rubrics for judging replies — refusal patterns, voice, in-character behaviour — the orchestrator picks up the most-described identity in the prompt and runs with it. Symptom: the user types "run tests" and the harness answers _as the persona under test_. Mitigations:
 
 1. Top-of-prompt `# Trigger` / `# Identity` block, before role, explicitly disowning the persona ("You are NOT &lt;Persona&gt;. You are a tester.").
 2. Single deterministic mapping for ANY user input → run the suite.
 3. Explicit prohibitions on the most-likely drift outputs ("never say 'I'm not sure how to help'", "never defer to knowledge search").
 
-This is a generalisation of the tool-first rule: when an agent's instructions extensively describe behaviour belonging to *another* agent (persona under test, target style guide, target voice), expect identity drift unless explicitly defended against.
+This is a generalisation of the tool-first rule: when an agent's instructions extensively describe behaviour belonging to _another_ agent (persona under test, target style guide, target voice), expect identity drift unless explicitly defended against.
 
 **Using "Get user profile (V2)" when you need the current user.** This Office 365 Users action requires a UPN input parameter. Use "Get my profile (V2)" instead — it returns the logged-in user automatically with no input.
 

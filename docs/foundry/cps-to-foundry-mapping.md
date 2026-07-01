@@ -39,7 +39,7 @@ The migration rosetta stone — how Copilot Studio concepts translate to Microso
 | **Knowledge Source** (SharePoint, files) | Azure AI Search index + retrieval tool | CPS handles chunking/indexing automatically. In Foundry, set up Azure AI Search and implement retrieval.         |
 | **Uploaded file processing**             | File preprocessing in Python           | CPS uses prompt tools with code interpreter. Foundry uses standard Python libraries (PyPDF2, python-docx, etc.). |
 | **Conversation variables**               | Python state in Executor instances     | CPS variables are platform-managed. Foundry state is code-managed.                                               |
-| **Conversation history** (~10 turns)      | Session with full history              | No platform-imposed context window limit — manage token budget yourself.                                         |
+| **Conversation history** (~10 turns)     | Session with full history              | No platform-imposed context window limit — manage token budget yourself.                                         |
 
 ## Multi-Agent Patterns
 
