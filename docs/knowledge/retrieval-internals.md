@@ -19,7 +19,9 @@ There is **no single "five source types at a time" rule**. Limits differ by sour
 
 ## Default model and governance
 
-The current default generative model is **GPT-4.1** (GPT-4o was retired for generative orchestration in late October 2025). GPT-5 models are available in preview.
+The current default generative-orchestration model is **GPT-5** (GPT-4o was retired for generative-orchestration agents in late October 2025, with documented transition exceptions). AI Prompts (prompt tools) default to **GPT-4.1**. Model options and defaults change frequently — verify the current default in your tenant's Generative AI / prompt-model settings.
+
+> **Retirement dates are surface-specific.** The late-October-2025 GPT-4o retirement applies to the generative-orchestration surface only. Prompt Builder / prompt-model settings track model availability and retirement separately in the prompt-model availability table — do not reuse this date as a universal Copilot Studio model-retirement date.
 
 **Model governance gotcha:** do not recommend preview or experimental models for production knowledge agents without explicit risk acceptance. Preview models can have variability in answer quality, latency, timeout behaviour, message consumption and data residency / cross-geo implications. Model choice does not affect which sources are eligible for retrieval.
 
@@ -43,28 +45,28 @@ If SharePoint retrieval quality is weak, check Work IQ prerequisites **before** 
 
 ### Hard constraints (not configurable by makers)
 
-| Property | Status | Notes |
-|---|---|---|
-| Chunk size | Not configurable | Dataverse applies undocumented defaults on upload |
-| Chunk overlap | Not configurable | No maker control |
-| Chunking strategy | Not configurable | Not paragraph/section/fixed-size selectable |
-| Retrieval algorithm | Not configurable | Cannot choose keyword vs vector vs hybrid |
-| Reranker | Not configurable | No reranker config exposed |
-| Metadata filtering | Not configurable | Cannot filter retrieved chunks by metadata field |
-| Top-K (number of chunks returned) | Not configurable | See Top-K section below |
-| Query reformulation | Not configurable | Orchestrator reformulates internally; not inspectable |
+| Property                          | Status           | Notes                                                 |
+| --------------------------------- | ---------------- | ----------------------------------------------------- |
+| Chunk size                        | Not configurable | Dataverse applies undocumented defaults on upload     |
+| Chunk overlap                     | Not configurable | No maker control                                      |
+| Chunking strategy                 | Not configurable | Not paragraph/section/fixed-size selectable           |
+| Retrieval algorithm               | Not configurable | Cannot choose keyword vs vector vs hybrid             |
+| Reranker                          | Not configurable | No reranker config exposed                            |
+| Metadata filtering                | Not configurable | Cannot filter retrieved chunks by metadata field      |
+| Top-K (number of chunks returned) | Not configurable | See Top-K section below                               |
+| Query reformulation               | Not configurable | Orchestrator reformulates internally; not inspectable |
 
 ### Configurable by makers (indirect influence)
 
-| Lever | How it helps |
-|---|---|
-| Knowledge source descriptions | Source-selection at scale (>25 sources) is driven by descriptions — write them precisely |
-| Document structure (headings, single-topic files) | Affects what ends up in a chunk; well-structured docs produce better chunks |
-| Agent instructions (dual-placement) | Critical rules in instructions are always in context regardless of retrieval outcome |
-| Ungrounded responses toggle | When off, forces responses to be grounded in retrieved content; suppresses model prior bleed |
-| Content moderation level | Low/Medium/High threshold; configurable at agent, topic-node, and prompt-tool level |
-| Model choice | Different models have different instruction-following and grounding behaviour |
-| Knowledge source type | Different source types have different indexing stacks (see knowledge-sources.md) |
+| Lever                                             | How it helps                                                                                 |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Knowledge source descriptions                     | Source-selection at scale (>25 sources) is driven by descriptions — write them precisely     |
+| Document structure (headings, single-topic files) | Affects what ends up in a chunk; well-structured docs produce better chunks                  |
+| Agent instructions (dual-placement)               | Critical rules in instructions are always in context regardless of retrieval outcome         |
+| Ungrounded responses toggle                       | When off, forces responses to be grounded in retrieved content; suppresses model prior bleed |
+| Content moderation level                          | Low/Medium/High threshold; configurable at agent, topic-node, and prompt-tool level          |
+| Model choice                                      | Different models have different instruction-following and grounding behaviour                |
+| Knowledge source type                             | Different source types have different indexing stacks (see knowledge-sources.md)             |
 
 ---
 
@@ -120,13 +122,13 @@ CPS retrieval is non-deterministic. Identical queries can return different resul
 
 ## Indexing Delays
 
-| Source type | Typical indexing delay |
-|---|---|
-| Uploaded files (Dataverse) | 5–30 minutes after upload |
-| SharePoint (unstructured/files) | 4–6 hours after content change |
-| SharePoint (website URL, modern pages) | Near real-time via Graph |
-| OneDrive files/folders | 4–6 hours |
-| Salesforce / Confluence / ServiceNow / ZenDesk | 4–6 hours |
+| Source type                                    | Typical indexing delay         |
+| ---------------------------------------------- | ------------------------------ |
+| Uploaded files (Dataverse)                     | 5–30 minutes after upload      |
+| SharePoint (unstructured/files)                | 4–6 hours after content change |
+| SharePoint (website URL, modern pages)         | Near real-time via Graph       |
+| OneDrive files/folders                         | 4–6 hours                      |
+| Salesforce / Confluence / ServiceNow / ZenDesk | 4–6 hours                      |
 
 **Status indicator caveat:** after adding an unstructured file/folder source, status may show "Ready" immediately, then change to "In Progress". Content is not actually usable until status returns to "Ready" a second time.
 

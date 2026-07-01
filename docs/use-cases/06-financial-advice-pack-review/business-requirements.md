@@ -58,7 +58,7 @@ This solution uses a **single parent agent** with a **topic-owned linear pipelin
 - Re-score or change verdicts in response to adviser push-back — the adviser can request supervisor review, not agent revision
 - Paraphrase or summarise the labeled blocks in the stored Dataverse record — raw blocks are the audit trail
 - Accept packs missing the Fact Find or the Suitability Report — those are hard requirements; stop and ask
-- Process non-English packs — generative orchestration is English-only
+- Process non-English packs — English only for this use case (event-triggered agents are English (en-US) only; interactive generative orchestration itself supports ~40 languages)
 - Expose the raw labeled blocks, internal pipeline stage names, or agent version stamp to the adviser in the chat output (they are audit-internal)
 - Offer to "try again" with different inputs if validation fails twice — escalate to a supervisor instead
 

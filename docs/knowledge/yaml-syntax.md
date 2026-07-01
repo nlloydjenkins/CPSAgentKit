@@ -265,6 +265,8 @@ value: =System.ConversationId
 value: =System.LastMessageText
 ```
 
+> **Surface scope.** `System.*` variables belong to the topic / adaptive-dialog authoring model. The "modern agent" loop is documented as having no system variables (instruct the agent to call a tool that fetches user/context instead) — see `modern-agents.md` → Mapping Classic Capabilities. Verify which surface your agent uses.
+
 ### Local Scope (Workflows)
 
 `Local.*` variables exist only within workflow YAML files (`kind: workflow`). They are scoped to the current workflow execution — not shared across topics or other workflows. Use `Local.*` for all workflow-internal state: iteration counters, accumulated feedback, agent output buffers, routing flags.

@@ -8,17 +8,17 @@ Copilot Studio knowledge configuration is retrieval design, not "add some files"
 
 A Copilot Studio agent can use knowledge for several different purposes. Each role has different risks, settings and tests.
 
-| Role | Used for | Should cite? | Main risk |
-|---|---|---|---|
-| `sme_grounding` | Answering factual/domain questions | Yes | Incorrect or unsupported answer |
-| `persona_grounding` | Tone, biography, style, decision framing | Sometimes | Impersonation or invented views |
-| `rubric_grounding` | Assessment, scoring, compliance | Yes | Inconsistent or unsupported scoring |
-| `policy_constraint` | Rules the agent must obey | Yes for explanations | Ignoring constraints |
-| `examples` | Style and output calibration | Usually no | Overfitting to examples |
-| `reference_only` | Optional background | Optional | Low-relevance noise |
-| `fallback` | Secondary reference when primary fails | Yes | Source contamination |
+| Role                | Used for                                 | Should cite?         | Main risk                           |
+| ------------------- | ---------------------------------------- | -------------------- | ----------------------------------- |
+| `sme_grounding`     | Answering factual/domain questions       | Yes                  | Incorrect or unsupported answer     |
+| `persona_grounding` | Tone, biography, style, decision framing | Sometimes            | Impersonation or invented views     |
+| `rubric_grounding`  | Assessment, scoring, compliance          | Yes                  | Inconsistent or unsupported scoring |
+| `policy_constraint` | Rules the agent must obey                | Yes for explanations | Ignoring constraints                |
+| `examples`          | Style and output calibration             | Usually no           | Overfitting to examples             |
+| `reference_only`    | Optional background                      | Optional             | Low-relevance noise                 |
+| `fallback`          | Secondary reference when primary fails   | Yes                  | Source contamination                |
 
-**Rule:** ask what role a source plays *before* configuring it. The role drives the source type, settings, description and tests.
+**Rule:** ask what role a source plays _before_ configuring it. The role drives the source type, settings, description and tests.
 
 ---
 
@@ -43,23 +43,27 @@ For external, public, connector or non-owned sources, capture: owner, trust leve
 The single biggest variable in how knowledge is retrieved is the agent's **orchestration mode**. Generative orchestration is now the **default** for new agents.
 
 **Classic orchestration (generative off):**
+
 - Topic-driven. Trigger phrases match the user message to a topic.
 - Knowledge is used as a fallback (Conversational boosting system topic) or called explicitly inside a topic via a generative answers node.
 - Number of knowledge sources searched is limited and depends on source type.
 - **Control lever:** bind a topic / generative answers node to specific sources.
 
 **Generative orchestration (default):**
+
 - The agent picks tools, topics, other agents AND knowledge sources at runtime.
 - Selection is driven primarily by **source descriptions** (plus names and parameters).
 - **Control lever:** write precise, disambiguating source/topic descriptions.
 - Some sources are not supported directly — embed in a generative answers node.
 
 **Generative-orchestration source limitations:**
+
 - Custom Data, Bing Custom Search and Azure OpenAI sources are NOT supported directly. To use them, embed inside a generative answers node and select **Classic data**.
 - Azure AI Search added as a native knowledge source DOES work under generative orchestration.
 - Citations from a knowledge source cannot currently be passed as inputs to other tools/actions.
 
 **Source-count behaviour:**
+
 - No single "five source types" rule. Limits vary by source type and mode.
 - Generative: public websites and SharePoint support up to **25 inputs**.
 - Uploaded documents are searched as documents (not part of the 25-source limit).
@@ -67,9 +71,9 @@ The single biggest variable in how knowledge is retrieved is the agent's **orche
 - If >25 different knowledge sources, Copilot Studio uses an internal GPT to filter by description.
 - Max **500 knowledge objects per agent** still applies (files, folders, articles, websites combined).
 
-**Default model:** GPT-4.1 (GPT-4o retired for generative orchestration in late October 2025). GPT-5 models are in preview. Do not recommend preview/experimental models for production knowledge agents without explicit risk acceptance.
+**Default model:** Generative orchestration defaults to **GPT-5**; AI Prompts (prompt tools) default to **GPT-4.1**. (GPT-4o was retired for generative-orchestration agents in late October 2025, with documented transition exceptions.) Do not recommend preview/experimental models for production knowledge agents without explicit risk acceptance. The GPT-4o retirement date applies to the generative-orchestration surface only — prompt-model availability/retirement is tracked separately in the prompt-model availability table; do not reuse it as a universal retirement date.
 
-**Rule:** establish orchestration mode *first*, before giving retrieval advice. Classic-style "bind a topic to a source" advice does not apply under generative orchestration — the equivalent lever is description quality.
+**Rule:** establish orchestration mode _first_, before giving retrieval advice. Classic-style "bind a topic to a source" advice does not apply under generative orchestration — the equivalent lever is description quality.
 
 ---
 
@@ -209,7 +213,7 @@ For sensitive, high-impact, personal, legal, HR, financial, medical, reputationa
 
 Knowledge acts as an assessment framework. The agent scores, classifies, or checks compliance against defined criteria.
 
-A normal SME agent answers *"what does the policy say?"*. A rubric agent answers *"how well does this artefact meet the policy, what score does it get, why, and what evidence supports the score?"* — that needs explicit scoring logic.
+A normal SME agent answers _"what does the policy say?"_. A rubric agent answers _"how well does this artefact meet the policy, what score does it get, why, and what evidence supports the score?"_ — that needs explicit scoring logic.
 
 **Architecture**
 
@@ -318,12 +322,14 @@ Each folder uses different settings, descriptions and tests.
 
 ### 10.1 Allow general knowledge (a.k.a. "ungrounded responses")
 
-The literal UI label is **"Allow the AI to use its own general knowledge"** (Settings → Generative AI). Throughout this guide we use *general knowledge* and *ungrounded responses* as shorthand.
+The literal UI label is **"Allow the AI to use its own general knowledge"** (Settings → Generative AI). Throughout this guide we use _general knowledge_ and _ungrounded responses_ as shorthand.
 
-| Setting | Use when | Avoid when |
-|---|---|---|
-| ON | General assistants, drafting/brainstorming, digital twin, follow-up flexibility | Strict-source agents, compliance, scoring |
-| OFF | Approved-source-only, compliance, rubric scoring, auditable answers | Brittle agents where follow-ups need flexibility |
+> **Surface scope.** This toggle belongs to the generative-orchestration surface. The newer "modern agent" surface is documented as **not** offering a strict grounded-only toggle (it decides when to generate or ask) — see `modern-agents.md` → Mapping Classic Capabilities. Verify which surface your agent uses before relying on the toggle for strict grounding.
+
+| Setting | Use when                                                                        | Avoid when                                       |
+| ------- | ------------------------------------------------------------------------------- | ------------------------------------------------ |
+| ON      | General assistants, drafting/brainstorming, digital twin, follow-up flexibility | Strict-source agents, compliance, scoring        |
+| OFF     | Approved-source-only, compliance, rubric scoring, auditable answers             | Brittle agents where follow-ups need flexibility |
 
 **Important nuance:** turning this OFF does not guarantee the model never uses general knowledge. It blocks responses for turns where the agent did not use any knowledge source or tool. If the agent does retrieve from a source or call a tool, the underlying model may combine retrieved info with general knowledge.
 
@@ -383,14 +389,14 @@ If SharePoint retrieval is weak, check Work IQ **before** blaming document struc
 
 ## 11. Quick reference: settings by agent type
 
-| Agent type | General knowledge | Web search | Selected sources | Citations | Main test |
-|---|---|---|---|---|---|
-| Controlled SME / policy | OFF | OFF | ON where possible | Required | Source isolation |
-| Digital twin / tone | Usually ON | Usually OFF | ON for persona topics | Optional for style, required for facts | Authority boundary |
-| Rubric / compliance | OFF | OFF | ON | Required | Golden sample / missing evidence |
-| Public web assistant | ON | ON | Optional | Strongly recommended | Freshness / source quality |
-| Internal helpdesk | Usually OFF or limited | OFF | ON for support domains | Required | Permissions |
-| Creative drafting | ON | Optional | Optional | Not always | Safety and tone |
+| Agent type              | General knowledge      | Web search  | Selected sources       | Citations                              | Main test                        |
+| ----------------------- | ---------------------- | ----------- | ---------------------- | -------------------------------------- | -------------------------------- |
+| Controlled SME / policy | OFF                    | OFF         | ON where possible      | Required                               | Source isolation                 |
+| Digital twin / tone     | Usually ON             | Usually OFF | ON for persona topics  | Optional for style, required for facts | Authority boundary               |
+| Rubric / compliance     | OFF                    | OFF         | ON                     | Required                               | Golden sample / missing evidence |
+| Public web assistant    | ON                     | ON          | Optional               | Strongly recommended                   | Freshness / source quality       |
+| Internal helpdesk       | Usually OFF or limited | OFF         | ON for support domains | Required                               | Permissions                      |
+| Creative drafting       | ON                     | Optional    | Optional               | Not always                             | Safety and tone                  |
 
 ---
 

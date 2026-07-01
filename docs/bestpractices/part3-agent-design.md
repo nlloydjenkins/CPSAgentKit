@@ -106,7 +106,7 @@ This is the most important architectural decision for your agent. It fundamental
 - Knowledge is queried proactively, not just as a fallback
 - More natural conversations, less manual scripting, but introduces non-determinism
 - Best for: complex multi-intent queries, scenarios requiring flexibility, agents that need to combine multiple data sources
-- **Currently English-only for the generative orchestration layer**
+- **Multilingual** — generative answers, orchestration, and user language support ~40 languages (GA plus some in preview). Event triggers are English (en-US) only, so autonomous/event-triggered agents are effectively English-only for the trigger.
 
 ### When to Use Which
 
@@ -178,15 +178,15 @@ Agent (Instructions + Orchestration Mode)
 
 Knowledge in Copilot Studio is not one thing. A source can play any of these roles, and each has different settings, citation requirements and tests:
 
-| Role | Used for | Should cite? | Main risk |
-|---|---|---|---|
-| `sme_grounding` | Answering factual / domain questions | Yes | Incorrect or unsupported answer |
-| `persona_grounding` | Tone, biography, style, decision framing | Sometimes | Impersonation or invented views |
-| `rubric_grounding` | Assessment, scoring, compliance | Yes | Inconsistent or unsupported scoring |
-| `policy_constraint` | Rules the agent must obey | Yes for explanations | Ignoring constraints |
-| `examples` | Style and output calibration | Usually no | Overfitting to examples |
-| `reference_only` | Optional background | Optional | Low-relevance noise |
-| `fallback` | Secondary reference when primary fails | Yes | Source contamination |
+| Role                | Used for                                 | Should cite?         | Main risk                           |
+| ------------------- | ---------------------------------------- | -------------------- | ----------------------------------- |
+| `sme_grounding`     | Answering factual / domain questions     | Yes                  | Incorrect or unsupported answer     |
+| `persona_grounding` | Tone, biography, style, decision framing | Sometimes            | Impersonation or invented views     |
+| `rubric_grounding`  | Assessment, scoring, compliance          | Yes                  | Inconsistent or unsupported scoring |
+| `policy_constraint` | Rules the agent must obey                | Yes for explanations | Ignoring constraints                |
+| `examples`          | Style and output calibration             | Usually no           | Overfitting to examples             |
+| `reference_only`    | Optional background                      | Optional             | Low-relevance noise                 |
+| `fallback`          | Secondary reference when primary fails   | Yes                  | Source contamination                |
 
 Establish the role before recommending a source type or settings. SME, digital-twin and rubric patterns each have a different recommended architecture, instruction template and test plan — see `../knowledge/knowledge-configuration.md` for the full per-role guide.
 
@@ -208,7 +208,7 @@ Establish the role before recommending a source type or settings. SME, digital-t
 - **Reformat content for AI consumption.** Community experience consistently reports that significant reformatting and reorganisation of source documents is needed for acceptable results. Headings, clear section breaks, and concise language help the retrieval layer find relevant content.
 - **You cannot force the agent to use a specific knowledge article.** The AI chooses relevant articles based on the query. If the agent isn't using content you expect, refine your instructions to describe when that type of content should be consulted — but you can't point it at a specific file.
 - **Structured files (XLSX) from SharePoint can be added but agents can't run code.** Responses to analytical questions will be poor. Don't use spreadsheets as knowledge sources for data analysis scenarios.
-- **Tenant Graph Grounding with Semantic Search** dramatically improves SharePoint results. It requires an M365 Copilot licence in the same tenant and supports files up to 200 MB. Enable this whenever possible.
+- **Tenant Graph Grounding with Semantic Search** dramatically improves SharePoint results. It requires an M365 Copilot licence in the same tenant and supports files up to 200 MB (Microsoft docs also cite 512 MB for PDF/PPTX/DOCX in some scenarios — validate large files in your target tenant). Enable this whenever possible.
 
 ### Knowledge Sources vs Connectors — When to Use Which
 
@@ -255,6 +255,8 @@ Copilot Studio auto-generates descriptions from trigger phrases when you switch 
 ---
 
 ## Custom Triggers in Generative Orchestration
+
+> **Surface scope.** These lifecycle triggers belong to the generative-orchestration / topic model. The newer "modern agent" surface is documented as not yet exposing general message/response intercept hooks (they are on the roadmap) — see `../knowledge/modern-agents.md` → Mapping Classic Capabilities. Verify which surface your agent uses before relying on them.
 
 Three trigger types hook into the agent's lifecycle:
 
@@ -331,4 +333,4 @@ A concise set of design heuristics distilled from enterprise deployments. Refer 
 12. **Channel dictates capability.** Not all channels support all features. Verify authentication, adaptive cards, file upload, and proactive messaging per target channel before designing conversation flows.
 13. **Every write action needs confirmation.** Any tool that creates, updates, or deletes data should require explicit user confirmation or HITL approval. Never let the model autonomously execute destructive operations.
 14. **Monitor before you scale.** Set up Application Insights, conversation transcripts, and Purview audit logs before expanding to additional user groups. Silent failures are common and invisible without monitoring.
-15. **Re-evaluate after model upgrades.** When Microsoft updates the default model (e.g. GPT-4.1 mini → GPT-5), re-run your test suite. Model changes can alter orchestration behaviour, response quality, and tool selection patterns.
+15. **Re-evaluate after model upgrades.** When Microsoft updates the default model (e.g. a GPT-4.1 → GPT-5 default change), re-run your test suite. Model changes can alter orchestration behaviour, response quality, and tool selection patterns.

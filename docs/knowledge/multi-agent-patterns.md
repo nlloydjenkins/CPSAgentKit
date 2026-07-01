@@ -172,7 +172,7 @@ Generative orchestration "thinking" messages (`explanation_of_tool_call`) leak t
 
 - Conversation history passed by default to connected agents
 - For child agents, orchestration manages context internally
-- Conversation history limited to 10 turns — critical state must be in variables
+- Conversation history is limited to the last ~10 turns (per Microsoft's generative-orchestration FAQ) — critical state must be in variables
 - Pass specific parameters via input/output variables when possible rather than relying on history
 
 ## Governance

@@ -1,6 +1,6 @@
 {
   "name": "@agent-workbench-for-copilot-studio/core",
-  "version": "0.15.0",
+  "version": "0.16.1",
   "description": "Shared Copilot Studio parsing, assessment, and knowledge logic used by the Agent Workbench for Copilot Studio VS Code extension and MCP server.",
   "license": "MIT",
   "main": "./out/index.js",

@@ -45,7 +45,7 @@ Once the quota is met, the user sees a failure notice. There's no graceful degra
 
 ## Model Availability
 
-**Default model:** GPT-4.1 mini (GA). Available in all commercial regions.
+**Default model:** Generative orchestration defaults to **GPT-5**; AI Prompts (prompt tools) default to **GPT-4.1**. Model options and defaults change frequently — verify for your target tenant and region.
 
 **GA options:** GPT-5 chat and reasoning models are GA options via Prompt and Model Settings.
 
@@ -57,6 +57,8 @@ Once the quota is met, the user sees a failure notice. There's no graceful degra
 - US Government cloud regions (GCC, GCC High, DoD) use a separate model set (currently GPT-4o mini / GPT-4o).
 - Validate model availability for your target tenant region and cloud before finalising architecture.
 
+**Retirement dates are surface-specific.** Model retirement on the generative-orchestration surface (e.g. GPT-4o retired for generative orchestration in late October 2025) does not govern Prompt Builder / prompt-model settings, which track availability and retirement separately in the prompt-model availability table. Do not carry a retirement date from one surface to the other.
+
 **Re-evaluate after every model upgrade.** When the default model changes or you switch to a new model option, run your full evaluation pipeline. Agent behaviour, tool selection accuracy, and response quality can all shift with model changes.
 
 ---
@@ -65,11 +67,11 @@ Once the quota is met, the user sees a failure notice. There's no graceful degra
 
 SharePoint is the most common knowledge source, and has the most constraints. Know these before you promise anything to a customer.
 
-**File type support:** Only DOC/DOCX, PPT/PPTX, and PDF. No Excel for analytical queries (agents can't write and run code). No images, no plain text files, no HTML.
+**File type support:** SharePoint generative answers use DOC/DOCX, PPT/PPTX, and PDF. Excel (xls/xlsx) can be ingested via the files/folders (unstructured) path but is unsuitable for analytical queries (agents can't write and run code against it). No images, no plain text files, no HTML.
 
 **File size:**
 
-- With M365 Copilot licence + Tenant Graph Grounding enabled: up to 200 MB per file
+- With M365 Copilot licence + Tenant Graph Grounding enabled: up to 200 MB per file (Microsoft docs also cite 512 MB for PDF/PPTX/DOCX in some scenarios — validate large files in your target tenant)
 - Without M365 Copilot licence: 7 MB max. Files over 7 MB are silently ignored — no error, just no answers. Split large files into smaller ones.
 
 **Page type support:** Only modern SharePoint pages. Classic ASPX pages are silently ignored. Modern pages containing SPFx components are also not supported.

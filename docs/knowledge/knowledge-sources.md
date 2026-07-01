@@ -66,7 +66,7 @@ This pattern ensures agents always have the latest authoritative content when av
 
 ## When to Use Each Source Type
 
-**SharePoint (with Tenant Graph Grounding):** best retrieval quality. Requires M365 Copilot license + "Authenticate with Microsoft." Supports files up to 200 MB. Use for primary knowledge.
+**SharePoint (with Tenant Graph Grounding):** best retrieval quality. Requires M365 Copilot license + "Authenticate with Microsoft." Supports files up to 200 MB (Microsoft docs also cite 512 MB for PDF/PPTX/DOCX in some scenarios — validate large files in your target tenant). Use for primary knowledge.
 
 **Uploaded files:** simple, no auth needed. Good for static reference docs. Not part of the 25-source search limit.
 
@@ -134,16 +134,16 @@ If clickable provenance is a requirement, host the content in SharePoint / Datav
 
 Copilot Studio exposes two different SharePoint knowledge paths with fundamentally different runtime behaviour. Confusing them is a common cause of inconsistent retrieval quality.
 
-| | SharePoint URL (website/page path) | SharePoint unstructured (files/folders) |
-|---|---|---|
-| **How added** | Add Knowledge → Website URL → SharePoint site/page URL | Add Knowledge → SharePoint/OneDrive → select files or folders |
-| **Runtime mechanism** | SharePoint search stack (near real-time via Graph) | File contents copied into Dataverse, indexed there |
-| **Freshness** | Near real-time — edits to modern pages reflect quickly | 4–6 hour sync delay. Content changes not visible until next sync |
-| **Content type** | Modern SharePoint pages and wikis | Document libraries: DOCX, PDF, PPTX, XLSX, etc. |
-| **File size limit** | 7 MB per file without M365 Copilot license | 512 MB per file; 1,000 files / 50 folders max |
-| **M365 Copilot license** | Required for files >7 MB and Tenant Graph Grounding | Required for Tenant Graph Grounding quality lift |
-| **Retrieval quality** | Improved by Tenant Graph Grounding with semantic search | Improved by Tenant Graph Grounding; without it, keyword-only |
-| **ALM support** | Not supported — manual re-processing after solution import | Not supported |
+|                          | SharePoint URL (website/page path)                         | SharePoint unstructured (files/folders)                          |
+| ------------------------ | ---------------------------------------------------------- | ---------------------------------------------------------------- |
+| **How added**            | Add Knowledge → Website URL → SharePoint site/page URL     | Add Knowledge → SharePoint/OneDrive → select files or folders    |
+| **Runtime mechanism**    | SharePoint search stack (near real-time via Graph)         | File contents copied into Dataverse, indexed there               |
+| **Freshness**            | Near real-time — edits to modern pages reflect quickly     | 4–6 hour sync delay. Content changes not visible until next sync |
+| **Content type**         | Modern SharePoint pages and wikis                          | Document libraries: DOCX, PDF, PPTX, XLSX, etc.                  |
+| **File size limit**      | 7 MB per file without M365 Copilot license                 | 512 MB per file; 1,000 files / 50 folders max                    |
+| **M365 Copilot license** | Required for files >7 MB and Tenant Graph Grounding        | Required for Tenant Graph Grounding quality lift                 |
+| **Retrieval quality**    | Improved by Tenant Graph Grounding with semantic search    | Improved by Tenant Graph Grounding; without it, keyword-only     |
+| **ALM support**          | Not supported — manual re-processing after solution import | Not supported                                                    |
 
 **Design implication:** if a team adds a SharePoint file library via the URL path expecting document-level retrieval, they get page-based retrieval with different freshness and filtering behaviour. Always confirm which path is in use when diagnosing inconsistent results.
 
@@ -151,19 +151,19 @@ Copilot Studio exposes two different SharePoint knowledge paths with fundamental
 
 The following formats are supported for directly uploaded files (Add Knowledge → Files). Formats marked ✓ are confirmed in official Microsoft Learn documentation (2025). Support is independent of retrieval quality — supported does not mean optimal for RAG.
 
-| Format | Extension(s) | Retrieval notes |
-|---|---|---|
-| Word | .docx, .doc | Good. Well-structured docs retrieve well. |
-| PDF | .pdf | Good. Text-based PDFs preferred; scanned/image PDFs retrieve poorly. |
-| PowerPoint | .pptx, .ppt | Good. Slide text extracted; embedded images/charts ignored. |
-| Excel | .xlsx, .xls | Supported but poor for analytical Q&A — agents cannot run code against the data. |
-| Markdown | .md | Supported. Structure preserved; useful for curated knowledge. |
-| Plain text | .txt | Supported. No structural benefits from headings. |
-| JSON | .json | Supported. Flat key-value data ingested as text. |
-| YAML | .yaml, .yml | Supported. Ingested as text. |
-| CSV | .csv | Supported. Rows ingested as text; no aggregation/query capability. |
-| XML | .xml | Supported. |
-| LaTeX | .tex | Supported. |
+| Format     | Extension(s) | Retrieval notes                                                                  |
+| ---------- | ------------ | -------------------------------------------------------------------------------- |
+| Word       | .docx, .doc  | Good. Well-structured docs retrieve well.                                        |
+| PDF        | .pdf         | Good. Text-based PDFs preferred; scanned/image PDFs retrieve poorly.             |
+| PowerPoint | .pptx, .ppt  | Good. Slide text extracted; embedded images/charts ignored.                      |
+| Excel      | .xlsx, .xls  | Supported but poor for analytical Q&A — agents cannot run code against the data. |
+| Markdown   | .md          | Supported. Structure preserved; useful for curated knowledge.                    |
+| Plain text | .txt         | Supported. No structural benefits from headings.                                 |
+| JSON       | .json        | Supported. Flat key-value data ingested as text.                                 |
+| YAML       | .yaml, .yml  | Supported. Ingested as text.                                                     |
+| CSV        | .csv         | Supported. Rows ingested as text; no aggregation/query capability.               |
+| XML        | .xml         | Supported.                                                                       |
+| LaTeX      | .tex         | Supported.                                                                       |
 
 **Safest for retrieval quality:** DOCX → PDF (text-based) → PPTX → MD. Avoid relying on XLSX for anything requiring numerical reasoning — the agent cannot execute queries against spreadsheet data.
 

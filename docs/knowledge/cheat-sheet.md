@@ -7,11 +7,11 @@ Things that catch people out, behave unexpectedly, or aren't in the docs. For de
 ## Orchestration
 
 - Descriptions route, not triggers — bad descriptions = wrong routing. _(See prompt-engineering.md → Descriptions)_
-- 10-turn memory — earlier context dropped; use variables for critical state. _(See constraints.md → Orchestration)_
+- 10-turn conversation memory — Microsoft's generative-orchestration FAQ cites the last 10 turns; earlier context dropped, use variables for critical state. _(See constraints.md → Orchestration)_
 - Switching to generative mode bypasses Conversational Boosting — custom data sources, Bing Custom Search all ignored.
 - Multiple Topics Matched topic doesn't fire in generative mode.
 - Auto-generated topic descriptions are adequate, never optimal — always review.
-- Generative orchestration is English-only.
+- Generative orchestration is multilingual (~40 languages); only **event triggers** are English (en-US) only, making autonomous/event-triggered agents effectively English-only for the trigger.
 
 ## Tools & Routing
 
@@ -50,7 +50,7 @@ Things that catch people out, behave unexpectedly, or aren't in the docs. For de
 - Negative instructions are unreliable — use dedicated topics instead. _(See anti-patterns.md → Prompt Anti-Patterns)_
 - No temperature control at agent level — only in prompt actions.
 - Follow-up questions require "Use general knowledge" enabled — silent failure otherwise.
-- Content filtering is a black box — no logging, no diagnostics. Set `contentModeration: Low` for specialist domains. _(See constraints.md → Content Moderation)_
+- Content filtering is a black box — no logging, no diagnostics. For specialist domains, lower content moderation to Low in the portal (portal-only setting — there is no YAML field). _(See constraints.md → Content Moderation)_
 - 8,000-character instruction limit — quality may degrade before limit with dense instructions. _(See constraints.md → Agent Instructions)_
 - Curly braces `{` `}` in instructions are evaluated as Power Fx — JSON examples will break. Use key=value notation instead. _(See constraints.md → Agent Instructions)_
 - Instruction accumulation causes regressions — fix is structural, not textual. _(See prompt-engineering.md → The Instruction Accumulation Trap)_
@@ -131,7 +131,7 @@ Things that catch people out, behave unexpectedly, or aren't in the docs. For de
 - **Prompt-level model/temperature:** Prompt tools let makers choose the model and temperature in the prompt editor. This is the supported configuration surface — use it for any capability that needs specific model settings.
 - **ManualTaskInput `value` uses plain `Topic.xxx`** — no `=` prefix. Adding `=` causes `IdentifierNotRecognized` compile errors.
 - **CPS extension "Apply Changes" can disappear** from Command Palette after rapid edits. Fix: Cmd+Shift+P → "Developer: Reload Window". _(See troubleshooting.md → CPS Extension Issues)_
-- **Power Fx `Char()` is ASCII-only (1–255).** `UniChar()` may exist for Unicode but needs verification.
+- **Power Fx `Char()` is ASCII-only (1–255).** Use `UniChar()` for Unicode code points beyond 255.
 
 ### Action/Tool YAML Structure — Safe vs Untouchable Fields
 
@@ -223,7 +223,8 @@ The `description` in `mcs.metadata` is critical at scale — beyond 25 knowledge
 
 ```yaml
 cpsAgentKit: # Agent Workbench override — source of truth for the description
-  description: >- # SAFE to edit — pushed to Dataverse botcomponent.description by push-knowledge-descriptions.mjs
+  description:
+    >- # SAFE to edit — pushed to Dataverse botcomponent.description by push-knowledge-descriptions.mjs
     <description used by orchestrator for source selection>
 mcs.metadata:
   componentName: <file name> # UNTOUCHABLE — set by upload
@@ -237,14 +238,14 @@ For uploaded files the `mcs.metadata.description` is a platform placeholder. Edi
 
 ## Knowledge: Recommended Settings by Agent Type
 
-| Agent type | General knowledge | Web search | Selected sources | Citations | Main test |
-|---|---|---|---|---|---|
-| Controlled SME / policy | OFF | OFF | ON where possible | Required | Source isolation |
-| Digital twin / tone | Usually ON | Usually OFF | ON for persona topics | Optional for style, required for facts | Authority boundary |
-| Rubric / compliance | OFF | OFF | ON | Required | Golden sample / missing evidence |
-| Public web assistant | ON | ON | Optional | Strongly recommended | Freshness / source quality |
-| Internal helpdesk | Usually OFF or limited | OFF | ON for support domains | Required | Permissions |
-| Creative drafting | ON | Optional | Optional | Not always | Safety and tone |
+| Agent type              | General knowledge      | Web search  | Selected sources       | Citations                              | Main test                        |
+| ----------------------- | ---------------------- | ----------- | ---------------------- | -------------------------------------- | -------------------------------- |
+| Controlled SME / policy | OFF                    | OFF         | ON where possible      | Required                               | Source isolation                 |
+| Digital twin / tone     | Usually ON             | Usually OFF | ON for persona topics  | Optional for style, required for facts | Authority boundary               |
+| Rubric / compliance     | OFF                    | OFF         | ON                     | Required                               | Golden sample / missing evidence |
+| Public web assistant    | ON                     | ON          | Optional               | Strongly recommended                   | Freshness / source quality       |
+| Internal helpdesk       | Usually OFF or limited | OFF         | ON for support domains | Required                               | Permissions                      |
+| Creative drafting       | ON                     | Optional    | Optional               | Not always                             | Safety and tone                  |
 
 "General knowledge" = literal UI toggle **"Allow the AI to use its own general knowledge"** (Settings → Generative AI). Content moderation default is **High**; topic-level moderation overrides agent-level.
 

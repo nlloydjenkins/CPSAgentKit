@@ -2,7 +2,9 @@
 
 "Modern agents" is the name for the new generation of agents in Copilot Studio. They replace the classic orchestration model with a continuous reasoning loop, instruction-first authoring, and reusable skills. This file captures the architecture, building blocks, migration approach, and how modern agents relate to Workflows.
 
-Source: *Copilot Studio — Technical Deep Dive* (Copilot Acceleration Team); *Meet the new Copilot Studio* (techcommunity.microsoft.com); *What's new in Copilot Studio, May 2026* (microsoft.com).
+Source: _Copilot Studio — Technical Deep Dive_ (Copilot Acceleration Team); _Meet the new Copilot Studio_ (techcommunity.microsoft.com); _What's new in Copilot Studio, May 2026_ (microsoft.com).
+
+> **Terminology: "modern agents" vs "generative orchestration".** Most of the rest of this knowledge base is written in the earlier **generative-orchestration vs classic-orchestration** frame (the Settings → Generative AI toggle). "Modern agents" describes the newest Copilot Studio surface (continuous reasoning loop, instruction-first authoring, Skills, Workflows). Where a capability claim in this file conflicts with generative-orchestration-era guidance elsewhere — notably the code-interpreter sandbox (`constraints.md`), the "Allow general knowledge" grounding toggle (`knowledge-configuration.md`), system variables (`yaml-syntax.md`), and message/response intercept hooks (`../bestpractices/part3-agent-design.md` → Custom Triggers) — the two are describing different surfaces or product generations, not contradicting each other. Verify which surface your agent actually uses before applying either. These claims move fast; re-verify against current docs.
 
 ---
 
@@ -10,8 +12,8 @@ Source: *Copilot Studio — Technical Deep Dive* (Copilot Acceleration Team); *M
 
 Copilot Studio has two ways to build AI workloads. They are not an either-or choice — enterprise solutions combine both, and each can call the other.
 
-- **Agents** — mostly *adaptive*. Reason over context and decide the next step at runtime, where the path cannot be mapped up front. They call deterministic steps when a part of the work is fixed.
-- **Workflows** — mostly *deterministic*. Run a defined sequence the same way every time, where the process is predictable and repeatable. They call agents when a part of the work needs reasoning.
+- **Agents** — mostly _adaptive_. Reason over context and decide the next step at runtime, where the path cannot be mapped up front. They call deterministic steps when a part of the work is fixed.
+- **Workflows** — mostly _deterministic_. Run a defined sequence the same way every time, where the process is predictable and repeatable. They call agents when a part of the work needs reasoning.
 
 The design question is: **which part of a process should carry the load deterministically, and which should reason adaptively** — and how to combine the two. Workflows can call agents; agents can call workflows. The decision relies on what percentage of the process is known before runtime.
 
@@ -59,16 +61,16 @@ Modern agents complete real tasks the way a person would, closing gaps where cla
 
 Separate concerns: behavior, facts, actions, memory, code, procedures, and delegation. **Design rule: choose the smallest component that makes the behavior reliable, inspectable, and safe inside the loop.**
 
-| Component | Purpose | Notes |
-| --- | --- | --- |
-| **Instructions** | Role, tone, what not to say; how the agent drives conversation flow | Loads on *every* turn — keep lean |
-| **Knowledge** | Searchable docs, sites, files | Grounds answers |
-| **Tools / MCP servers** | Live lookups, APIs, MCP servers, CRUD | Act on systems |
-| **Memory** | Persistent context across sessions | User preferences and history |
-| **Code Interpreter** | Generate code on demand, data manipulation, file analysis/generation | Runs in a sandboxed container |
-| **Skills** | Instructions the agent loads on demand, plus bundled resources (`SKILL.md`) | Keeps top-level instructions lean; optimal for unique procedures |
-| **Skill supporting files** | Resources bundled with the skill (a zip), e.g. scripts | Loaded on demand when needed |
-| **Connected agents** | Delegate specialized scope only if needed; own instructions/tools/skills/knowledge | Useful for large sub-domains; splitting out *small* tasks does **not** improve accuracy |
+| Component                  | Purpose                                                                            | Notes                                                                                   |
+| -------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **Instructions**           | Role, tone, what not to say; how the agent drives conversation flow                | Loads on _every_ turn — keep lean                                                       |
+| **Knowledge**              | Searchable docs, sites, files                                                      | Grounds answers                                                                         |
+| **Tools / MCP servers**    | Live lookups, APIs, MCP servers, CRUD                                              | Act on systems                                                                          |
+| **Memory**                 | Persistent context across sessions                                                 | User preferences and history                                                            |
+| **Code Interpreter**       | Generate code on demand, data manipulation, file analysis/generation               | Runs in a sandboxed container                                                           |
+| **Skills**                 | Instructions the agent loads on demand, plus bundled resources (`SKILL.md`)        | Keeps top-level instructions lean; optimal for unique procedures                        |
+| **Skill supporting files** | Resources bundled with the skill (a zip), e.g. scripts                             | Loaded on demand when needed                                                            |
+| **Connected agents**       | Delegate specialized scope only if needed; own instructions/tools/skills/knowledge | Useful for large sub-domains; splitting out _small_ tasks does **not** improve accuracy |
 
 ---
 
@@ -83,9 +85,9 @@ Modern agents are highly adherent to their instructions, so they reliably do wha
 - **Set tone & voice** and shape response formatting.
 - **Shape the conversational flow** by directing the agent to ask the right questions at the right points.
 
-**Keep them lean.** Everything you keep loads on every single turn. Lean instructions stay predictable and leave room for the conversation. Move everything *situational* (things that only matter sometimes) out into a Skill.
+**Keep them lean.** Everything you keep loads on every single turn. Lean instructions stay predictable and leave room for the conversation. Move everything _situational_ (things that only matter sometimes) out into a Skill.
 
-> Instructions = what is true in *every* conversation. If it only matters sometimes, it belongs in a Skill.
+> Instructions = what is true in _every_ conversation. If it only matters sometimes, it belongs in a Skill.
 
 ---
 
@@ -121,19 +123,19 @@ Keep each Skill scenario-specific, name it precisely, and test that it fires.
 
 Most authoring and conversation logic maps onto instructions, skills, and tools. A few cases need a workaround or are on the roadmap.
 
-| What you want to do | In classic agents | In modern agents |
-| --- | --- | --- |
-| Drive the conversational flow | Authored topics + LLM-generated questions, one tool input at a time | Agent-level instructions and reusable skills; the agent decides what to ask and when |
-| Transform data | Inline Power Fx formulas | Code Interpreter or helper code in a tool/skill (Python — less low-code friendly than Power Fx); or delegate to a Workflow |
-| Use known context about the user (department, role, channel) | System / environment variables load user context deterministically | No system variables; instruct the agent to call a tool that fetches context before responding |
-| Intercept user messages / agent responses | System topics and triggers (On message received, On AI response generated) | **No general intercept point yet** — hooks are planned |
-| Display UI components | Adaptive Cards render a deterministic card | **Gap** — work ongoing to identify a rich UI component framework |
-| Capture user input via UI components | Adaptive Cards with input fields | **Gap** — same rich UI component work |
-| Measure | Analytics dashboards for builders | Work ongoing to enable both experiences |
-| Restrict to grounded knowledge only | Toggle to disable general/LLM knowledge | **By design not offered** — modern agents have autonomy to decide when to generate or ask |
-| Recover when a tool call fails | "Raise an Error" halts the topic → On Error system topic (message only); "Continue on error" skips silently | Agent reads the error, reasons about an alternative, and continues without stopping |
-| Read files and run real computation | Code Interpreter (preview): sandboxed, one file per prompt, no multi-turn, no network, timeouts, charts don't render in Teams/M365, off by default | Full Python runtime in an isolated container — no single-file limit, multi-turn, on by default, install any package, no network restrictions, charts render everywhere |
-| Package a complete multi-step task | All logic in a single 8,000-char instruction block; one tool per turn, no memory of a wider plan | A **Skill** packages the whole process as an importable unit: `SKILL.md` plan + hard no-call constraints + few-shot examples + bundled scripts. Base instructions stay lean; orchestrator loads the skill on demand, shared across agents |
+| What you want to do                                          | In classic agents                                                                                                                                  | In modern agents                                                                                                                                                                                                                          |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Drive the conversational flow                                | Authored topics + LLM-generated questions, one tool input at a time                                                                                | Agent-level instructions and reusable skills; the agent decides what to ask and when                                                                                                                                                      |
+| Transform data                                               | Inline Power Fx formulas                                                                                                                           | Code Interpreter or helper code in a tool/skill (Python — less low-code friendly than Power Fx); or delegate to a Workflow                                                                                                                |
+| Use known context about the user (department, role, channel) | System / environment variables load user context deterministically                                                                                 | No system variables; instruct the agent to call a tool that fetches context before responding                                                                                                                                             |
+| Intercept user messages / agent responses                    | System topics and triggers (On message received, On AI response generated)                                                                         | **No general intercept point yet** — hooks are planned                                                                                                                                                                                    |
+| Display UI components                                        | Adaptive Cards render a deterministic card                                                                                                         | **Gap** — work ongoing to identify a rich UI component framework                                                                                                                                                                          |
+| Capture user input via UI components                         | Adaptive Cards with input fields                                                                                                                   | **Gap** — same rich UI component work                                                                                                                                                                                                     |
+| Measure                                                      | Analytics dashboards for builders                                                                                                                  | Work ongoing to enable both experiences                                                                                                                                                                                                   |
+| Restrict to grounded knowledge only                          | Toggle to disable general/LLM knowledge                                                                                                            | **By design not offered** — modern agents have autonomy to decide when to generate or ask                                                                                                                                                 |
+| Recover when a tool call fails                               | "Raise an Error" halts the topic → On Error system topic (message only); "Continue on error" skips silently                                        | Agent reads the error, reasons about an alternative, and continues without stopping                                                                                                                                                       |
+| Read files and run real computation                          | Code Interpreter (preview): sandboxed, one file per prompt, no multi-turn, no network, timeouts, charts don't render in Teams/M365, off by default | Full Python runtime in an isolated container — no single-file limit, multi-turn, on by default, install any package, no network restrictions, charts render everywhere                                                                    |
+| Package a complete multi-step task                           | All logic in a single 8,000-char instruction block; one tool per turn, no memory of a wider plan                                                   | A **Skill** packages the whole process as an importable unit: `SKILL.md` plan + hard no-call constraints + few-shot examples + bundled scripts. Base instructions stay lean; orchestrator loads the skill on demand, shared across agents |
 
 **UI components are the main true gap.** Most other needs have a workaround or are on the roadmap.
 
@@ -141,20 +143,20 @@ Most authoring and conversation logic maps onto instructions, skills, and tools.
 
 ## Migration: Do Not Port — Re-Architect
 
-Translate authored behavior into components that work inside the modern agent loop. **Migrate capabilities, not components.** Ask: *what tasks must the agent accomplish?* — then translate what the agent must do into loop-ready components rather than copying building blocks one-for-one.
+Translate authored behavior into components that work inside the modern agent loop. **Migrate capabilities, not components.** Ask: _what tasks must the agent accomplish?_ — then translate what the agent must do into loop-ready components rather than copying building blocks one-for-one.
 
 ### Construct mapping
 
-| Classic construct | Modern target | Rationale |
-| --- | --- | --- |
-| **Topics** (authored conversational paths) | **Skills** (reusable context injected when needed) — plus a **Tool** when the topic mainly performs one action/lookup/deterministic function | Topics drive flow; reusable procedures become skills |
-| **Power Fx** (inline deterministic logic) | **Tool / skill helper code** | Move deterministic data-manipulation formulas into explicit code, referenced in instructions or a skill support file |
-| **Variables** (stored state) | **Conversation history / memory / Dataverse** | Short-lived context stays in the loop; durable task context → Dataverse; user context → memory; derived values → Code Interpreter |
-| **Child Agents** (specialized delegated expertise) | **Connected Agents** | Unchanged concept |
-| **Adaptive Cards** | Common, unchanged building block (still available) | — |
-| **Agent Flows** (automated deterministic steps) | **Workflows** (automation with native AI actions and agent handoffs) | Move prompts into inline agents |
-| **Fallback topic** | **Instructions + knowledge + evals** | Define fallback behavior, grounding strategy, and tests for unresolved intents |
-| Hooks | **Hooks (soon)** — trigger experience for code-first workflows | Roadmap |
+| Classic construct                                  | Modern target                                                                                                                                | Rationale                                                                                                                         |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Topics** (authored conversational paths)         | **Skills** (reusable context injected when needed) — plus a **Tool** when the topic mainly performs one action/lookup/deterministic function | Topics drive flow; reusable procedures become skills                                                                              |
+| **Power Fx** (inline deterministic logic)          | **Tool / skill helper code**                                                                                                                 | Move deterministic data-manipulation formulas into explicit code, referenced in instructions or a skill support file              |
+| **Variables** (stored state)                       | **Conversation history / memory / Dataverse**                                                                                                | Short-lived context stays in the loop; durable task context → Dataverse; user context → memory; derived values → Code Interpreter |
+| **Child Agents** (specialized delegated expertise) | **Connected Agents**                                                                                                                         | Unchanged concept                                                                                                                 |
+| **Adaptive Cards**                                 | Common, unchanged building block (still available)                                                                                           | —                                                                                                                                 |
+| **Agent Flows** (automated deterministic steps)    | **Workflows** (automation with native AI actions and agent handoffs)                                                                         | Move prompts into inline agents                                                                                                   |
+| **Fallback topic**                                 | **Instructions + knowledge + evals**                                                                                                         | Define fallback behavior, grounding strategy, and tests for unresolved intents                                                    |
+| Hooks                                              | **Hooks (soon)** — trigger experience for code-first workflows                                                                               | Roadmap                                                                                                                           |
 
 Knowledge, Tools, Code Interpreter, and Connected Agents are common, largely **unchanged** building blocks.
 
@@ -165,8 +167,8 @@ Knowledge, Tools, Code Interpreter, and Connected Agents are common, largely **u
 Take stock, then loop on refactoring until it meets its evals. **The migration is done when the agent can perform its core tasks — not when every old artifact has been mechanically copied.**
 
 1. **Understand the use case** — assigned tasks, outcomes to deliver, evals for what it must do, boundaries and risks, edge-case handling.
-2. **Inventory the existing agent** — its topics, flows, variables, and *why* each design choice was made.
-3. **Refactor and rebuild** — map assigned *tasks* (not components) into loop-native blocks; drop what is no longer needed.
+2. **Inventory the existing agent** — its topics, flows, variables, and _why_ each design choice was made.
+3. **Refactor and rebuild** — map assigned _tasks_ (not components) into loop-native blocks; drop what is no longer needed.
 4. **Evaluate and compare** — run the evals as a benchmark; compare old vs new on the core journeys.
 
 Loop steps 3–4 until evals pass.
@@ -179,22 +181,22 @@ Loop steps 3–4 until evals pass.
 
 Choosing the right foundation relies first on a good understanding of the process being transformed.
 
-- **Workflows suit processes where start and end points are known**, with variability happening at the *step* level. AI capabilities are embedded where a step needs reasoning or judgment.
-  - Example: *Expense Approval* — new entries may lead to a fast path or a policy check.
+- **Workflows suit processes where start and end points are known**, with variability happening at the _step_ level. AI capabilities are embedded where a step needs reasoning or judgment.
+  - Example: _Expense Approval_ — new entries may lead to a fast path or a policy check.
 - **Agents suit broad problem spaces** that cannot be fully mapped upfront. The orchestrator reasons over a loop and calls well-structured, repeatable steps (flows, code) for deterministic actions.
-  - Example: *Healthcare Intake* — advisory results from a multi-turn patient dialogue.
+  - Example: _Healthcare Intake_ — advisory results from a multi-turn patient dialogue.
 
 ### Goal-first vs agent-first mindset
 
 The shift from "agent by default, reasoning everywhere" (yesterday) to "you choose where AI earns its place" (today):
 
-| Question | Agent-first (yesterday) | Goal-first (today) |
-| --- | --- | --- |
-| Needs AI at all? | Reasoning everywhere | You choose where AI earns its place |
-| Who decides the steps? | Orchestrator works it out at runtime | You author the path yourself |
-| A step needs judgment? | Whole process is one agent | Add reasoning on just that step |
-| A step needs a tool? | Hand the tool to the agent; it decides when | You place the agent/tool on the step that needs it |
-| Which model runs it? | One model covers the hardest step | Each step picks the model that fits |
+| Question               | Agent-first (yesterday)                     | Goal-first (today)                                 |
+| ---------------------- | ------------------------------------------- | -------------------------------------------------- |
+| Needs AI at all?       | Reasoning everywhere                        | You choose where AI earns its place                |
+| Who decides the steps? | Orchestrator works it out at runtime        | You author the path yourself                       |
+| A step needs judgment? | Whole process is one agent                  | Add reasoning on just that step                    |
+| A step needs a tool?   | Hand the tool to the agent; it decides when | You place the agent/tool on the step that needs it |
+| Which model runs it?   | One model covers the hardest step           | Each step picks the model that fits                |
 
 The control spectrum runs from **deterministic classic automation** → **agentic workflow (controllable middle)** → **autonomous agent decides all (full autonomy)**.
 
@@ -226,12 +228,12 @@ Workflows keep the structure of agent flows and add the intelligence of agents �
 
 ### Mapping classic agent flows to modern workflows
 
-| What you want to do | In classic agent flows | In modern workflows |
-| --- | --- | --- |
-| Add AI reasoning at a specific step | Call an existing *published* agent via "Add an agent" (built/published separately first; no inline agents, no M365 agent support) | **Agent nodes** call a published agent *or* build a new **inline agent** in the node — instructions, tools, knowledge without leaving the canvas. M365 agents supported |
-| Test a single step | No node-level testing — run the whole flow every time | **Test node-by-node** on the canvas before publishing |
-| Pause for human input mid-process | Impossible synchronously (hard 100-second timeout) | Native **human-in-the-loop node** pauses and waits; resumes only when the human responds |
-| Run evaluations | No automated evaluation — manual, one conversation at a time | Run test sets of up to **20 cases** (import or AI-generated); multi-turn eval, activity maps, compare runs over time, export CSV, share read-only via Analytics Viewer role |
+| What you want to do                 | In classic agent flows                                                                                                            | In modern workflows                                                                                                                                                         |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Add AI reasoning at a specific step | Call an existing _published_ agent via "Add an agent" (built/published separately first; no inline agents, no M365 agent support) | **Agent nodes** call a published agent _or_ build a new **inline agent** in the node — instructions, tools, knowledge without leaving the canvas. M365 agents supported     |
+| Test a single step                  | No node-level testing — run the whole flow every time                                                                             | **Test node-by-node** on the canvas before publishing                                                                                                                       |
+| Pause for human input mid-process   | Impossible synchronously (hard 100-second timeout)                                                                                | Native **human-in-the-loop node** pauses and waits; resumes only when the human responds                                                                                    |
+| Run evaluations                     | No automated evaluation — manual, one conversation at a time                                                                      | Run test sets of up to **20 cases** (import or AI-generated); multi-turn eval, activity maps, compare runs over time, export CSV, share read-only via Analytics Viewer role |
 
 ### Choose the right level of intelligence per step
 
@@ -244,15 +246,15 @@ AI usage in a workflow step can go from none → lightweight (LLM-powered) → o
 
 ## Inline Agents vs Referenced Agents (in Workflows)
 
-Workflows can spin up an agent inside a single step. The design choice is whether to keep agent capabilities *in flow* or as a *standalone* asset.
+Workflows can spin up an agent inside a single step. The design choice is whether to keep agent capabilities _in flow_ or as a _standalone_ asset.
 
-| | **Inline agents** | **Referenced (published) agents** |
-| --- | --- | --- |
-| Shape | An action inside a workflow (Agents connector) | A published CPS agent (Agents connector); a 1P Copilot agent or Declarative Agent (M365 Copilot connector) |
-| Starts with | A workflow calls it from an Agent node | A user conversation in a channel, **or** a workflow calling it from an Agent node |
-| Lives in | A flow object | An agent object |
-| Building blocks | Modern agent components: Instructions, Knowledge, Tools/MCP, Code Interpreter. **Skills not included yet** (roadmap) | Custom agents (modern or classic components); DAs in Agent Builder (Knowledge, Copilot connectors, Work IQ) |
-| Use when | The agent serves a single process step; portability/reuse not needed; human input only disambiguates; lightweight (a prompt, or slightly extended with tools) | Functionality is reusable across processes; a human may need it on-demand; benefits from multi-agent orchestration; specialized agents already exist (Researcher, Analyst) |
+|                 | **Inline agents**                                                                                                                                             | **Referenced (published) agents**                                                                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shape           | An action inside a workflow (Agents connector)                                                                                                                | A published CPS agent (Agents connector); a 1P Copilot agent or Declarative Agent (M365 Copilot connector)                                                                 |
+| Starts with     | A workflow calls it from an Agent node                                                                                                                        | A user conversation in a channel, **or** a workflow calling it from an Agent node                                                                                          |
+| Lives in        | A flow object                                                                                                                                                 | An agent object                                                                                                                                                            |
+| Building blocks | Modern agent components: Instructions, Knowledge, Tools/MCP, Code Interpreter. **Skills not included yet** (roadmap)                                          | Custom agents (modern or classic components); DAs in Agent Builder (Knowledge, Copilot connectors, Work IQ)                                                                |
+| Use when        | The agent serves a single process step; portability/reuse not needed; human input only disambiguates; lightweight (a prompt, or slightly extended with tools) | Functionality is reusable across processes; a human may need it on-demand; benefits from multi-agent orchestration; specialized agents already exist (Researcher, Analyst) |
 
 **Rule of thumb:** use inline agents for custom AI needs in a flow step; standalone agents for reusable custom AI; M365 nodes when the task suits specialized Copilot agents.
 
@@ -269,7 +271,7 @@ Calibrated human gates place oversight mid-run where it is truly needed. Balance
   - **Approvals** — Approve/Reject, option sets, via the Microsoft Teams approval hub.
   - **Customizable Input** — post an Adaptive Card and wait; rich interactive JSON payload.
   - **Send email with options** — list of choices via the Outlook 365 pre-built connector.
-- **HITL by judgment** — the agent decides. *Request assistance* inside agent nodes: the agent reasons and requests human assistance when unsure.
+- **HITL by judgment** — the agent decides. _Request assistance_ inside agent nodes: the agent reasons and requests human assistance when unsure.
 
 **Mechanics:** hit decision point → notify human → pause execution and wait → human replies → collect input and resume.
 

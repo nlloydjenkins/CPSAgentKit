@@ -206,4 +206,4 @@ The channel description provides instruction for intent recognition between doma
 - Set primary and secondary languages for the agent
 - In generative orchestration, the agent automatically determines user language from client/browser language
 - Generated content is in the currently active language
-- **Generative orchestration is currently English-only for the orchestration layer** — the planning and decision-making happens in English even if the agent responds in another language
+- **Generative orchestration is multilingual** — generative answers, orchestration, and user language support ~40 languages (GA plus some in preview; see Microsoft's Language support list). **Event triggers support only English (en-US)**, so autonomous/event-triggered agents are effectively English-only for the trigger.

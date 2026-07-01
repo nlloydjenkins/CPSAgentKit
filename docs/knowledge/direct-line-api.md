@@ -94,15 +94,16 @@ Returns the bot's reply synchronously in `activities[]`.
 
 ## Key Values
 
-| Value             | Where to find it                                                                   |
-| ----------------- | ---------------------------------------------------------------------------------- |
-| `APP_ID`          | Output of `az ad app create` or Azure Portal → App registrations                   |
-| `ENV_HOSTNAME`    | Power Platform admin center → Environment → URL (e.g., `org1234.crm.dynamics.com`) |
-| `BOT_SCHEMA_NAME` | Copilot Studio → Agent → Details → Schema name                                     |
-| `TENANT_ID`       | Azure Portal → Microsoft Entra ID → Overview                                       |
+| Value             | Where to find it                                                                                                                                                                                                                                                                              |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `APP_ID`          | Output of `az ad app create` or Azure Portal → App registrations                                                                                                                                                                                                                              |
+| `ENV_HOSTNAME`    | Host for the API calls. **Verify which host your surface needs — see the host caution in Gotchas.** This Dataverse-backed path uses the environment host; the Direct Line surface in `whitepapers/direct-line-api-testing.md` uses a different host on `*.environment.api.powerplatform.com`. |
+| `BOT_SCHEMA_NAME` | Copilot Studio → Agent → Details → Schema name                                                                                                                                                                                                                                                |
+| `TENANT_ID`       | Azure Portal → Microsoft Entra ID → Overview                                                                                                                                                                                                                                                  |
 
 ## Gotchas
 
+- **Host discrepancy — verify before you start.** This page documents the Dataverse-backed authenticated endpoint (`/copilotstudio/dataverse-backed/authenticated/bots/...`). The `whitepapers/direct-line-api-testing.md` guide (updated May 2026) documents a Direct Line surface whose host is derived from the environment ID on `*.environment.api.powerplatform.com`, and explicitly warns that the `*.crm.dynamics.com` org URL returns HTML/400/404. These are different API surfaces — confirm which one your scenario requires, and if the host in this page does not work, use the whitepaper's derivation.
 - The scope is `CopilotStudio.Copilots.Invoke`, NOT the generic `Copilots.Invoke` — wrong scope gives a 403.
 - Send and receive is a **single POST** to the conversation URL — there is no separate `/activities` endpoint for the Dataverse-backed API.
 - The agent must be **published** in Copilot Studio before the Direct Line API can reach it (`LatestPublishedVersionNotFound` error otherwise).

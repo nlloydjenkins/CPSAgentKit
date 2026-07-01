@@ -38,7 +38,7 @@ ALM is the single biggest pain point for enterprise Copilot Studio deployments. 
 
 **Customer Managed Keys (CMK):** Environments with CMK enabled may restrict delegated credentials in generative orchestration — verify per-tenant before deploying agents that require end-user identity delegation.
 
-**Data residency:** Copilot Studio stores data in the Dataverse environment's geo. Agents invoking Azure OpenAI Service may route model inference to a different region based on model availability and capacity. Confirm data-processing geography for each model tier (GPT-4.1 mini GA vs GPT-5 experimental) and document the resulting data-flow map for compliance review.
+**Data residency:** Copilot Studio stores data in the Dataverse environment's geo. Agents invoking Azure OpenAI Service may route model inference to a different region based on model availability and capacity. Confirm data-processing geography for each model tier (e.g. GPT-5 for generative orchestration, GPT-4.1 for AI Prompts) and document the resulting data-flow map for compliance review.
 
 **Environment-per-team vs shared:** For enterprises with strict data isolation requirements, consider one environment per agent team. For shared environments, rely on Dataverse security roles and column-level security to segment data.
 

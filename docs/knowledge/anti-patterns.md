@@ -22,7 +22,7 @@
 
 **Circular agent dependencies.** A → B → A is blocked. Use hub-and-spoke with a central router.
 
-**Relying on conversation history for state.** The orchestrator only sees 10 turns. Store critical state in variables.
+**Relying on conversation history for state.** The orchestrator references only the last ~10 turns (per Microsoft's generative-orchestration FAQ). Store critical state in variables.
 
 ## Prompt Anti-Patterns
 

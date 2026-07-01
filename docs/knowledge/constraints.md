@@ -2,8 +2,8 @@
 
 ## Orchestration
 
-- Generative orchestration: English-only
-- Conversation history: last 10 turns visible to the orchestrator. Earlier context is dropped.
+- Generative orchestration: multilingual. Generative answers, orchestration, and user language support ~40 languages (GA plus some in preview; see Microsoft's Language support list). **Event triggers, however, support only English (en-US)** — so autonomous/event-triggered agents are effectively English-only for the trigger.
+- Conversation history: the orchestrator references the **last 10 turns** (per Microsoft's generative-orchestration FAQ; the orchestration overview describes it more loosely as "limited"). Earlier context is dropped — store critical state in variables.
 - Tool limit: 128 hard max, 25-30 recommended. Beyond 30, routing quality degrades — agent ignores instructions, misroutes, makes unnecessary calls.
 - When switching from classic to generative: Conversational Boosting system topic is bypassed. Custom data sources, Bing Custom Search in that topic — all ignored.
 - Multiple Topics Matched system topic does not fire in generative mode.
@@ -110,6 +110,8 @@ For autonomous pipelines (no user to prompt), every input must be either "Dynami
 - **Curly braces are evaluated as Power Fx expressions.** CPS evaluates `{` and `}` in the `instructions` field as Power Fx interpolation. JSON examples in instructions (e.g. `{"key": "value"}`) will cause parse errors or unexpected behavior. Only `{System.Bot.Components...}` references are valid. Use `key=value` notation or prose descriptions instead of JSON examples.
 
 ## Code Interpreter
+
+> **Surface scope.** This describes the **prompt-tool** code interpreter. The newer "modern agent" code-interpreter container is documented as a fuller Python runtime (see `modern-agents.md` → Mapping Classic Capabilities). The stdlib-only limit below applies to the prompt-tool sandbox — verify which surface your agent uses.
 
 - **Stdlib-only sandbox.** The code interpreter available to prompt tools runs a Python sandbox restricted to the standard library. External packages (`bs4`, `pandas`, `nltk`, `numpy`, `requests`, etc.) are not installed. Prompts that instruct execution requiring third-party libraries crash with `No module named 'X'`.
 - **Exception: PyMuPDF (`fitz`) is available** and is the preferred library for PDF-to-text/HTML conversion (10-20x faster than alternatives). `pdfminer.six` is also available but extremely slow (3-5 minutes for 10 pages). Always test library availability in the sandbox before committing to a code-interpreter-dependent design.
@@ -242,7 +244,7 @@ Agent Flow `workflow.json` files are owned by Power Automate, not by Copilot Stu
 - **Orchestration mode:** Toggle between generative and classic orchestration in Settings > Generative AI. Changing takes time to apply — publish after changing to confirm.
 - **Deep reasoning:** Optional capability for complex reasoning at higher credit cost. Evaluate before enabling.
 - **Channel description:** Separate from the main instructions field — governs how the agent behaves in Teams/M365 Copilot. Important for multi-domain agents (HR + IT) to ensure accurate intent routing.
-- **Multi-language:** Generative orchestration is English-only for the orchestration layer — planning happens in English even if the agent responds in another language.
+- **Multi-language:** Generative orchestration is multilingual — generative answers, orchestration, and user language support ~40 languages (GA plus some in preview; see Microsoft's Language support list). Generated content is in the agent's currently active primary/secondary language. **Event triggers support only English (en-US)**, so autonomous/event-triggered agents are effectively English-only for the trigger.
 
 ## Settings Coherence
 

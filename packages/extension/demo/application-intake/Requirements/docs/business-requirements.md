@@ -55,7 +55,7 @@ The solution should use multiple specialist agents coordinated by a parent orche
 
 ## Languages
 
-- English only (generative orchestration is English-only).
+- English only (event triggers are English (en-US) only; generative orchestration itself supports ~40 languages).
 
 ## Compliance and Data
 
